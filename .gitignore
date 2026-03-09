@@ -8,3 +8,4 @@
 "*.log"  
 "temp*.txt"  
 "test.json"  
+.env

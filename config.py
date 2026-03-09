@@ -5,6 +5,9 @@
 import os
 import sys
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # === ЛОГИРОВАНИЕ ===
 LOG_FILE = "./cyberteacher.log"

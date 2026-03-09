@@ -2,7 +2,7 @@ import os
 import sqlite3
 from enum import Enum
 from dataclasses import dataclass
-from handlers import handle_command
+from handlers import handle_commands
 
 # === МОДУЛИ ===
 from config import (
@@ -163,8 +163,8 @@ def main():
             pass
 
         # Обработка команд
-        continue_loop, new_mode, new_level, action_taken = handle_command(
-            user_input, vectordb, conn, current_mode, student_level, get_llm
+        continue_loop, new_mode, new_level, action_taken = handle_commands(
+            user_input, conn, get_llm, current_mode, student_level
         )
 
         if action_taken:
