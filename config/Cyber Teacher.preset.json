@@ -1,0 +1,67 @@
+{
+  "identifier": "@local:cyber-teacher",
+  "name": "Cyber-Teacher",
+  "changed": true,
+  "operation": {
+    "fields": [
+      {
+        "key": "llm.prediction.temperature",
+        "value": 0.7
+      },
+      {
+        "key": "llm.prediction.llama.cpuThreads",
+        "value": 8
+      },
+      {
+        "key": "llm.prediction.contextOverflowPolicy",
+        "value": "rollingWindow"
+      },
+      {
+        "key": "llm.prediction.systemPrompt",
+        "value": "Ты - опытный хакер и учитель кибербезопасности. Объясняешь просто, с примерами команд. Отвечай кратко (2-3 предложения). Давай подсказки, а не готовые ответы. Если не знаешь - честно признавайся. Всегда на русском языке."
+      },
+      {
+        "key": "llm.prediction.ctxLength",
+        "value": 8192
+      },
+      {
+        "key": "llm.prediction.maxPredictedTokens",
+        "value": {
+          "checked": true,
+          "value": 512
+        }
+      },
+      {
+        "key": "llm.prediction.keepAlive",
+        "value": {
+          "checked": true,
+          "value": 300
+        }
+      },
+      {
+        "key": "llm.prediction.temperature",
+        "value": 0.7
+      },
+      {
+        "key": "llm.prediction.top_k",
+        "value": 20
+      },
+      {
+        "key": "llm.prediction.top_p",
+        "value": 0.9
+      },
+      {
+        "key": "llm.prediction.repeatPenalty",
+        "value": 1.1
+      }
+    ]
+  },
+  "load": {
+    "fields": [
+      {
+        "key": "model_path",
+        "value": "Qwen/Qwen2.5-3B-Instruct.Q2_K.gguf"
+      }
+    ]
+  }
+}
