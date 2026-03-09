@@ -15,6 +15,12 @@ class OllamaClient:
     """Клиент для Ollama через curl, оптимизированный для Windows"""
     
     def __init__(self, model: str = "qwen2.5:7b", temperature: float = 0.3, cache_size: int = 100):
+        """
+        Args:
+            model: Имя модели Ollama
+            temperature: Температура генерации (0.0-1.0)
+            cache_size: Размер кэша в памяти (количество промптов)
+        """
         self.model = model
         self.temperature = temperature
         self.streaming_mode = True
@@ -30,7 +36,20 @@ class OllamaClient:
             yield type('obj', (object,), {'content': word + ' '})()
 
     def invoke(self, prompt: str) -> str:
-        """Отправить запрос к Ollama через временный файл и curl"""
+        """
+        Отправить запрос к Ollama с кэшированием.
+        
+        Args:
+            prompt: Текст запроса пользователя (с системным промптом уже включен)
+            
+        Returns:
+            Ответ модели или сообщение об ошибке
+        """
+        if not prompt or not prompt.strip():
+            return "Ошибка: пустой промпт"
+        
+        prompt = prompt[:8000]  # Ограничиваем длину промпта
+        
         import hashlib
         cache_key = hashlib.md5(prompt.encode('utf-8')).hexdigest()
         if cache_key in self._cache:

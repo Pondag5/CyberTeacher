@@ -289,21 +289,22 @@ def handle_extended_commands(action: str, LLM: Any):
         return True, None, None, False
 
 
-def handle_history(conn):
-    """Показать последние сообщения чата"""
+def handle_history(conn) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Показать последние 10 сообщений чата."""
     try:
         from memory import get_chat_history
         history = get_chat_history(conn, limit=10)
         if not history:
             console.print("[yellow]История чата пуста[/yellow]")
         else:
-            console.print(Panel("\n".join([f"[bold]{m['role']}:[/bold] {m['content'][:100]}" for m in history[::-1]]), title="📜 История (последние 10)"))
+            lines = [f"[bold]{m['role']}:[/bold] {m['content'][:100]}" for m in history[::-1]]
+            console.print(Panel("\n".join(lines), title="📜 История (последние 10)"))
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
 
-def handle_version():
-    """Показать версию проекта"""
+def handle_version() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Показать версию проекта и последний коммит."""
     try:
         import subprocess
         result = subprocess.run(['git', 'log', '-1', '--pretty=format:%h %s'], capture_output=True, text=True, timeout=5)
@@ -312,7 +313,7 @@ def handle_version():
             console.print(Panel(f"CyberTeacher v3.2\n[cyan]{commit}[/cyan]", title="Версия"))
         else:
             console.print(Panel("CyberTeacher v3.2\nGit недоступен", title="Версия"))
-    except:
+    except Exception:
         console.print(Panel("CyberTeacher v3.2", title="Версия"))
     return True, None, None, True
 
