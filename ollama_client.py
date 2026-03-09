@@ -14,11 +14,13 @@ logger = logging.getLogger(__name__)
 class OllamaClient:
     """Клиент для Ollama через curl, оптимизированный для Windows"""
     
-    def __init__(self, model: str = "qwen2.5:7b", temperature: float = 0.3):
+    def __init__(self, model: str = "qwen2.5:7b", temperature: float = 0.3, cache_size: int = 100):
         self.model = model
         self.temperature = temperature
         self.streaming_mode = True
         self.max_tokens = 512
+        self._cache = {}
+        self._cache_size = cache_size
 
     def stream(self, prompt: str) -> Generator[Any, None, None]:
         """Эмуляция потоковой передачи для совместимости с интерфейсом"""
@@ -29,8 +31,11 @@ class OllamaClient:
 
     def invoke(self, prompt: str) -> str:
         """Отправить запрос к Ollama через временный файл и curl"""
-        # Формируем структуру запроса. 
-        # Мы не добавляем системный промпт здесь, так как main.py передает его в prompt
+        import hashlib
+        cache_key = hashlib.md5(prompt.encode('utf-8')).hexdigest()
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+        
         data = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
@@ -38,52 +43,48 @@ class OllamaClient:
             "stream": False
         }
         
-        # Используем контекстный менеджер для временного файла
         fd, path = tempfile.mkstemp(suffix='.json', text=True)
+        response_text = None
         try:
             with os.fdopen(fd, 'w', encoding='utf-8') as tmp:
                 json.dump(data, tmp, ensure_ascii=False)
             
-            # Вызываем curl. Важно: используем -d @путь для передачи файла
-            cmd = [
-                'curl', '-s', 
-                '-X', 'POST', 
-                'http://localhost:11434/v1/chat/completions',
-                '-H', 'Content-Type: application/json',
-                '-d', f'@{path}'
-            ]
+            cmd = ['curl', '-s', '-X', 'POST', 'http://localhost:11434/v1/chat/completions',
+                   '-H', 'Content-Type: application/json', '-d', f'@{path}']
             
             result = subprocess.run(
-                cmd, 
-                capture_output=True, 
-                text=True, 
-                encoding='utf-8', # Фикс кракозябр
-                errors='ignore',
-                timeout=120
+                cmd, capture_output=True, text=True, encoding='utf-8',
+                errors='ignore', timeout=120
             )
             
             if result.returncode != 0:
-                return f"Ошибка выполнения curl: {result.stderr}"
-            
-            if not result.stdout.strip():
-                return "Ошибка: Ollama вернула пустой ответ"
-                
-            resp_json = json.loads(result.stdout)
-            
-            if 'error' in resp_json:
-                return f"Ошибка Ollama: {resp_json['error'].get('message', 'Unknown error')}"
-                
-            return resp_json['choices'][0]['message']['content']
-            
+                response_text = f"Ошибка curl: {result.stderr}"
+            elif not result.stdout.strip():
+                response_text = "Ошибка: пустой ответ от Ollama"
+            else:
+                resp_json = json.loads(result.stdout)
+                if 'error' in resp_json:
+                    response_text = f"Ошибка Ollama: {resp_json['error'].get('message', 'Unknown error')}"
+                else:
+                    response_text = resp_json['choices'][0]['message']['content']
+                    
         except subprocess.TimeoutExpired:
-            return "Ошибка: Превышено время ожидания ответа от модели"
+            response_text = "Ошибка: таймаут"
         except json.JSONDecodeError:
-            return f"Ошибка парсинга ответа: {result.stdout[:200]}"
+            response_text = f"Ошибка парсинга JSON"
         except Exception as e:
-            return f"Критическая ошибка клиента: {e}"
+            response_text = f"Ошибка: {e}"
         finally:
             if os.path.exists(path):
                 os.remove(path)
+        
+        # Кэшируем только успешные ответы
+        if response_text and not response_text.startswith("Ошибка"):
+            self._cache[cache_key] = response_text
+            if len(self._cache) > self._cache_size:
+                self._cache.pop(next(iter(self._cache)))
+        
+        return response_text or "Ошибка: пустой ответ"
 
     def chat(self, prompt: str) -> str:
         return self.invoke(prompt)
