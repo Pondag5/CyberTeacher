@@ -338,49 +338,44 @@ def handle_extended_commands(action: str, LLM: Any):
         return handle_terminal_log(action[4:])
     elif action == "writeup":
         return handle_writeup()
+    elif action.startswith("add_book"):
+        return handle_add_book(action)
     else:
         # Не команда - отправим LLM
         return True, None, None, False
 
 
-def handle_history(conn) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
-    """Показать последние 10 сообщений чата."""
+def handle_add_book(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Добавить PDF книгу в базу знаний"""
     try:
-        from memory import get_chat_history
-
-        history = get_chat_history(conn, limit=10)
-        if not history:
-            console.print("[yellow]История чата пуста[/yellow]")
-        else:
-            lines = [
-                f"[bold]{m['role']}:[/bold] {m['content'][:100]}" for m in history[::-1]
-            ]
-            console.print(Panel("\n".join(lines), title="📜 История (последние 10)"))
+        parts = action.split(maxsplit=1)
+        if len(parts) < 2:
+            console.print("[yellow]Использование: /add_book <путь_к_PDF>[/yellow]")
+            return True, None, None, True
+        
+        src_path = parts[1].strip()
+        if not os.path.exists(src_path):
+            console.print(f"[red]Файл не найден: {src_path}[/red]")
+            return True, None, None, True
+        
+        if not src_path.lower().endswith('.pdf'):
+            console.print("[yellow]Поддерживаются только PDF файлы[/yellow]")
+            return True, None, None, True
+        
+        import shutil
+        filename = os.path.basename(src_path)
+        dst_path = os.path.join(KNOWLEDGE_DIR, filename)
+        
+        if os.path.exists(dst_path):
+            console.print(f"[yellow]Файл уже существует: {filename}[/yellow]")
+            return True, None, None, True
+        
+        shutil.copy2(src_path, dst_path)
+        console.print(f"[green]✓ Книга добавлена: {filename}[/green]")
+        console.print("[cyan]Перезапустите приложение или запустите переиндексацию чтобы обновить базу.[/cyan]")
+        
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
-    return True, None, None, True
-
-
-def handle_version() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
-    """Показать версию проекта и последний коммит."""
-    try:
-        import subprocess
-
-        result = subprocess.run(
-            ["git", "log", "-1", "--pretty=format:%h %s"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0:
-            commit = result.stdout.strip()
-            console.print(
-                Panel(f"CyberTeacher v3.2\n[cyan]{commit}[/cyan]", title="Версия")
-            )
-        else:
-            console.print(Panel("CyberTeacher v3.2\nGit недоступен", title="Версия"))
-    except Exception:
-        console.print(Panel("CyberTeacher v3.2", title="Версия"))
     return True, None, None, True
 
 
