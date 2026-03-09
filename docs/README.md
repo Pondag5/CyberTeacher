@@ -6,10 +6,28 @@
 
 ## 🎯 О ПРОЕКТЕ
 
-- **Модель:** Ollama (qwen2.5:7b)
+- **LLM провайдер:** Ollama (локально) или OpenRouter (облако)
+- **Модель:** qwen2.5:7b (Ollama) или mistral-7b (OpenRouter)
 - **RAG:** Chroma + sentence-transformers
 - **Учитель:** Хакер из 90-х (IRC, BBS, Zaxelon)
 - **Язык:** Русский
+
+---
+
+## 🔄 СМЕНА ПРОВАЙДЕРА LLM
+
+В `config.py` установи:
+
+```python
+LLM_PROVIDER = "ollama"   # локально (нужен Ollama)
+# или
+LLM_PROVIDER = "openrouter"   # облако (нужен API ключ)
+```
+
+Для **OpenRouter**:
+1. Получи ключ на https://openrouter.ai/keys
+2. Заполни `OPENROUTER_API_KEY` в `config.py` или через переменную окружения
+3. Выбери модель: `OPENROUTER_MODEL = "mistralai/mixtral-8x7b-instruct"` (бесплатно) или другую
 
 ---
 
