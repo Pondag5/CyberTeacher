@@ -22,6 +22,12 @@ from code_review import code_review_function
 
 # Knowledge base status
 from knowledge import get_knowledge_status
+# Assignment generator
+try:
+    from assignment_generator import generate_assignment, AssignmentGenerator
+    ASSIGNMENT_GEN_AVAILABLE = True
+except ImportError:
+    ASSIGNMENT_GEN_AVAILABLE = False
 
 # Config
 from config import KNOWLEDGE_DIR, RESPONSE_CACHE_SIZE, RESPONSE_CACHE_FILE
@@ -257,6 +263,66 @@ def handle_mode(
         elif action == "check_kb":
             report = audit_knowledge_base()
             console.print(report, title="🧪 АУДИТ ЗНАНИЙ", border="cyan")
+        elif action == "genassignment":
+            if not ASSIGNMENT_GEN_AVAILABLE:
+                console.print("[yellow]Модуль генератора заданий не доступен. Установите зависимости.[/yellow]")
+                return True, mode, student_level, True
+            
+            # Парсим аргументы: /genassignment <topic> [type] [difficulty]
+            parts = action.split()
+            if len(parts) < 2:
+                console.print("[cyan]Использование: /genassignment <topic> [type] [difficulty][/cyan]")
+                console.print("Пример: /genassignment 'SQL Injection' ctf intermediate")
+                console.print("Типы: ctf, lab, exercise | Сложность: beginner, intermediate, advanced")
+                return True, mode, student_level, True
+            
+            topic = parts[1]
+            a_type = parts[2] if len(parts) > 2 else random.choice(list(AssignmentGenerator.ASSIGNMENT_TYPES.keys()))
+            difficulty = parts[3] if len(parts) > 3 else "intermediate"
+            
+            if a_type not in AssignmentGenerator.ASSIGNMENT_TYPES:
+                console.print(f"[yellow]Неизвестный тип '{a_type}'. Доступные: {', '.join(AssignmentGenerator.ASSIGNMENT_TYPES.keys())}[/yellow]")
+                return True, mode, student_level, True
+            
+            console.print(f"[cyan]Генерирую задание по теме '{topic}'...[/cyan]")
+            try:
+                assignment = generate_assignment(topic, difficulty=difficulty, assignment_type=a_type)
+                
+                console.print(f"\n[bold green]📝 Задание сгенерировано![/bold green]")
+                console.print(f"[bold]ID:[/bold] {assignment['id']}")
+                console.print(f"[bold]Тип:[/bold] {AssignmentGenerator.ASSIGNMENT_TYPES[a_type]['name']}")
+                console.print(f"[bold]Сложность:[/bold] {difficulty} | [bold]Очки:[/bold] {assignment['points']}")
+                console.print(f"[bold]Оценка времени:[/bold] {assignment['time_estimate']}\n")
+                
+                console.print("[bold]📌 Заголовок:[/bold]")
+                console.print(assignment['title'])
+                console.print("\n[bold]📋 Описание:[/bold]")
+                console.print(assignment['description'])
+                console.print("\n[bold]🎯 Сценарий:[/bold]")
+                console.print(assignment['scenario'])
+                
+                if assignment.get('flags'):
+                    console.print("\n[bold]🚩 Флаги:[/bold]")
+                    for flag in assignment['flags']:
+                        console.print(f"  • {flag}")
+                
+                console.print("\n[bold]💡 Подсказки:[/bold]")
+                for i, hint in enumerate(assignment.get('hints', [])[:3], 1):
+                    console.print(f"  {i}. {hint}")
+                
+                console.print("\n[bold]🛠️ Ресурсы:[/bold]")
+                for resource in assignment.get('resources', [])[:5]:
+                    console.print(f"  • {resource}")
+                
+                if assignment.get('solution'):
+                    console.print("\n[bold]✅ Решение:[/bold]")
+                    console.print(assignment['solution'])
+                
+            except Exception as e:
+                console.print(f"[red]Ошибка генерации задания: {e}[/red]")
+                import traceback
+                traceback.print_exc()
+        
         return True, mode, student_level, True
     return True, mode, student_level, True
 
