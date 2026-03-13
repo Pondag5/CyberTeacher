@@ -1,11 +1,24 @@
-"# CyberTeacher"  
-"__pycache__/"  
-"*.pyc"  
-".venv/"  
-"memory/"  
-"embeddings/"  
-"*.db"  
-"*.log"  
-"temp*.txt"  
-"test.json"  
+# CyberTeacher
+__pycache__/
+*.pyc
+.venv/
+memory/
+embeddings/
+*.db
+*.log
+temp*.txt
+test.json
 .env
+
+# Вложенные git-репозитории (не добавлять)
+/book_new/CheatSheetSeries/
+/book_new/OWASP-Testing-Guide/
+/book_new/container-security-checklist/
+/book_new/dostackbufferoverflowgood/
+/book_new/owasp-mstg/
+/temp_cheatsheets/
+
+# Системные файлы
+nul
+Thumbs.db
+.DS_Store

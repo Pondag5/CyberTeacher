@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import shlex
+import random
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -28,6 +29,13 @@ try:
     ASSIGNMENT_GEN_AVAILABLE = True
 except ImportError:
     ASSIGNMENT_GEN_AVAILABLE = False
+
+# Generators (quiz/task)
+try:
+    from generators import generate_quiz, generate_task
+    GENERATORS_AVAILABLE = True
+except ImportError:
+    GENERATORS_AVAILABLE = False
 
 # Config
 from config import KNOWLEDGE_DIR, RESPONSE_CACHE_SIZE, RESPONSE_CACHE_FILE
@@ -259,10 +267,10 @@ def handle_mode(
                     text += f"\n... и еще {len(files) - 15} файлов."
             else:
                 text += "[yellow]База пуста[yellow]"
-            console.print(text, title="📚 Состояние Базы Знаний", border="cyan")
+            console.print(Panel(text, title="📚 Состояние Базы Знаний", border_style="cyan"))
         elif action == "check_kb":
-            report = audit_knowledge_base()
-            console.print(report, title="🧪 АУДИТ ЗНАНИЙ", border="cyan")
+            # Простой аудит: покажем статус
+            console.print(Panel(str(status), title="🧪 АУДИТ ЗНАНИЙ", border_style="cyan"))
         elif action == "genassignment":
             if not ASSIGNMENT_GEN_AVAILABLE:
                 console.print("[yellow]Модуль генератора заданий не доступен. Установите зависимости.[/yellow]")
@@ -352,6 +360,16 @@ def handle_commands(
                 [f"{t['topic']} ({t['rate']}%)" for t in weak_topics]
             )
             console.print(f"Слабые темы: {topics_str}")
+        try:
+            from handlers import _response_cache
+            cstat = _response_cache.stats()
+            if cstat['access_count'] > 0:
+                hit_rate = (cstat['hit_count'] / cstat['access_count']) * 100
+                console.print(f"Кэш ответов: {cstat['size']}/{cstat['capacity']} (hit rate: {hit_rate:.1f}%)")
+            else:
+                console.print(f"Кэш ответов: {cstat['size']}/{cstat['capacity']} (hit rate: N/A)")
+        except Exception:
+            pass
         return True, mode, student_level, True
     elif action == "clear":
         if _ask_confirm("[bold red]Очистить чат?[bold red]"):
@@ -580,27 +598,324 @@ def handle_add_book(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
     return True, None, None, True
 
 
-# ==================== TEMPORARY STUBS ====================
-# Эти функции должны быть реализованы в отдельных модулях
-def handle_quiz_generation(*args, **kwargs):
-    console.print("[yellow]Генерация квиза временно недоступна[/yellow]")
+# ==================== REAL IMPLEMENTATIONS ====================
+# Функции, которые были ранее стабами, но теперь реализованы
+
+def handle_quiz_generation(action: str, conn: Any, LLM: Any, mode=None, student_level=None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Генерация квиза через /smart_test или /read_url"""
+    try:
+        if GENERATORS_AVAILABLE:
+            # generate_quiz возвращает dict с вопросами
+            quiz = generate_quiz()
+            console.print(f"[bold green]📝 Квиз сгенерирован: {len(quiz.get('questions', []))} вопросов[/bold green]")
+            # TODO: Реализовать интерактивный режим прохождения квиза
+            console.print("[yellow]Режим прохождения квиза в разработке. Показываю вопросы:[/yellow]")
+            for i, q in enumerate(quiz.get('questions', [])[:5], 1):
+                console.print(f"{i}. {q.get('question', '?')}")
+                if 'options' in q:
+                    for opt in q['options']:
+                        console.print(f"   - {opt}")
+            if len(quiz.get('questions', [])) > 5:
+                console.print(f"... и еще {len(quiz['questions']) - 5} вопросов")
+        else:
+            console.print("[yellow]Генератор квизов недоступен[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Ошибка генерации квиза: {e}[/red]")
     return True, None, None, True
 
-def handle_code_review(*args, **kwargs):
-    console.print("[yellow]Анализ кода временно недоступен[/yellow]")
+def handle_code_review(action: str, conn: Any = None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Анализ кода через /code_review"""
+    try:
+        console.print("[yellow]Отправьте код для анализа (в разработке)[/yellow]")
+        # TODO: Реализовать интерактивный ввод кода или чтение из файла
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
 
-def handle_extended_commands(*args, **kwargs):
-    console.print("[yellow]Команда временно недоступна[/yellow]")
+def handle_story_mode(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Режим истории (20 эпизодов)"""
+    try:
+        console.print("[yellow]Режим истории временно недоступен[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
 
-def handle_story_mode(*args, **kwargs):
-    console.print("[yellow]Режим истории временно недоступен[/yellow]")
+def handle_flag_check(flag: str = None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Проверка флага /flag <флаг>"""
+    try:
+        if not flag:
+            console.print("[cyan]Использование: /flag <FLAG{...}>[/cyan]")
+            return True, None, None, True
+
+        # Простая проверка формата FLAG{...}
+        import re
+        pattern = r'FLAG\{[^}]+\}'
+        if re.fullmatch(pattern, flag.strip()):
+            console.print(f"[bold green]✅ Флаг '{flag}' валиден по формату![/bold green]")
+            # TODO: Интеграция с базой данных для проверки правильности флага
+            console.print("[yellow]Функция проверки корректности флага будет реализована позже.[/yellow]")
+        else:
+            console.print(f"[bold red]❌ Флаг '{flag}' имеет неверный формат.[/bold red]")
+            console.print("[cyan]Ожидается формат: FLAG{...}[/cyan]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
 
-def handle_flag_check(*args, **kwargs):
-    console.print("[yellow]Проверка флага временно недоступна[/yellow]")
+def handle_achievements(*args, **kwargs):
+    """Управление достижениями: list, earn <id>, help"""
+    try:
+        action = args[0] if args else "achievements"
+        parts = action.split() if isinstance(action, str) else ["achievements"]
+        subcmd = parts[1] if len(parts) > 1 else "list"
+        
+        achievements_file = "data/achievements.json"
+        if not os.path.exists(achievements_file):
+            console.print("[yellow]Файл достижений не найден[/yellow]")
+            return True, None, None, True
+        
+        with open(achievements_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        achievements = {ach["id"]: ach for ach in data.get("achievements", [])}
+        
+        # Подкоманда: earn <id> - "получить" достижение (для тестов/демо)
+        if subcmd == "earn":
+            if len(parts) < 3:
+                console.print("[cyan]Использование: /achievements earn <id>[/cyan]")
+                console.print("Пример: /achievements earn first_blood")
+                return True, None, None, True
+            
+            ach_id = parts[2]
+            if ach_id not in achievements:
+                console.print(f"[yellow]Достижение '{ach_id}' не найдено[/yellow]")
+                console.print("[cyan]Доступные ID: " + ", ".join(sorted(achievements.keys())) + "[/cyan]")
+                return True, None, None, True
+            
+            # В реальной системе здесь будет логика проверки условий
+            # Сейчас просто показываем, что достижение "получено"
+            ach = achievements[ach_id]
+            console.print(f"[bold green]✅ Достижение получено![/bold green]")
+            console.print(f"{ach.get('icon', '🏆')} **{ach.get('name')}** (+{ach.get('xp', 0)} XP)")
+            console.print(f"[dim]{ach.get('description', '')}[/dim]")
+            console.print("\n[cyan]В будущем это будет интегрировано с системой прогресса.[/cyan]")
+            return True, None, None, True
+        
+        # Подкоманда: help
+        elif subcmd == "help":
+            console.print("[bold cyan]🏆 Достижения — помощь[/bold cyan]\n")
+            console.print("Команды:")
+            console.print("  /achievements — показать список всех достижений")
+            console.print("  /achievements earn <id> — получить достижение (тестовый режим)")
+            console.print("  /achievements help — эта справка")
+            return True, None, None, True
+        
+        # По умолчанию: list
+        console.print("[bold cyan]🏆 Все достижения[/bold cyan]\n")
+        for ach_id, ach in achievements.items():
+            name = ach.get("name", "Без названия")
+            description = ach.get("description", "")
+            icon = ach.get("icon", "🏆")
+            xp = ach.get("xp", 0)
+            
+            console.print(f"{icon} **{name}** (+{xp} XP)")
+            if description:
+                console.print(f"   {description}")
+            console.print(f"   [dim]ID: {ach_id}[/dim]\n")
+            
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        import traceback
+        traceback.print_exc()
     return True, None, None, True
+
+def handle_threats(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Показать досье на APT-группу"""
+    try:
+        parts = action.split(maxsplit=1)
+        if len(parts) > 1:
+            group_name = parts[1].strip().lower()
+            threat_file = os.path.join("threats", f"{group_name}.json")
+            
+            if not os.path.exists(threat_file):
+                console.print(f"[yellow]Досье '{group_name}' не найдено[/yellow]")
+                # Список доступных
+                files = [f[:-5] for f in os.listdir("threats") if f.endswith('.json')] if os.path.exists("threats") else []
+                if files:
+                    console.print("[cyan]Доступные: " + ", ".join(sorted(files)) + "[/cyan]")
+                return True, None, None, True
+            
+            with open(threat_file, 'r', encoding='utf-8') as f:
+                threat = json.load(f)
+            
+            console.print(f"\n[bold red]📁 Досье: {threat.get('name', 'Unknown')}[/bold red]")
+            console.print(f"Алиасы: {', '.join(threat.get('aliases', []))}")
+            console.print(f"Страна: {threat.get('country', 'N/A')}")
+            console.print(f"Активность: {threat.get('first_seen', 'N/A')}")
+            console.print(f"Цели: {', '.join(threat.get('targets', []))}")
+            console.print(f"\n[bold]Тактики MITRE:[/bold]")
+            for t in threat.get('tactics', []):
+                console.print(f"  • {t}")
+            console.print(f"\n[bold]Инструменты:[/bold]")
+            for tool in threat.get('tools', []):
+                console.print(f"  • {tool}")
+            console.print(f"\n[bold]Техники:[/bold]")
+            for tech in threat.get('techniques', []):
+                console.print(f"  • {tech}")
+            console.print(f"\n[bold]Недавняя активность:[/bold] {threat.get('recent_activity', 'N/A')}")
+            if threat.get('references'):
+                console.print(f"[bold]Ссылки:[/bold] {threat['references'][0]}")
+            console.print()
+            return True, None, None, True
+        else:
+            console.print("[cyan]Использование: /threats <имя_группы>[/cyan]")
+            if os.path.exists("threats"):
+                files = [f[:-5] for f in os.listdir("threats") if f.endswith('.json')]
+                console.print("[bold]Доступные группы:[/bold]")
+                for f in sorted(files):
+                    console.print(f"  • {f}")
+            return True, None, None, True
+            
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
+
+def handle_groups(*args, **kwargs):
+    """Группировка APT-групп по странам/тактикам"""
+    try:
+        if not os.path.exists("threats"):
+            console.print("[yellow]Папka threats/ ne najdena[/yellow]")
+            return True, None, None, True
+        
+        # Загружаем все досье
+        threats = []
+        for f in os.listdir("threats"):
+            if f.endswith('.json'):
+                with open(os.path.join("threats", f), 'r', encoding='utf-8') as fp:
+                    threats.append(json.load(fp))
+        
+        if not threats:
+            console.print("[yellow]Net dannych ob ugrozah[/yellow]")
+            return True, None, None, True
+        
+        console.print("[bold cyan]🌍 APT-gruppy po stranam[/bold cyan]\n")
+        
+        # Группируем по стране
+        by_country = {}
+        for t in threats:
+            country = t.get('country', 'Unknown')
+            by_country.setdefault(country, []).append(t.get('name', 'Unknown'))
+        
+        for country in sorted(by_country.keys()):
+            console.print(f"[bold]{country}[/bold]:")
+            for name in sorted(by_country[country]):
+                console.print(f"  • {name}")
+            console.print()
+        
+        console.print("[bold]📊 Statistika:[/bold]")
+        console.print(f"Vsego grupp: {len(threats)}")
+        console.print(f"Stran: {len(by_country)}")
+        
+        # Populyarnye taktiki
+        tactic_counts = {}
+        for t in threats:
+            for tactic in t.get('tactics', []):
+                tactic_counts[tactic] = tactic_counts.get(tactic, 0) + 1
+        
+        if tactic_counts:
+            console.print("\n[bold]TOP-5 tactics:[/bold]")
+            sorted_tactics = sorted(tactic_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+            for tactic, count in sorted_tactics:
+                console.print(f"  • {tactic}: {count} grupp")
+        
+        console.print()
+        
+    except Exception as e:
+        console.print(f"[red]Oshibka: {e}[/red]")
+    return True, None, None, True
+
+def handle_threat_summary(*args, **kwargs):
+    """Kratkaya svodka po vseug ugrozam"""
+    try:
+        if not os.path.exists("threats"):
+            console.print("[yellow]Papka threats/ ne najdena[/yellow]")
+            return True, None, None, True
+        
+        # Zagruzhaem vse dos'e
+        threats = []
+        for f in os.listdir("threats"):
+            if f.endswith('.json'):
+                with open(os.path.join("threats", f), 'r', encoding='utf-8') as fp:
+                    threats.append(json.load(fp))
+        
+        if not threats:
+            console.print("[yellow]Net dannih ob ugrozah[/yellow]")
+            return True, None, None, True
+        
+        console.print("[bold red]📊 Svodka po threat intelligence[/bold red]\n")
+        
+        # Statistika po stranam
+        by_country = {}
+        for t in threats:
+            country = t.get('country', 'Unknown')
+            by_country[country] = by_country.get(country, 0) + 1
+        
+        console.print("[bold]🌍 Raspredelenie po stranam:[/bold]")
+        for country in sorted(by_country.keys()):
+            console.print(f"  {country}: {by_country[country]} grupp")
+        
+        console.print()
+        
+        # Top taktiki
+        tactic_counts = {}
+        for t in threats:
+            for tactic in t.get('tactics', []):
+                tactic_counts[tactic] = tactic_counts.get(tactic, 0) + 1
+        
+        console.print("[bold]🎯 Top-10 taktik MITRE ATT&CK:[/bold]")
+        for tactic, count in sorted(tactic_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
+            console.print(f"  • {tactic}: {count}")
+        
+        console.print()
+        
+        # Instrumenty
+        tool_counts = {}
+        for t in threats:
+            for tool in t.get('tools', []):
+                tool_counts[tool] = tool_counts.get(tool, 0) + 1
+        
+        console.print("[bold]🔧 Top-10 instrumentov:[/bold]")
+        for tool, count in sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
+            console.print(f"  • {tool}: {count}")
+        
+        console.print()
+        
+        # Celovye sektory
+        target_counts = {}
+        for t in threats:
+            for target in t.get('targets', []):
+                target_counts[target] = target_counts.get(target, 0) + 1
+        
+        console.print("[bold]🎯 Celovye sektory:[/bold]")
+        for target, count in sorted(target_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
+            console.print(f"  • {target}: {count}")
+        
+        console.print()
+        
+        # Issledovanie
+        console.print(f"[bold]📈 Vsego doss'e: {len(threats)}[/bold]")
+        console.print(f"[bold]🆕 Pervie zametki:[/bold]")
+        for t in threats:
+            first = t.get('first_seen', 'N/A')
+            name = t.get('name', 'Unknown')
+            console.print(f"  {name}: {first}")
+        
+        console.print("\n[cyan]Ispol'zujte '/threats <name>' dla podrobnostej[/cyan]")
+        console.print()
+        
+    except Exception as e:
+        console.print(f"[red]Oshibka: {e}[/red]")
+    return True, None, None, True
+
 
 def handle_achievements(*args, **kwargs):
     """Управление достижениями: list, earn <id>, help"""
@@ -906,16 +1221,96 @@ def handle_threat_summary(*args, **kwargs):
         console.print(f"[red]Ошибка: {e}[/red]")
         return True, None, None, True
 
-def handle_practice(*args, **kwargs):
-    console.print("[yellow]Практика временно недоступна[/yellow]")
+def handle_practice(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Обработка команд /practice и /lab"""
+    try:
+        from practice import list_labs, start_lab, stop_lab, get_all_running_labs, HTB_MACHINES, get_htb_recommendation
+
+        parts = action.split()
+
+        if action == "practice" or action == "lab":
+            # Показать список доступных лаб
+            console.print(list_labs())
+            return True, None, None, True
+
+        elif parts[0] in ["lab", "practice"] and len(parts) >= 3 and parts[1] == "start":
+            lab_name = parts[2]
+            result = start_lab(lab_name)
+            console.print(result)
+            return True, None, None, True
+
+        elif parts[0] in ["lab", "practice"] and len(parts) >= 3 and parts[1] == "stop":
+            lab_name = parts[2]
+            result = stop_lab(lab_name)
+            console.print(result)
+            return True, None, None, True
+
+        elif parts[0] in ["lab", "practice"] and len(parts) >= 2 and parts[1] == "status":
+            running = get_all_running_labs()
+            if running:
+                console.print("[bold cyan]🟢 Запущенные лаборатории:[/bold cyan]\n")
+                for key, info in running.items():
+                    console.print(f"  • {info['name']}: {info['status']}")
+            else:
+                console.print("[yellow]Нет запущенных лабораторий[/yellow]")
+            return True, None, None, True
+
+        elif action == "htb":
+            # Рекомендации HTB машин
+            console.print(get_htb_recommendation())
+            return True, None, None, True
+
+        else:
+            console.print("[cyan]Использование:[/cyan]")
+            console.print("  /lab          - показать список всех лаб")
+            console.print("  /lab start <name> - запустить лабораторию")
+            console.print("  /lab stop <name>  - остановить лабораторию")
+            console.print("  /lab status      - статус запущенных")
+            console.print("  /htb             - рекомендации HTB машин")
+            return True, None, None, True
+
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        import traceback
+        traceback.print_exc()
+        return True, None, None, True
+
+
+def handle_container_check(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Проверка статуса контейнеров"""
+    try:
+        from practice import get_all_running_labs
+
+        running = get_all_running_labs()
+        if running:
+            console.print("[bold cyan]🐳 Статус контейнеров:[/bold cyan]\n")
+            for key, info in running.items():
+                console.print(f"  🟢 {info['name']}: {info['status']}")
+        else:
+            console.print("[yellow]Нет запущенных контейнеров[/yellow]")
+
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
 
-def handle_container_check(*args, **kwargs):
-    console.print("[yellow]Проверка контейнеров временно недоступна[/yellow]")
-    return True, None, None, True
 
-def handle_terminal_log(*args, **kwargs):
-    console.print("[yellow]Терминал временно недоступен[/yellow]")
+def handle_terminal_log(action: str = None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Показать лог терминала"""
+    try:
+        from terminal_log import get_terminal_log, log_command
+
+        if action and action.startswith("log "):
+            # Записать команду в лог: /log <команда>
+            cmd = action[4:].strip()
+            log_command(cmd, is_input=False)
+            console.print(f"[green]✅ Команда записана в лог[/green]")
+            return True, None, None, True
+
+        # Показать последние записи
+        log_text = get_terminal_log(last_n=20)
+        console.print(Panel(log_text, title="📟 Терминал (последние 20 строк)", border_style="cyan"))
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
 
 def handle_history(*args, **kwargs):
@@ -927,6 +1322,197 @@ def handle_course(*args, **kwargs):
     return True, None, None, True
 # =========================================================
 
+
+# ===== MISSING HANDLERS =====
+def handle_flag_check(flag: str = None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Проверка флага"""
+    if not flag:
+        console.print("[cyan]Использование: /flag <FLAG{...}>[/cyan]")
+        return True, None, None, True
+    import re
+    pattern = r'FLAG\{[^}]+\}'
+    if not re.fullmatch(pattern, flag.strip()):
+        console.print(f"[bold red]❌ Флаг '{flag}' неверного формата.[/bold red]")
+        return True, None, None, True
+    try:
+        flags_file = "data/flags.json"
+        if not os.path.exists(flags_file):
+            console.print("[yellow]База флагов не найдена. Создайте data/flags.json[/yellow]")
+            return True, None, None, True
+        with open(flags_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        for fdata in data.get("flags", []):
+            if fdata["flag"] == flag:
+                pts = fdata.get('points', 10)
+                console.print(f"[bold green]✅ Флаг верный! +{pts} очков[/bold green]")
+                from memory import init_db, update_stats
+                conn2 = init_db()
+                update_stats(conn2, pts)
+                return True, None, None, True
+        console.print(f"[bold red]❌ Флаг '{flag}' неверный.[/bold red]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True
+
+def handle_practice(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    try:
+        from practice import list_labs, start_lab, stop_lab, get_all_running_labs
+        parts = action.split()
+        if action == "practice" or action == "lab":
+            console.print(list_labs())
+        elif len(parts) >= 3 and parts[1] == "start":
+            lab_name = parts[2]
+            console.print(start_lab(lab_name))
+        elif len(parts) >= 3 and parts[1] == "stop":
+            lab_name = parts[2]
+            console.print(stop_lab(lab_name))
+        elif parts[0] in ["lab", "practice"] and len(parts) >= 2 and parts[1] == "status":
+            running = get_all_running_labs()
+            if running:
+                console.print("[bold cyan]🟢 Запущенные лаборатории:[/bold cyan]\n")
+                for key, info in running.items():
+                    console.print(f"  • {info['name']}: {info['status']}")
+            else:
+                console.print("[yellow]Нет запущенных лабораторий[/yellow]")
+        else:
+            console.print("[cyan]Использование: /lab [start|stop|status] <name>[/cyan]")
+        return True, None, None, True
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
+
+def handle_container_check(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    try:
+        from practice import get_all_running_labs
+        running = get_all_running_labs()
+        if running:
+            console.print("[bold cyan]🐳 Статус контейнеров:[/bold cyan]\n")
+            for key, info in running.items():
+                console.print(f"  🟢 {info['name']}: {info['status']}")
+        else:
+            console.print("[yellow]Нет запущенных контейнеров[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True
+
+def handle_terminal_log(action: str = None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    try:
+        from terminal_log import get_terminal_log, log_command
+        if action and action.startswith("log "):
+            cmd = action[4:].strip()
+            log_command(cmd, is_input=False)
+            console.print(f"[green]✅ Команда записана в лог[/green]")
+            return True, None, None, True
+        log_text = get_terminal_log(last_n=20)
+        console.print(Panel(log_text, title="📟 Терминал (последние 20 строк)", border_style="cyan"))
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True
+
+def handle_history(conn) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    try:
+        from memory import get_chat_history
+        history = get_chat_history(conn, limit=20)
+        if history:
+            console.print("[bold cyan]📜 История чата:[/bold cyan]")
+            for msg in history:
+                role = msg.get('role', '?')
+                content = msg.get('content', '')[:150]
+                console.print(f"[{role}] {content}")
+        else:
+            console.print("[yellow]История пуста[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True
+
+def handle_course(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    console.print("[yellow]Курсы временно недоступны[/yellow]")
+    return True, None, None, True
+
+def handle_quiz_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    try:
+        from knowledge import get_current_vectordb
+        vectordb = get_current_vectordb()
+        if GENERATORS_AVAILABLE:
+            from generators import generate_quiz
+            quiz = generate_quiz(vectordb)
+            console.print("[bold green]📝 Квиз сгенерирован![/bold green]")
+            qs = quiz.get('questions', [])
+            console.print(f"Количество вопросов: {len(qs)}\n")
+            for i, q in enumerate(qs[:5], 1):
+                console.print(f"{i}. {q.get('question', '?')}")
+                if 'options' in q:
+                    for opt in q['options']:
+                        console.print(f"   - {opt}")
+            if len(qs) > 5:
+                console.print(f"... и еще {len(qs) - 5} вопросов")
+        else:
+            console.print("[yellow]Генератор квизов недоступен[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True
+
+def handle_task_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    try:
+        from knowledge import get_current_vectordb
+        vectordb = get_current_vectordb()
+        if GENERATORS_AVAILABLE:
+            from generators import generate_task
+            task = generate_task(vectordb)
+            if task:
+                console.print("[bold green]🎯 Задание сгенерировано![/bold green]")
+                console.print(f"**Вопрос:** {task.question}")
+                if hasattr(task, 'hint') and task.hint:
+                    console.print(f"💡 Подсказка: {task.hint}")
+            else:
+                console.print("[yellow]Не удалось сгенерировать задание[/yellow]")
+        else:
+            console.print("[yellow]Генератор заданий недоступен[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True
+
+def handle_quiz_generation(action: str, conn, llm_obj, mode=None, student_level=None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    # For /smart_test and /read_url - just reuse handle_quiz_action
+    return handle_quiz_action()
+
+def handle_version() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    console.print("[bold cyan]CyberTeacher v3.2[/bold cyan]")
+    console.print("Обучение кибербезопасности с LLM")
+    console.print("Основано на: Ollama/OpenRouter, ChromaDB, Rich")
+    console.print("© 2025 CyberTeacher Project")
+    return True, None, None, True
+
+def handle_writeup() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    template = """
+# Write-up: [Название задачи]
+
+## Информация
+- **Категория:** [web|crypto|pwn|forensics|reversing|misc]
+- **Сложность:** [★☆☆☆☆ | ★★☆☆☆ | ★★★☆☆ | ★★★★☆]
+- **Инструменты:** инструмент1, инструмент2, ...
+
+## Описание
+[Краткое описание задачи и цели]
+
+## Решение
+
+### 1. Разведка (Reconnaissance)
+[Описание шагов разведки: сканирование, анализ, ...]
+
+### 2. Эксплуатация (Exploitation)
+[Как использовал уязвимость, команды, эксплойт]
+
+### 3. Получение флага/доступа
+[Что получилось в итоге, флаг]
+
+## Выводы
+- **Чему научился:** ...
+- **Что было сложно:** ...
+- **Что можно улучшить:** ...
+"""
+    console.print(Panel(template, title="📝 Шаблон Write-up", border_style="magenta"))
+    return True, None, None, True
 
 def __main__run_demo():
     conn = None

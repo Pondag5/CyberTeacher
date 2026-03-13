@@ -23,6 +23,18 @@ from config import KNOWLEDGE_DIR, PERSIST_DIR, METADATA_FILE, LazyLoader, CHUNK_
 from langchain_core.embeddings import Embeddings
 from ui import console
 
+# Global vectordb for runtime access
+_current_vectordb = None
+
+def get_current_vectordb():
+    """Get the currently loaded vector database."""
+    return _current_vectordb
+
+def set_current_vectordb(v):
+    """Set the current vector database."""
+    global _current_vectordb
+    _current_vectordb = v
+
 
 class ProgressEmbeddings(Embeddings):
     """Обёртка для отслеживания прогресса создания эмбеддингов"""
@@ -125,7 +137,19 @@ def load_knowledge_base():
 
     if not changed_files:
         console.print("[INFO] Knowledge base up to date")
-        return None
+        # Load existing index to provide vectordb
+        if os.path.exists(PERSIST_DIR):
+            try:
+                base_emb = LazyLoader.get_embeddings()
+                vectordb = FAISS.load_local(PERSIST_DIR, base_emb, allow_dangerous_deserialization=True)
+                set_current_vectordb(vectordb)
+                return vectordb
+            except Exception as e:
+                console.print(f"[yellow]⚠️ Не удалось загрузить индекс: {e}[/yellow]")
+                return None
+        else:
+            console.print("[yellow]Индекс не найден[/yellow]")
+            return None
 
     is_incremental = bool(new_files) and not deleted_files and not modified_files and os.path.exists(PERSIST_DIR)
 
@@ -209,6 +233,7 @@ def load_knowledge_base():
         except Exception:
             pass
         
+        set_current_vectordb(vectordb)
         return vectordb
 
     # Incremental addition path (only new files)
@@ -269,6 +294,7 @@ def load_knowledge_base():
             "total_chunks": total_chunks
         })
         console.print(f"[bold cyan]📊 Total chunks: {total_chunks}, files: {len(updated_files)}[/bold cyan]")
+        set_current_vectordb(vectordb)
         return vectordb
 
 

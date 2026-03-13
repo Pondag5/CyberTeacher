@@ -39,7 +39,7 @@ class Task:
         self.category = category
         self.difficulty = difficulty
 
-def generate_task(vectordb, category=None):
+def generate_task(vectordb=None, category=None):
     """Генерация практической задачи"""
     categories = {
         "network": "Сетевая безопасность (Network Security)",
@@ -53,7 +53,7 @@ def generate_task(vectordb, category=None):
         category = random.choice(list(categories.keys()))
 
     topic_name = categories.get(category, category)
-    relevant_docs = get_relevant_docs(vectordb, f"{topic_name} практическая задача", k=3)
+    relevant_docs = get_relevant_docs(vectordb, f"{topic_name} практическая задача", k=3) if vectordb else []
     docs_context = "\n\n📖 Контекст:\n" + "\n".join([f"- {d.page_content[:500]}..." for d in relevant_docs]) if relevant_docs else ""
 
     prompt = f"""Создай практическую задачу по кибербезопасности.
@@ -94,7 +94,7 @@ def generate_task(vectordb, category=None):
 
     return None
 
-def generate_quiz(vectordb, topic=None, count=5):
+def generate_quiz(vectordb=None, topic=None, count=5):
     """Генерация квиза с фильтрацией тем"""
 
     # Если тема не указана или слишком общая, выбираем случайную из разрешенных

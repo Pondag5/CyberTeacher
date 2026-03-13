@@ -51,15 +51,17 @@ def show_help():
   /achievements - Достижения
   /writeup      - Шаблон writeup
   /practice     - Практика (CTF/HTB)
-  /lab          - Docker лаборатории
+  /lab          - Docker лаборатории (start/stop/status)
   /courses      - Учебные курсы
   /news         - Новости
   /guide        - Гайд по VM
-  /stats        - Статистика
+  /stats        - Статистика (включает кэш)
   /check        - Проверить контейнеры
   /terminal     - Лог терминала
+  /log <cmd>    - Записать команду в лог
   /cache stats  - Статистика кэша
   /clearcache   - Очистить кэш
+  /version      - Версия приложения
   /help         - Справка
   /exit         - Выход
     """

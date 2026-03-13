@@ -33,6 +33,9 @@ class AppState:
     # Для курсов
     course_progress: Dict[str, int] = field(default_factory=dict)
     
+    # Персона (персистентная)
+    current_persona: str = "teacher"
+    
     def reset_course(self):
         """Сбросить прогресс курса"""
         self.current_course = None
@@ -61,6 +64,64 @@ class AppState:
     def get_learning_context(self) -> Dict[str, Any]:
         """Получить контекст обучения"""
         return self.learning_context
+    
+    def set_persona(self, persona: str):
+        """Установить текущую персону (teacher, expert, ctf, review)"""
+        self.current_persona = persona
+        # Также обновляем режим для совместимости
+        from ui import Mode
+        persona_to_mode = {
+            "teacher": Mode.TEACHER,
+            "expert": Mode.EXPERT,
+            "ctf": Mode.CTF,
+            "review": Mode.REVIEW
+        }
+        if persona in persona_to_mode:
+            # Сохраняем режим как строку, чтобы избежать циклического импорта
+            self.current_mode = persona_to_mode[persona].value if hasattr(persona_to_mode[persona], 'value') else persona
+    
+    def get_persona(self) -> str:
+        """Получить текущую персону"""
+        return self.current_persona
+    
+    def save_to_file(self, path: str = "./memory/app_state.json"):
+        """Сохранить состояние в файл"""
+        import json
+        state_dict = {
+            "current_course": self.current_course,
+            "current_topic": self.current_topic,
+            "last_news": self.last_news,
+            "points": self.points,
+            "current_mode": self.current_mode,
+            "current_persona": self.current_persona,
+            "learning_context": self.learning_context,
+            "course_progress": self.course_progress
+        }
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(state_dict, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Не удалось сохранить состояние: {e}")
+    
+    def load_from_file(self, path: str = "./memory/app_state.json"):
+        """Загрузить состояние из файла"""
+        import json
+        try:
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                self.current_course = data.get("current_course")
+                self.current_topic = data.get("current_topic", 0)
+                self.last_news = data.get("last_news")
+                self.points = data.get("points", 0)
+                self.current_mode = data.get("current_mode", "teacher")
+                self.current_persona = data.get("current_persona", "teacher")
+                self.learning_context = data.get("learning_context", self.learning_context)
+                self.course_progress = data.get("course_progress", {})
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Не удалось загрузить состояние: {e}")
 
 # Глобальный экземпляр
 app_state = AppState()

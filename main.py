@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import json
+import random
 
 # Force UTF-8 on Windows
 if sys.platform == "win32":
@@ -43,10 +45,13 @@ def get_news_context():
     global _news_cache
     if _news_cache is None:
         try:
-            from news_fetcher import NewsFetcher
-            nf = NewsFetcher()
-            nf.fetch_all()
-            _news_cache = nf.get_formatted_news()
+            try:
+                from news_fetcher import NewsFetcher
+                nf = NewsFetcher()
+                nf.fetch_all()
+                _news_cache = nf.get_formatted_news()
+            except ImportError:
+                _news_cache = ""
         except Exception as e:
             _news_cache = ""
     return _news_cache
@@ -112,9 +117,30 @@ def load_teacher_prompt() -> str:
     return persona
 
 def get_mode_prompt(mode: Mode, context_str: str, docs_context: str, study_context: str = "") -> str:
-    # Генерируем динамический промпт со случайной байкой при каждом запросе
-    dynamic_prompt = load_teacher_prompt()
-    context = f"""{dynamic_prompt}
+    """Строит промпт на основе выбранной персоны из state."""
+    state = get_state()
+    persona = state.get_persona()
+    
+    # Загружаем промпты из JSON
+    prompts_path = os.path.join("config", "teacher_prompts.json")
+    try:
+        with open(prompts_path, 'r', encoding='utf-8') as f:
+            prompts_data = json.load(f)
+    except Exception as e:
+        console.print(f"[yellow]⚠️ Не удалось загрузить teacher_prompts.json: {e}[/yellow]")
+        prompts_data = {}
+    
+    base_prompt = prompts_data.get("system_prompt", "Ты - учитель кибербезопасности.")
+    
+    # Получаем инструкции для текущей персоны
+    personas = prompts_data.get("personas", {})
+    persona_instructions = personas.get(persona, {}).get("instructions", [])
+    
+    if persona_instructions:
+        base_prompt += "\n\nИнструкции для режима:\n" + "\n".join([f"- {p}" for p in persona_instructions])
+    
+    # Добавляем контекст
+    context = f"""{base_prompt}
 
 КОНТЕКСТ УЧЕНИКА:
 {study_context}
@@ -128,6 +154,10 @@ def get_mode_prompt(mode: Mode, context_str: str, docs_context: str, study_conte
 def main():
     print_banner()
     console.print("[bold green]Loading...[/bold green]\n")
+    
+    # Загружаем сохранённое состояние
+    state = get_state()
+    state.load_from_file()
     
     # Инициализируем лог терминала
     init_terminal_log()
@@ -177,7 +207,10 @@ def main():
         if action_taken:
             if not continue_loop:
                 break
-            current_mode = new_mode if new_mode else current_mode
+            if new_mode:
+                current_mode = new_mode
+                # Сохраняем персону в state
+                get_state().set_persona(current_mode.value if hasattr(current_mode, 'value') else str(current_mode))
             student_level = new_level if new_level else student_level
             # Обновляем отображение режима
             mode_display = current_mode.value if current_mode else "Учитель"
@@ -290,6 +323,7 @@ def main():
             update_stats(conn, 1)
 
 if __name__ == "__main__":
-    # Save cache on exit
+    # Save cache and state on exit
     atexit.register(_response_cache._save)
+    atexit.register(lambda: get_state().save_to_file())
     main()
