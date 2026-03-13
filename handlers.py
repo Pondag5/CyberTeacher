@@ -41,14 +41,18 @@ class ResponseCache:
         self.cache = OrderedDict()
         self.capacity = capacity
         self.access_order = deque(maxlen=capacity)
+        self.hit_count = 0
+        self.access_count = 0
     
     def get(self, key: str) -> Optional[Any]:
+        self.access_count += 1
         if key not in self.cache:
             return None
         # Move to end (most recently used)
         self.cache.move_to_end(key)
         self.access_order.remove(key)
         self.access_order.append(key)
+        self.hit_count += 1
         return self.cache[key]
     
     def put(self, key: str, value: Any):
@@ -64,15 +68,32 @@ class ResponseCache:
     def clear(self):
         self.cache.clear()
         self.access_order.clear()
+        self.hit_count = 0
+        self.access_count = 0
     
     def stats(self) -> Dict:
-        return {"size": len(self.cache), "capacity": self.capacity}
+        return {
+            "size": len(self.cache),
+            "capacity": self.capacity,
+            "hit_count": self.hit_count,
+            "access_count": self.access_count
+        }
 
 _response_cache = ResponseCache(RESPONSE_CACHE_SIZE)
 
 def clear_response_cache():
     """Очистить кэш ответов LLM."""
     _response_cache.clear()
+
+def show_cache_stats():
+    """Показать статистику кэша."""
+    stats = _response_cache.stats()
+    console.print(f"[bold cyan]📊 Статистика кэша ответов:[/bold cyan]")
+    console.print(f"  Размер: {stats['size']} / {stats['capacity']}")
+    if stats['access_count'] > 0:
+        hit_rate = (stats['hit_count'] / stats['access_count']) * 100
+        console.print(f"  Hit rate: {stats['hit_count']}/{stats['access_count']} ({hit_rate:.1f}%)")
+    console.print(f"  Команды: /clearcache - очистить, /cache stats - показать")
 
 
 
@@ -206,6 +227,9 @@ def handle_commands(
 ) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
     # Если LLM - функция (lazy loading), вызываем для получения объекта
     llm_obj = LLM() if callable(LLM) else LLM
+    
+    # Parse action parts for subcommands
+    parts = action.split() if isinstance(action, str) else []
 
     if action == "stats":
         stats = get_stats(conn) or {}
@@ -228,6 +252,18 @@ def handle_commands(
     elif action == "clearcache":
         clear_response_cache()
         console.print("[green]✅ Кэш ответов очищен[/green]")
+        return True, mode, student_level, True
+    elif parts and parts[0] == "cache":
+        if len(parts) > 1 and parts[1] == "stats":
+            show_cache_stats()
+        else:
+            console.print("[cyan]Использование: /cache stats - показать статистику[/cyan]")
+        return True, mode, student_level, True
+    elif action == "cache":
+        if len(parts) > 1 and parts[1] == "stats":
+            show_cache_stats()
+        else:
+            console.print("[cyan]Использование: /cache stats - показать статистику[/cyan]")
         return True, mode, student_level, True
     elif action == "exit":
         console.print("[yellow]👋 Пока![yellow]")
