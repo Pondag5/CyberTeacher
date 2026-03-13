@@ -1,5 +1,5 @@
 import unittest
-from ..tools import decode_text  # Используем относительный импорт
+from tools import decode_text  # ✅ Исправлен импорт - абсолютный вместо относительного
 
 class TestTools(unittest.TestCase):
     def test_decode_base64(self):

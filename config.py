@@ -48,7 +48,7 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1"
 # Бесплатные модели с большим контекстом:
 # - "nvidia/nemotron-3-nano-30b-a3b:free" - 256K контекст, 30B, бесплатно
 # - "mistralai/mixtral-8x7b-instruct" - 32K, бесплатно
-OPENROUTER_MODEL = "nvidia/nemotron-3-nano-30b-a3b:free"
+OPENROUTER_MODEL = "stepfun/step-3.5-flash:free"
 # Получите API ключ на https://openrouter.ai/keys
 OPENROUTER_API_KEY = ""  # Заполните или установите через env: OPENROUTER_API_KEY
 
@@ -58,9 +58,9 @@ MODEL_NAME = OLLAMA_MODEL if LLM_PROVIDER == "ollama" else OPENROUTER_MODEL
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 # === ОПТИМИЗАЦИЯ ===
-MAX_WORKERS = 16
-CHUNK_SIZE = 800
-CHUNK_OVERLAP = 50
+MAX_WORKERS = 8   # Уменьшили для снижения нагрузки
+CHUNK_SIZE = 300  # Меньше чанков => меньше памяти
+CHUNK_OVERLAP = 15  # Соразмерно меньше
 
 # === ПЕДАГОГИКА ===
 SOCRATIC_ENABLED = True
@@ -86,7 +86,7 @@ class LazyLoader:
                     model=OLLAMA_MODEL,
                     temperature=MODEL_TEMPERATURE,
                     base_url=OLLAMA_URL + "/v1",
-                    api_key="not-needed"
+                    api_key=None  # Ollama doesn't require API key
                 )
             elif LLM_PROVIDER == "openrouter":
                 from langchain_openai import ChatOpenAI
@@ -98,7 +98,7 @@ class LazyLoader:
                     model=OPENROUTER_MODEL,
                     temperature=MODEL_TEMPERATURE,
                     base_url=OPENROUTER_URL,
-                    api_key=api_key
+                    api_key=api_key if api_key else None
                 )
             else:
                 raise ValueError(f"Неизвестный LLM_PROVIDER: {LLM_PROVIDER}")
@@ -111,22 +111,16 @@ class LazyLoader:
         if cls._embeddings is None:
             import logging
             logging.getLogger(__name__).info("🔐 Загрузка модели эмбеддингов...")
-            from sentence_transformers import SentenceTransformer
+            from langchain_huggingface import HuggingFaceEmbeddings
+            import torch
             
-            # Оптимизация: использовать локальную модель если есть
-            cls._embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            logging.getLogger(__name__).info(f"🔐 Используется устройство: {device}")
             
-            class SentenceTransformerWrapper:
-                def __init__(self, model):
-                    self.model = model
-                
-                def embed_documents(self, texts):
-                    return self.model.encode(texts, show_progress_bar=False).tolist()
-                
-                def embed_query(self, text):
-                    return self.model.encode([text], show_progress_bar=False)[0].tolist()
-            
-            cls._embeddings = SentenceTransformerWrapper(cls._embedding_model)
+            cls._embeddings = HuggingFaceEmbeddings(
+                model_name=EMBEDDING_MODEL,
+                model_kwargs={'device': device}
+            )
             logging.getLogger(__name__).info("🔐 Эмбеддинги загружены.")
         return cls._embeddings
 

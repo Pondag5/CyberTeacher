@@ -220,9 +220,13 @@ import shlex
 
 def exec_in_container(name: str, command: str) -> str:
     """Выполнить команду в контейнере (БЕЗОПАСНО)"""
-    # Экранируем команду для предотвращения инъекций на хост
-    safe_command = shlex.quote(command)
-    code, stdout, stderr = run_docker_cmd(["exec", name, "sh", "-c", command])
+    # Валидация: только alphanumeric и базовые символы
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-./\s]+$', command):
+        return "❌ Команда содержит запрещённые символы"
+    
+    # Запускаем без shell - прямой exec
+    code, stdout, stderr = run_docker_cmd(["exec", name] + shlex.split(command))
     if code == 0:
         return stdout if stdout else "Команда выполнена (нет вывода)"
     return f"Ошибка: {stderr}"

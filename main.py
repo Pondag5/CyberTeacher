@@ -1,4 +1,13 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import os
+import sys
+
+# Force UTF-8 on Windows
+if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
+    os.environ["PYTHONUTF8"] = "1"
+
 import sqlite3
 from enum import Enum
 from dataclasses import dataclass
@@ -69,12 +78,8 @@ class Task:
     difficulty: str
 
 # === ПРОМПТЫ ===
-import os
-import random
-import json
-
-PROMPT_FILE = "./config/teacher_prompt.txt"
-STORIES_FILE = "./config/stories.json"
+PROMPT_FILE = "./teacher_prompt.txt"
+STORIES_FILE = "./stories.json"
 
 def load_teacher_prompt() -> str:
     """Загрузить промпт учителя из файла и добавить случайную байку"""
@@ -159,7 +164,7 @@ def main():
         try:
             from terminal_log import log_command
             log_command(user_input, is_input=True)
-        except:
+        except Exception:  # ✅ Более-specific исключение
             pass
 
         # Обработка команд

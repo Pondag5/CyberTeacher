@@ -6,14 +6,26 @@ import random
 import json
 import re
 from datetime import datetime
+from typing import Any
 
-LLM = LazyLoader.get_llm
+def get_llm():
+    """Получить LLM через lazy loader"""
+    return LazyLoader.get_llm()
 
-def extract_json_block(text: str) -> dict:
-    """Извлечь JSON из текста"""
+def extract_json_block(message: Any) -> dict:
+    """Извлечь JSON из текста или AIMessage"""
+    # Поддержка как строк, так и AIMessage объектов
+    if hasattr(message, 'content'):
+        text = str(message.content)
+    else:
+        text = str(message)
+    
     match = re.search(r'\{.*\}', text, re.DOTALL)
     if match:
-        return json.loads(match.group())
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            return {}
     return {}
 
 ALLOWED_TOPICS = ["sql", "xss", "network", "crypto", "linux", "web", "reverse", "osint", "pwn"]
@@ -65,7 +77,7 @@ def generate_task(vectordb, category=None):
 Только JSON."""  # двойные фигурные скобки используются для экранирования в f-строке
 
     try:
-        llm = LazyLoader.get_llm()
+        llm = get_llm()
         response = llm.invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
@@ -116,7 +128,7 @@ def generate_quiz(vectordb, topic=None, count=5):
 Только JSON."""  # двойные фигурные скобки экранированы
 
     try:
-        response = LLM.invoke(prompt)
+        response = get_llm().invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, list):
             return json_block
@@ -148,7 +160,7 @@ JSON:
 
 Только JSON."""  # экранирование фигурных скобок в f-строке
     try:
-        response = LLM.invoke(prompt)
+        response = get_llm().invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
             from pedagogy import MermaidGenerator
@@ -169,7 +181,7 @@ JSON:
             print_panel(
                 f"[bold]{topic}[bold]\n\n{diagram}",
                 title="🗺️ MEREAD",
-                border="cyan"
+                border_style="cyan"
             )
             console.print("\n💡 https:mermaid.live")
     except Exception as e:
@@ -197,7 +209,7 @@ def generate_open_quiz(vectordb, topic=None):
 
 Только JSON."""  # экранирование фигурных скобок
     try:
-        response = LLM.invoke(prompt)
+        response = get_llm().invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
             return json_block
@@ -223,7 +235,7 @@ def check_open_answer(question, user_answer, key_points):
 
 Только JSON."""  # экранирование фигурных скобок
     try:
-        response = LLM.invoke(prompt)
+        response = get_llm().invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
             return json_block

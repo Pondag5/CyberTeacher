@@ -18,15 +18,20 @@ logger = logging.getLogger(__name__)
 
 # Tools
 from code_review import code_review_function
-from knowledge import get_knowledge_status
-# DB Operations (merged logic)
-from memory import clear_chat as db_clear_chat
-from memory import get_stats, get_weak_topics, update_topic_progress
 
-try:
-    from question_generation import generate_open_quiz
-except:
-    generate_open_quiz = lambda *args: None
+# Knowledge base status
+from knowledge import get_knowledge_status
+
+# Config
+from config import KNOWLEDGE_DIR
+
+# DB Operations
+from memory import (
+    clear_chat as db_clear_chat,
+    get_stats,
+    get_weak_topics,
+    update_topic_progress
+)
 
 
 def show_help():
@@ -74,19 +79,6 @@ def extract_json_block(text: str) -> Optional[str]:
                 if not stack:
                     end = i + 1
                     return text[start:end]
-    return None
-
-
-def get_weak_topics(conn: Any) -> List[Dict[str, Any]]:
-    try:
-        from db_operations import get_weak_topics as _gt
-
-        return _gt(conn)
-    except Exception:
-        return []
-
-
-def fetch_and_summarize(topic: str, LLM: Any) -> Optional[Dict[str, Any]]:
     return None
 
 
@@ -295,6 +287,12 @@ def handle_extended_commands(action: str, LLM: Any):
         return handle_flag_check(flag)
     elif action == "achievements" or action == "achievement":
         return handle_achievements()
+    elif action == "threats":
+        return handle_threats(action)
+    elif action == "threat" or action == "threats summary":
+        return handle_threat_summary()
+    elif action == "groups":
+        return handle_groups()
     elif action == "practice":
         return handle_practice(action)
     elif action.startswith("lab") or action == "htb":
@@ -358,6 +356,13 @@ def handle_add_book(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
             console.print(f"[red]Файл не найден: {src_path}[/red]")
             return True, None, None, True
         
+        # ✅ Path traversal защита
+        src_path_abs = os.path.abspath(src_path)
+        knowledge_dir_abs = os.path.abspath(KNOWLEDGE_DIR)
+        if not src_path_abs.startswith(knowledge_dir_abs):
+            console.print("[red]❌ Запрещенный путь. Файл должен находиться в knowledge_base/[/red]")
+            return True, None, None, True
+        
         if not src_path.lower().endswith('.pdf'):
             console.print("[yellow]Поддерживаются только PDF файлы[/yellow]")
             return True, None, None, True
@@ -377,6 +382,354 @@ def handle_add_book(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
+
+
+# ==================== TEMPORARY STUBS ====================
+# Эти функции должны быть реализованы в отдельных модулях
+def handle_quiz_generation(*args, **kwargs):
+    console.print("[yellow]Генерация квиза временно недоступна[/yellow]")
+    return True, None, None, True
+
+def handle_code_review(*args, **kwargs):
+    console.print("[yellow]Анализ кода временно недоступен[/yellow]")
+    return True, None, None, True
+
+def handle_extended_commands(*args, **kwargs):
+    console.print("[yellow]Команда временно недоступна[/yellow]")
+    return True, None, None, True
+
+def handle_story_mode(*args, **kwargs):
+    console.print("[yellow]Режим истории временно недоступен[/yellow]")
+    return True, None, None, True
+
+def handle_flag_check(*args, **kwargs):
+    console.print("[yellow]Проверка флага временно недоступна[/yellow]")
+    return True, None, None, True
+
+def handle_achievements(*args, **kwargs):
+    """Управление достижениями: list, earn <id>, help"""
+    try:
+        action = args[0] if args else "achievements"
+        parts = action.split() if isinstance(action, str) else ["achievements"]
+        subcmd = parts[1] if len(parts) > 1 else "list"
+        
+        achievements_file = "data/achievements.json"
+        if not os.path.exists(achievements_file):
+            console.print("[yellow]Файл достижений не найден[/yellow]")
+            return True, None, None, True
+        
+        with open(achievements_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        achievements = {ach["id"]: ach for ach in data.get("achievements", [])}
+        
+        # Подкоманда: earn <id> - "получить" достижение (для тестов/демо)
+        if subcmd == "earn":
+            if len(parts) < 3:
+                console.print("[cyan]Использование: /achievements earn <id>[/cyan]")
+                console.print("Пример: /achievements earn first_blood")
+                return True, None, None, True
+            
+            ach_id = parts[2]
+            if ach_id not in achievements:
+                console.print(f"[yellow]Достижение '{ach_id}' не найдено[/yellow]")
+                console.print("[cyan]Доступные ID: " + ", ".join(sorted(achievements.keys())) + "[/cyan]")
+                return True, None, None, True
+            
+            # В реальной системе здесь будет логика проверки условий
+            # Сейчас просто показываем, что достижение "получено"
+            ach = achievements[ach_id]
+            console.print(f"[bold green]✅ Достижение получено![/bold green]")
+            console.print(f"{ach.get('icon', '🏆')} **{ach.get('name')}** (+{ach.get('xp', 0)} XP)")
+            console.print(f"[dim]{ach.get('description', '')}[/dim]")
+            console.print("\n[cyan]В будущем это будет интегрировано с системой прогресса.[/cyan]")
+            return True, None, None, True
+        
+        # Подкоманда: help
+        elif subcmd == "help":
+            console.print("[bold cyan]🏆 Достижения — помощь[/bold cyan]\n")
+            console.print("Команды:")
+            console.print("  /achievements — показать список всех достижений")
+            console.print("  /achievements earn <id> — получить достижение (тестовый режим)")
+            console.print("  /achievements help — эта справка")
+            return True, None, None, True
+        
+        # По умолчанию: list
+        console.print("[bold cyan]🏆 Все достижения[/bold cyan]\n")
+        for ach_id, ach in achievements.items():
+            name = ach.get("name", "Без названия")
+            description = ach.get("description", "")
+            icon = ach.get("icon", "🏆")
+            xp = ach.get("xp", 0)
+            
+            console.print(f"{icon} **{name}** (+{xp} XP)")
+            if description:
+                console.print(f"   {description}")
+            console.print(f"   [dim]ID: {ach_id}[/dim]\n")
+            
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        import traceback
+        traceback.print_exc()
+    return True, None, None, True
+
+def handle_threats(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Показать досье на APT-группу"""
+    try:
+        parts = action.split(maxsplit=1)
+        if len(parts) > 1:
+            group_name = parts[1].strip().lower()
+            threat_file = os.path.join("threats", f"{group_name}.json")
+            
+            if not os.path.exists(threat_file):
+                console.print(f"[yellow]Досье '{group_name}' не найдено[/yellow]")
+                # Список доступных
+                files = [f[:-5] for f in os.listdir("threats") if f.endswith('.json')] if os.path.exists("threats") else []
+                if files:
+                    console.print("[cyan]Доступные: " + ", ".join(sorted(files)) + "[/cyan]")
+                return True, None, None, True
+            
+            with open(threat_file, 'r', encoding='utf-8') as f:
+                threat = json.load(f)
+            
+            console.print(f"\n[bold red]📁 Досье: {threat.get('name', 'Unknown')}[/bold red]")
+            console.print(f"Алиасы: {', '.join(threat.get('aliases', []))}")
+            console.print(f"Страна: {threat.get('country', 'N/A')}")
+            console.print(f"Активность: {threat.get('first_seen', 'N/A')}")
+            console.print(f"Цели: {', '.join(threat.get('targets', []))}")
+            console.print(f"\n[bold]Тактики MITRE:[/bold]")
+            for t in threat.get('tactics', []):
+                console.print(f"  • {t}")
+            console.print(f"\n[bold]Инструменты:[/bold]")
+            for tool in threat.get('tools', []):
+                console.print(f"  • {tool}")
+            console.print(f"\n[bold]Техники:[/bold]")
+            for tech in threat.get('techniques', []):
+                console.print(f"  • {tech}")
+            console.print(f"\n[bold]Недавняя активность:[/bold] {threat.get('recent_activity', 'N/A')}")
+            if threat.get('references'):
+                console.print(f"[bold]Ссылки:[/bold] {threat['references'][0]}")
+            console.print()
+            return True, None, None, True
+        else:
+            console.print("[cyan]Использование: /threats <имя_группы>[/cyan]")
+            if os.path.exists("threats"):
+                files = [f[:-5] for f in os.listdir("threats") if f.endswith('.json')]
+                console.print("[bold]Доступные группы:[/bold]")
+                for f in sorted(files):
+                    console.print(f"  • {f}")
+            return True, None, None, True
+            
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
+
+def handle_groups(*args, **kwargs):
+    """Группировка APT-групп по странам/тактикам"""
+    try:
+        if not os.path.exists("threats"):
+            console.print("[yellow]Папka threats/ ne najdena[/yellow]")
+            return True, None, None, True
+        
+        # Загружаем все досье
+        threats = []
+        for f in os.listdir("threats"):
+            if f.endswith('.json'):
+                with open(os.path.join("threats", f), 'r', encoding='utf-8') as fp:
+                    threats.append(json.load(fp))
+        
+        if not threats:
+            console.print("[yellow]Net dannych ob ugrozah[/yellow]")
+            return True, None, None, True
+        
+        console.print("[bold cyan]🌍 APT-gruppy po stranam[/bold cyan]\n")
+        
+        # Группируем по стране
+        by_country = {}
+        for t in threats:
+            country = t.get('country', 'Unknown')
+            by_country.setdefault(country, []).append(t.get('name', 'Unknown'))
+        
+        for country in sorted(by_country.keys()):
+            console.print(f"[bold]{country}[/bold]:")
+            for name in sorted(by_country[country]):
+                console.print(f"  • {name}")
+            console.print()
+        
+        console.print("[bold]📊 Statistika:[/bold]")
+        console.print(f"Vsego grupp: {len(threats)}")
+        console.print(f"Stran: {len(by_country)}")
+        
+        # Populyarnye taktiki
+        tactic_counts = {}
+        for t in threats:
+            for tactic in t.get('tactics', []):
+                tactic_counts[tactic] = tactic_counts.get(tactic, 0) + 1
+        
+        if tactic_counts:
+            console.print("\n[bold]TOP-5 tactics:[/bold]")
+            sorted_tactics = sorted(tactic_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+            for tactic, count in sorted_tactics:
+                console.print(f"  • {tactic}: {count} grupp")
+        
+        console.print()
+        
+    except Exception as e:
+        console.print(f"[red]Oshibka: {e}[/red]")
+    return True, None, None, True
+
+def handle_threat_summary(*args, **kwargs):
+    """Kratkaya svodka po vseug ugrozam"""
+    try:
+        if not os.path.exists("threats"):
+            console.print("[yellow]Papka threats/ ne najdena[/yellow]")
+            return True, None, None, True
+        
+        # Zagruzhaem vse dos'e
+        threats = []
+        for f in os.listdir("threats"):
+            if f.endswith('.json'):
+                with open(os.path.join("threats", f), 'r', encoding='utf-8') as fp:
+                    threats.append(json.load(fp))
+        
+        if not threats:
+            console.print("[yellow]Net dannih ob ugrozah[/yellow]")
+            return True, None, None, True
+        
+        console.print("[bold red]📊 Svodka po threat intelligence[/bold red]\n")
+        
+        # Statistika po stranam
+        by_country = {}
+        for t in threats:
+            country = t.get('country', 'Unknown')
+            by_country[country] = by_country.get(country, 0) + 1
+        
+        console.print("[bold]🌍 Raspredelenie po stranam:[/bold]")
+        for country in sorted(by_country.keys()):
+            console.print(f"  {country}: {by_country[country]} grupp")
+        
+        console.print()
+        
+        # Top taktiki
+        tactic_counts = {}
+        for t in threats:
+            for tactic in t.get('tactics', []):
+                tactic_counts[tactic] = tactic_counts.get(tactic, 0) + 1
+        
+        console.print("[bold]🎯 Top-10 taktik MITRE ATT&CK:[/bold]")
+        for tactic, count in sorted(tactic_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
+            console.print(f"  • {tactic}: {count}")
+        
+        console.print()
+        
+        # Instrumenty
+        tool_counts = {}
+        for t in threats:
+            for tool in t.get('tools', []):
+                tool_counts[tool] = tool_counts.get(tool, 0) + 1
+        
+        console.print("[bold]🔧 Top-10 instrumentov:[/bold]")
+        for tool, count in sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
+            console.print(f"  • {tool}: {count}")
+        
+        console.print()
+        
+        # Celovye sektory
+        target_counts = {}
+        for t in threats:
+            for target in t.get('targets', []):
+                target_counts[target] = target_counts.get(target, 0) + 1
+        
+        console.print("[bold]🎯 Celovye sektory:[/bold]")
+        for target, count in sorted(target_counts.items(), key=lambda x: x[1], reverse=True)[:10]:
+            console.print(f"  • {target}: {count}")
+        
+        console.print()
+        
+        # Issledovanie
+        console.print(f"[bold]📈 Vsego doss'e: {len(threats)}[/bold]")
+        console.print(f"[bold]🆕 Pervie zametki:[/bold]")
+        for t in threats:
+            first = t.get('first_seen', 'N/A')
+            name = t.get('name', 'Unknown')
+            console.print(f"  {name}: {first}")
+        
+        console.print("\n[cyan]Ispol'zujte '/threats <name>' dla podrobnostej[/cyan]")
+        console.print()
+        
+    except Exception as e:
+        console.print(f"[red]Oshibka: {e}[/red]")
+    return True, None, None, True
+    """Показать досье на APT-группу"""
+    try:
+        parts = action.split(maxsplit=1)
+        if len(parts) > 1:
+            group_name = parts[1].strip().lower()
+            threat_file = os.path.join("threats", f"{group_name}.json")
+            
+            if not os.path.exists(threat_file):
+                console.print(f"[yellow]Досье '{group_name}' не найдено[/yellow]")
+                # Список доступных
+                files = [f[:-5] for f in os.listdir("threats") if f.endswith('.json')] if os.path.exists("threats") else []
+                if files:
+                    console.print("[cyan]Доступные: " + ", ".join(sorted(files)) + "[/cyan]")
+                return True, None, None, True
+            
+            with open(threat_file, 'r', encoding='utf-8') as f:
+                threat = json.load(f)
+            
+            console.print(f"\n[bold red]📁 Досье: {threat.get('name', 'Unknown')}[/bold red]")
+            console.print(f"Алиасы: {', '.join(threat.get('aliases', []))}")
+            console.print(f"Страна: {threat.get('country', 'N/A')}")
+            console.print(f"Активность: {threat.get('first_seen', 'N/A')}")
+            console.print(f"Цели: {', '.join(threat.get('targets', []))}")
+            console.print(f"\n[bold]Тактики MITRE:[/bold]")
+            for t in threat.get('tactics', []):
+                console.print(f"  • {t}")
+            console.print(f"\n[bold]Инструменты:[/bold]")
+            for tool in threat.get('tools', []):
+                console.print(f"  • {tool}")
+            console.print(f"\n[bold]Техники:[/bold]")
+            for tech in threat.get('techniques', []):
+                console.print(f"  • {tech}")
+            console.print(f"\n[bold]Недавняя активность:[/bold] {threat.get('recent_activity', 'N/A')}")
+            if threat.get('references'):
+                console.print(f"[bold]Ссылки:[/bold] {threat['references'][0]}")
+            console.print()
+            return True, None, None, True
+        else:
+            console.print("[cyan]Использование: /threats <имя_группы>[/cyan]")
+            if os.path.exists("threats"):
+                files = [f[:-5] for f in os.listdir("threats") if f.endswith('.json')]
+                console.print("[bold]Доступные группы:[/bold]")
+                for f in sorted(files):
+                    console.print(f"  • {f}")
+            return True, None, None, True
+            
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
+
+def handle_practice(*args, **kwargs):
+    console.print("[yellow]Практика временно недоступна[/yellow]")
+    return True, None, None, True
+
+def handle_container_check(*args, **kwargs):
+    console.print("[yellow]Проверка контейнеров временно недоступна[/yellow]")
+    return True, None, None, True
+
+def handle_terminal_log(*args, **kwargs):
+    console.print("[yellow]Терминал временно недоступен[/yellow]")
+    return True, None, None, True
+
+def handle_history(*args, **kwargs):
+    console.print("[yellow]История временно недоступна[/yellow]")
+    return True, None, None, True
+
+def handle_course(*args, **kwargs):
+    console.print("[yellow]Курс временно недоступен[/yellow]")
+    return True, None, None, True
+# =========================================================
 
 
 def __main__run_demo():

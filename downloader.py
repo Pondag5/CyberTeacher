@@ -59,7 +59,7 @@ def show_library_menu():
     for key, item in LIBRARY_CATALOG.items():
         text += f"[{key}] {item['name']}\n    [dim]{item['desc']}[/dim]\n"
     
-    print_panel(text, title="📚 Библиотека Знаний", border="cyan")
+    print_panel(text, title="📚 Библиотека Знаний", border_style="cyan")
 
 def update_knowledge_base():
     """Принудительное обновление базы знаний"""

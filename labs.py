@@ -86,7 +86,7 @@ def run_lab(lab_key, category):
             console.print(f"[red]❌ Ошибка:[/red]\n{response}\n")
             console.print(f"[dim]Подсказка: {task['correct_hint']}[/dim]\n")
             
-    print_panel(f"Результат: [bold]{score}/{total}[/bold]", title="🏁 Конец тренировки", border="cyan")
+    print_panel(f"Результат: [bold]{score}/{total}[/bold]", title="🏁 Конец тренировки", border_style="cyan")
     return True, "trainer"
 
 def stop_lab():

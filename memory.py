@@ -91,9 +91,16 @@ def clear_chat(conn):
 def update_stats(conn, points: int, field: str = "points"):
     """Обновить статистику"""
     c = conn.cursor()
-    c.execute(f"UPDATE stats SET points = points + ?, last_activity = ?", (points, datetime.now().isoformat()))
-    if field in ["quizzes_passed", "tasks_solved"]:
-        c.execute(f"UPDATE stats SET {field} = {field} + 1")
+    now = datetime.now().isoformat()
+    
+    # ✅ Безопасное обновление - все поля параметризованы
+    quizzes_inc = 1 if field == "quizzes_passed" else 0
+    tasks_inc = 1 if field == "tasks_solved" else 0
+    
+    c.execute(
+        "UPDATE stats SET points = points + ?, quizzes_passed = quizzes_passed + ?, tasks_solved = tasks_solved + ?, last_activity = ?",
+        (points, quizzes_inc, tasks_inc, now)
+    )
     conn.commit()
 
 def get_stats(conn):
