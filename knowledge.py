@@ -19,7 +19,7 @@ from langchain_community.vectorstores import FAISS
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
 import gc
 
-from config import KNOWLEDGE_DIR, PERSIST_DIR, METADATA_FILE, LazyLoader, CHUNK_SIZE, CHUNK_OVERLAP, MAX_WORKERS
+from config import KNOWLEDGE_DIR, PERSIST_DIR, METADATA_FILE, LazyLoader, CHUNK_SIZE, CHUNK_OVERLAP, MAX_WORKERS, RERANKER, RERANK_TOP_K
 from langchain_core.embeddings import Embeddings
 from ui import console
 
@@ -259,7 +259,32 @@ def get_relevant_docs(vectordb, query, k=3):
     if vectordb is None:
         return []
     try:
-        return vectordb.similarity_search(query, k=k)
+        # Initial retrieval with more documents for reranking
+        initial_k = k * 3  # Get 3x more to rerank
+        docs = vectordb.similarity_search(query, k=initial_k)
+        
+        if not docs:
+            return []
+        
+        # Apply reranking if configured
+        if RERANKER:
+            try:
+                reranker = LazyLoader.get_reranker()
+                # Prepare pairs for cross-encoder
+                pairs = [(query, doc.page_content) for doc in docs]
+                # Get scores
+                scores = reranker.predict(pairs)
+                # Sort by score descending
+                sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+                # Take top k
+                reranked_docs = [docs[i] for i in sorted_indices[:k]]
+                return reranked_docs
+            except Exception as e:
+                console.print(f"[yellow]⚠️ Reranking failed: {e}[/yellow]")
+                # Fallback to original results
+                return docs[:k]
+        
+        return docs[:k]
     except Exception as e:
         console.print(f"[yellow]⚠️ Ошибка при поиске документов: {e}[/yellow]")
         return []

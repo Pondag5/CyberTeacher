@@ -59,12 +59,12 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 # === ОПТИМИЗАЦИЯ ===
 MAX_WORKERS = 8   # Уменьшили для снижения нагрузки
-CHUNK_SIZE = 300  # Меньше чанков => меньше памяти
-CHUNK_OVERLAP = 15  # Соразмерно меньше
+CHUNK_SIZE = 600  # Оптимально для технической документации (было 300)
+CHUNK_OVERLAP = 50  # Сохраняем контекст между чанками (было 15)
 
-# === ПЕДАГОГИКА ===
-SOCRATIC_ENABLED = True
-THINKING_ENABLED = True
+# === RERANKING ===
+RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+RERANK_TOP_K = 5  # Сколько лучших чанков возвращать после реранкинга
 
 # === LAZY LOADING (Оптимизация) ===
 class LazyLoader:
@@ -73,6 +73,7 @@ class LazyLoader:
     _llm = None
     _embeddings = None
     _embedding_model = None
+    _reranker = None
     
     @classmethod
     def get_llm(cls):
@@ -123,10 +124,30 @@ class LazyLoader:
             )
             logging.getLogger(__name__).info("🔐 Эмбеддинги загружены.")
         return cls._embeddings
+    
+    @classmethod
+    def get_reranker(cls):
+        if cls._reranker is None:
+            import logging
+            logging.getLogger(__name__).info("🔐 Загрузка модели реранкера...")
+            from sentence_transformers import CrossEncoder
+            import torch
+            
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            logging.getLogger(__name__).info(f"🔐 Используется устройство: {device}")
+            
+            cls._reranker = CrossEncoder(
+                RERANKER_MODEL,
+                device=device,
+                max_length=512
+            )
+            logging.getLogger(__name__).info("🔐 Реранкер загружен.")
+        return cls._reranker
 
 # === ПРОСТЫЕ ДОСТУПЫ ДЛЯ СОВМЕСТИМОСТИ ===
 LLM = LazyLoader()
 EMBEDDINGS = LazyLoader()
+RERANKER = LazyLoader()
 
 # === ПРОВЕРКА ПУТЕЙ ===
 def check_paths():
