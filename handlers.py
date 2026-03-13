@@ -24,7 +24,7 @@ from code_review import code_review_function
 from knowledge import get_knowledge_status
 
 # Config
-from config import KNOWLEDGE_DIR, RESPONSE_CACHE_SIZE
+from config import KNOWLEDGE_DIR, RESPONSE_CACHE_SIZE, RESPONSE_CACHE_FILE
 
 # DB Operations
 from memory import (
@@ -33,6 +33,9 @@ from memory import (
     get_weak_topics,
     update_topic_progress
 )
+
+import json
+import os
 
 # LLM Response Cache with LRU eviction
 from collections import OrderedDict, deque
@@ -43,6 +46,41 @@ class ResponseCache:
         self.access_order = deque(maxlen=capacity)
         self.hit_count = 0
         self.access_count = 0
+        self._load()
+    
+    def _load(self):
+        """Загрузить кэш из файла."""
+        try:
+            if os.path.exists(RESPONSE_CACHE_FILE):
+                with open(RESPONSE_CACHE_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                self.cache = OrderedDict(data.get('cache', {}))
+                self.access_order = deque(data.get('access_order', []), maxlen=self.capacity)
+                self.hit_count = data.get('hit_count', 0)
+                self.access_count = data.get('access_count', 0)
+                # Ограничиваем размер
+                if len(self.cache) > self.capacity:
+                    # Удаляем самые старые (первые в access_order)
+                    for key in list(self.access_order)[:-self.capacity]:
+                        self.cache.pop(key, None)
+                    self.access_order = deque(list(self.access_order)[-self.capacity:], maxlen=self.capacity)
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Не удалось загрузить кэш ответов: {e}[/yellow]")
+    
+    def _save(self):
+        """Сохранить кэш в файл."""
+        try:
+            os.makedirs(os.path.dirname(RESPONSE_CACHE_FILE), exist_ok=True)
+            data = {
+                'cache': dict(self.cache),
+                'access_order': list(self.access_order),
+                'hit_count': self.hit_count,
+                'access_count': self.access_count
+            }
+            with open(RESPONSE_CACHE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Не удалось сохранить кэш ответов: {e}[/yellow]")
     
     def get(self, key: str) -> Optional[Any]:
         self.access_count += 1
@@ -84,6 +122,11 @@ _response_cache = ResponseCache(RESPONSE_CACHE_SIZE)
 def clear_response_cache():
     """Очистить кэш ответов LLM."""
     _response_cache.clear()
+    # Сохраняем пустой кэш на диск
+    try:
+        _response_cache._save()
+    except Exception:
+        pass
 
 def show_cache_stats():
     """Показать статистику кэша."""

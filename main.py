@@ -12,6 +12,7 @@ import sqlite3
 from enum import Enum
 from dataclasses import dataclass
 import hashlib
+import atexit
 from handlers import handle_commands, _response_cache
 
 # === МОДУЛИ ===
@@ -289,4 +290,6 @@ def main():
             update_stats(conn, 1)
 
 if __name__ == "__main__":
+    # Save cache on exit
+    atexit.register(_response_cache._save)
     main()
