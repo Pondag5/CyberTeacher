@@ -15,6 +15,7 @@ from enum import Enum
 from dataclasses import dataclass
 import hashlib
 import atexit
+import os
 from handlers import handle_commands, _response_cache
 
 # === МОДУЛИ ===
@@ -162,6 +163,22 @@ def main():
     # Инициализируем лог терминала
     init_terminal_log()
     
+    # === PROMPT_TOOLKIT (история команд) ===
+    session = None
+    have_prompt_toolkit = False
+    try:
+        from prompt_toolkit import PromptSession
+        from prompt_toolkit.history import FileHistory
+        have_prompt_toolkit = True
+        history_path = os.path.join(".", "memory", "command_history.txt")
+        os.makedirs(os.path.dirname(history_path), exist_ok=True)
+        session = PromptSession(history=FileHistory(history_path))
+    except ImportError:
+        have_prompt_toolkit = False
+    except Exception as e:
+        console.print(f"[yellow]⚠️ Не удалось инициализировать prompt_toolkit: {e}[/yellow]")
+        have_prompt_toolkit = False
+    
     conn = init_db()
     vectordb = load_knowledge_base()
 
@@ -183,7 +200,10 @@ def main():
 
     while True:
         try:
-            user_input = console.input(f"\n[bold]Ты:[/bold] ")
+            if have_prompt_toolkit and session:
+                user_input = session.prompt("\nТы: ").strip()
+            else:
+                user_input = console.input(f"\n[bold]Ты:[/bold] ").strip()
         except KeyboardInterrupt:
             console.print("\n[yellow]Пока![/yellow]")
             break
