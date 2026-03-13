@@ -70,8 +70,11 @@ class ResponseCache:
 
 _response_cache = ResponseCache(RESPONSE_CACHE_SIZE)
 
-# LLM cache
-_response_cache = {}
+def clear_response_cache():
+    """Очистить кэш ответов LLM."""
+    _response_cache.clear()
+
+
 
 
 def show_help():
@@ -164,6 +167,10 @@ def handle_mode(
             clear_chat_db(conn)
             console.print("[green]✅ Очищено[green]")
         return True, mode, student_level, True
+    if action == "clearcache":
+        clear_response_cache()
+        console.print("[green]✅ Кэш ответов очищен[/green]")
+        return True, mode, student_level, True
     if action in ["kb_status", "check_kb"]:
         status = get_knowledge_status()
         if action == "kb_status":
@@ -217,6 +224,10 @@ def handle_commands(
         if _ask_confirm("[bold red]Очистить чат?[bold red]"):
             clear_chat_db(conn)
             console.print("[green]✅ Очищено[green]")
+        return True, mode, student_level, True
+    elif action == "clearcache":
+        clear_response_cache()
+        console.print("[green]✅ Кэш ответов очищен[/green]")
         return True, mode, student_level, True
     elif action == "exit":
         console.print("[yellow]👋 Пока![yellow]")

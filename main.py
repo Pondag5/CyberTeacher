@@ -11,7 +11,8 @@ if sys.platform == "win32":
 import sqlite3
 from enum import Enum
 from dataclasses import dataclass
-from handlers import handle_commands
+import hashlib
+from handlers import handle_commands, _response_cache
 
 # === МОДУЛИ ===
 from config import (
@@ -257,19 +258,30 @@ def main():
             thinking = ThinkingVisualizer.generate_thinking(context_str, user_input, "socratic")
             print_thinking(thinking)
 
-        # === STREAMING ===
+        # === CACHING & STREAMING ===
         full_response = ""
-        try:
-            llm = get_llm()
-            console.print(f"[bold green]БОТ ({current_mode.value}):[/bold green] ", end="")
-            for chunk in llm.stream(f"{system_prompt}\n\nВопрос: {user_input}"):
-                # VL Studio через ChatOpenAI возвращает AIMessageChunk
-                chunk_text = str(chunk.content) if hasattr(chunk, 'content') else str(chunk)
-                full_response += chunk_text
-                console.print(chunk_text, end="")
-            console.print()
-        except Exception as e:
-            console.print(f"[red]Ошибка: {e}[/red]")
+        # Кэширование: ключ на основе режима и полного промпта
+        cache_key_base = f"{current_mode.value}:{system_prompt}:{user_input}"
+        cache_key = hashlib.md5(cache_key_base.encode()).hexdigest()
+        cached = _response_cache.get(cache_key)
+        if cached is not None:
+            full_response = cached
+            console.print(f"[bold green]БОТ ({current_mode.value}):[/bold green] {full_response}")
+        else:
+            try:
+                llm = get_llm()
+                console.print(f"[bold green]БОТ ({current_mode.value}):[/bold green] ", end="")
+                for chunk in llm.stream(f"{system_prompt}\n\nВопрос: {user_input}"):
+                    # VL Studio через ChatOpenAI возвращает AIMessageChunk
+                    chunk_text = str(chunk.content) if hasattr(chunk, 'content') else str(chunk)
+                    full_response += chunk_text
+                    console.print(chunk_text, end="")
+                console.print()
+                if full_response:
+                    _response_cache.put(cache_key, full_response)
+            except Exception as e:
+                console.print(f"[red]Ошибка: {e}[/red]")
+                full_response = ""
         
         if full_response:
             save_message(conn, "user", user_input, current_mode.value)
