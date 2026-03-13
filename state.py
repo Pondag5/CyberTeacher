@@ -38,9 +38,14 @@ class AppState:
     # Персона (персистентная)
     current_persona: str = "teacher"
     
-    # Активное задание и прогресс по флагам
-    active_assignment: Optional[Dict] = None
-    collected_flags: List[str] = field(default_factory=list)
+    # Статистика для достижений
+    total_flags_collected: int = 0
+    assignments_completed: int = 0
+    labs_started: int = 0
+    quizzes_taken: int = 0
+    news_checked: int = 0
+    messages_sent: int = 0
+    earned_achievements: List[str] = field(default_factory=list)
     
     def reset_course(self):
         """Сбросить прогресс курса"""
@@ -80,7 +85,7 @@ class AppState:
             "teacher": Mode.TEACHER,
             "expert": Mode.EXPERT,
             "ctf": Mode.CTF,
-            "review": Mode.REVIEW
+            "review": Mode.CODE_REVIEW
         }
         if persona in persona_to_mode:
             # Сохраняем режим как строку, чтобы избежать циклического импорта
@@ -131,6 +136,85 @@ class AppState:
             'points_earned': earned
         }
     
+    # === СТАТИСТИКА ===
+    def increment_flag(self):
+        """Увеличить счётчик собранных флагов"""
+        self.total_flags_collected += 1
+        self.check_achievements()
+    
+    def complete_assignment(self):
+        """Отметить выполнение задания"""
+        self.assignments_completed += 1
+        self.check_achievements()
+    
+    def start_lab(self):
+        """Отметить запуск лаборатории"""
+        self.labs_started += 1
+        self.check_achievements()
+    
+    def take_quiz(self):
+        """Отметить прохождение квиза"""
+        self.quizzes_taken += 1
+        self.check_achievements()
+    
+    def check_news(self):
+        """Отметить проверку новостей"""
+        self.news_checked += 1
+        # Не вызываем check_achievements здесь — вызываем в обработчике
+    
+    def send_message(self):
+        """Увеличить счётчик отправленных сообщений"""
+        self.messages_sent += 1
+        # Не проверяем достижения для каждого сообщения (слишком часто)
+    
+    def check_achievements(self):
+        """Проверить и выдать новые достижения"""
+        import json, os
+        achievements_file = "data/achievements.json"
+        if not os.path.exists(achievements_file):
+            return []
+        
+        try:
+            with open(achievements_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            achievements_list = data.get("achievements", [])
+        except Exception:
+            return []
+        
+        newly_earned = []
+        for ach in achievements_list:
+            ach_id = ach.get("id")
+            if not ach_id or ach_id in self.earned_achievements:
+                continue
+            
+            cond = ach.get("condition", {})
+            cond_type = cond.get("type")
+            threshold = cond.get("threshold", 0)
+            
+            # Проверяем условия
+            unlocked = False
+            if cond_type == "flags_total":
+                unlocked = self.total_flags_collected >= threshold
+            elif cond_type == "assignments_completed":
+                unlocked = self.assignments_completed >= threshold
+            elif cond_type == "total_points":
+                unlocked = self.points >= threshold
+            elif cond_type == "labs_started":
+                unlocked = self.labs_started >= threshold
+            elif cond_type == "quizzes_taken":
+                unlocked = self.quizzes_taken >= threshold
+            elif cond_type == "news_checked":
+                unlocked = self.news_checked >= threshold
+            
+            if unlocked:
+                self.earned_achievements.append(ach_id)
+                xp = ach.get("points", 0)
+                if xp > 0:
+                    self.points += xp
+                newly_earned.append(ach)
+        
+        return newly_earned
+
     def save_to_file(self, path: str = "./memory/app_state.json"):
         """Сохранить состояние в файл"""
         import json
@@ -144,7 +228,14 @@ class AppState:
             "learning_context": self.learning_context,
             "course_progress": self.course_progress,
             "active_assignment": self.active_assignment,
-            "collected_flags": self.collected_flags
+            "collected_flags": self.collected_flags,
+            "total_flags_collected": self.total_flags_collected,
+            "assignments_completed": self.assignments_completed,
+            "labs_started": self.labs_started,
+            "quizzes_taken": self.quizzes_taken,
+            "news_checked": self.news_checked,
+            "messages_sent": self.messages_sent,
+            "earned_achievements": self.earned_achievements if hasattr(self, 'earned_achievements') else []
         }
         try:
             with open(path, 'w', encoding='utf-8') as f:
@@ -170,6 +261,13 @@ class AppState:
                 self.course_progress = data.get("course_progress", {})
                 self.active_assignment = data.get("active_assignment")
                 self.collected_flags = data.get("collected_flags", [])
+                self.total_flags_collected = data.get("total_flags_collected", 0)
+                self.assignments_completed = data.get("assignments_completed", 0)
+                self.labs_started = data.get("labs_started", 0)
+                self.quizzes_taken = data.get("quizzes_taken", 0)
+                self.news_checked = data.get("news_checked", 0)
+                self.messages_sent = data.get("messages_sent", 0)
+                self.earned_achievements = data.get("earned_achievements", [])
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")

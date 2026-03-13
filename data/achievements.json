@@ -1,0 +1,114 @@
+{
+  "achievements": [
+    {
+      "id": "first_flag",
+      "name": "Первый флаг",
+      "description": "Нашли первый флаг в задании или самостоятельно",
+      "icon": "🚩",
+      "points": 10,
+      "condition": {
+        "type": "flags_total",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "flag_collector_10",
+      "name": "Сборщик флагов",
+      "description": "Собрали 10 флагов",
+      "icon": "🏹",
+      "points": 25,
+      "condition": {
+        "type": "flags_total",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "flag_master_50",
+      "name": "Мастер флагов",
+      "description": "Собрали 50 флагов",
+      "icon": "🎯",
+      "points": 100,
+      "condition": {
+        "type": "flags_total",
+        "threshold": 50
+      }
+    },
+    {
+      "id": "assignment_completer",
+      "name": "Исполнитель заданий",
+      "description": "Завершили первое задание",
+      "icon": "✅",
+      "points": 15,
+      "condition": {
+        "type": "assignments_completed",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "assignment_master_10",
+      "name": "Мастер заданий",
+      "description": "Завершили 10 заданий",
+      "icon": "👑",
+      "points": 100,
+      "condition": {
+        "type": "assignments_completed",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "points_earner_100",
+      "name": "Новичок с очками",
+      "description": "Накопили 100 очков",
+      "icon": "💰",
+      "points": 0,
+      "condition": {
+        "type": "total_points",
+        "threshold": 100
+      }
+    },
+    {
+      "id": "points_earner_500",
+      "name": "Опытный хакер",
+      "description": "Накопили 500 очков",
+      "icon": "💎",
+      "points": 0,
+      "condition": {
+        "type": "total_points",
+        "threshold": 500
+      }
+    },
+    {
+      "id": "docker_explorer",
+      "name": "Исследователь Docker",
+      "description": "Запустили первую лабораторию",
+      "icon": "🐳",
+      "points": 20,
+      "condition": {
+        "type": "labs_started",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "quiz_taker",
+      "name": "Тестировщик",
+      "description": "Прoha first quiz",
+      "icon": "❓",
+      "points": 5,
+      "condition": {
+        "type": "quizzes_taken",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "news_follower",
+      "name": "Следящий за новостями",
+      "description": "Проверили новости хотя бы раз",
+      "icon": "📰",
+      "points": 5,
+      "condition": {
+        "type": "news_checked",
+        "threshold": 1
+      }
+    }
+  ]
+}

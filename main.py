@@ -16,7 +16,7 @@ from dataclasses import dataclass
 import hashlib
 import atexit
 import os
-from handlers import handle_commands, _response_cache
+from handlers.core import handle_commands, _response_cache
 
 # === МОДУЛИ ===
 from config import (
@@ -211,6 +211,12 @@ def main():
         if not user_input.strip():
             continue
         user_input = user_input.strip()
+        
+        # Отмечаем отправку сообщения в state (для статистики)
+        try:
+            get_state().send_message()
+        except Exception:
+            pass
         
         # Автозапись ввода в терминал
         try:
