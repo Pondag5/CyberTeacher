@@ -326,6 +326,40 @@ def handle_mode(
                     console.print("\n[bold]✅ Решение:[/bold]")
                     console.print(assignment['solution'])
                 
+                # Интеграция с активным заданием и базой флагов
+                from state import get_state
+                state = get_state()
+                state.set_active_assignment(assignment)
+                
+                # Добавляем флаги в глобальный файл data/flags.json
+                import json, os
+                flags_path = "data/flags.json"
+                flags_list = []
+                if os.path.exists(flags_path):
+                    try:
+                        with open(flags_path, 'r', encoding='utf-8') as f:
+                            data_f = json.load(f)
+                            flags_list = data_f.get("flags", [])
+                    except Exception:
+                        flags_list = []
+                assgn_points = assignment.get('points', 10)
+                assgn_flags = assignment.get('flags', [])
+                per_flag = assgn_points // len(assgn_flags) if assgn_flags else assgn_points
+                for flag in assgn_flags:
+                    if not any(f["flag"] == flag for f in flags_list):
+                        flags_list.append({
+                            "flag": flag,
+                            "points": per_flag,
+                            "source": "assignment",
+                            "assignment_id": assignment.get('id')
+                        })
+                try:
+                    with open(flags_path, 'w', encoding='utf-8') as f:
+                        json.dump({"flags": flags_list}, f, ensure_ascii=False, indent=2)
+                    console.print("[cyan]Флаги задания добавлены в базу для проверки через /flag.[/cyan]")
+                except Exception as e_flag:
+                    console.print(f"[yellow]Не удалось сохранить флаги в {flags_path}: {e_flag}[/yellow]")
+            
             except Exception as e:
                 console.print(f"[red]Ошибка генерации задания: {e}[/red]")
                 import traceback
@@ -360,16 +394,21 @@ def handle_commands(
                 [f"{t['topic']} ({t['rate']}%)" for t in weak_topics]
             )
             console.print(f"Слабые темы: {topics_str}")
-        try:
-            from handlers import _response_cache
-            cstat = _response_cache.stats()
-            if cstat['access_count'] > 0:
-                hit_rate = (cstat['hit_count'] / cstat['access_count']) * 100
-                console.print(f"Кэш ответов: {cstat['size']}/{cstat['capacity']} (hit rate: {hit_rate:.1f}%)")
-            else:
-                console.print(f"Кэш ответов: {cstat['size']}/{cstat['capacity']} (hit rate: N/A)")
-        except Exception:
-            pass
+        return True, mode, student_level, True
+    elif action == "progress":
+        # Показать прогресс по активному заданию
+        from state import get_state
+        state = get_state()
+        progress = state.get_assignment_progress()
+        if not progress:
+            console.print("[yellow]Нет активного задания. Сгенерируйте через /genassignment[/yellow]")
+        else:
+            console.print(Panel(f"""
+[bold]Задание:[/bold] {progress.get('title')}
+[bold]Флагов собрано:[/bold] {progress.get('collected_flags')} из {progress.get('total_flags')}
+[bold]Осталось:[/bold] {progress.get('remaining')}
+[bold]Очков заработано:[/bold] {progress.get('points_earned')}
+""", title="📊 Прогресс задания", border_style="cyan"))
         return True, mode, student_level, True
     elif action == "clear":
         if _ask_confirm("[bold red]Очистить чат?[bold red]"):
@@ -1324,11 +1363,53 @@ def handle_course(*args, **kwargs):
 
 
 # ===== MISSING HANDLERS =====
-def handle_flag_check(flag: str = None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+def handle_flag_check(flag: Optional[str] = None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
     """Проверка флага"""
     if not flag:
         console.print("[cyan]Использование: /flag <FLAG{...}>[/cyan]")
         return True, None, None, True
+    import re
+    pattern = r'FLAG\{[^}]+\}'
+    if not re.fullmatch(pattern, flag.strip()):
+        console.print(f"[bold red]❌ Флаг '{flag}' неверного формата.[/bold red]")
+        return True, None, None, True
+    try:
+        # Проверка в активном задании
+        from state import get_state
+        state = get_state()
+        if state.active_assignment:
+            success, points = state.collect_flag(flag)
+            if success:
+                console.print(f"[bold green]✅ Флаг найден в активном задании! +{points} очков[/bold green]")
+                from memory import init_db, update_stats
+                conn2 = init_db()
+                update_stats(conn2, points)
+                if state.is_assignment_complete():
+                    console.print("[bold cyan]🎉 Задание завершено! Все флаги собраны.[/bold cyan]")
+                return True, None, None, True
+        # Проверка в глобальной базе флагов
+        flags_file = "data/flags.json"
+        if not os.path.exists(flags_file):
+            console.print("[yellow]База флагов не найдена. Создайте data/flags.json[/yellow]")
+            return True, None, None, True
+        with open(flags_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        for fdata in data.get("flags", []):
+            if fdata["flag"] == flag:
+                pts = fdata.get('points', 10)
+                console.print(f"[bold green]✅ Флаг верный! +{pts} очков[/bold green]")
+                from memory import init_db, update_stats
+                conn2 = init_db()
+                update_stats(conn2, pts)
+                # Remove flag after use to prevent reuse
+                data["flags"] = [f for f in data["flags"] if f["flag"] != flag]
+                with open(flags_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                return True, None, None, True
+        console.print(f"[bold red]❌ Флаг '{flag}' неверный.[/bold red]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True
     import re
     pattern = r'FLAG\{[^}]+\}'
     if not re.fullmatch(pattern, flag.strip()):

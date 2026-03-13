@@ -2,8 +2,10 @@
 🔐 Состояние приложения - глобальные переменные в одном месте
 """
 
+import os
+import logging
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 
 @dataclass
 class AppState:
@@ -35,6 +37,10 @@ class AppState:
     
     # Персона (персистентная)
     current_persona: str = "teacher"
+    
+    # Активное задание и прогресс по флагам
+    active_assignment: Optional[Dict] = None
+    collected_flags: List[str] = field(default_factory=list)
     
     def reset_course(self):
         """Сбросить прогресс курса"""
@@ -84,6 +90,47 @@ class AppState:
         """Получить текущую персону"""
         return self.current_persona
     
+    def set_active_assignment(self, assignment: Dict):
+        """Установить активное задание и сбросить собранные флаги"""
+        self.active_assignment = assignment
+        self.collected_flags = []
+    
+    def collect_flag(self, flag: str) -> Tuple[bool, int]:
+        """Собрать флаг в активном задании. Возвращает (успех, очки)"""
+        if self.active_assignment:
+            flags = self.active_assignment.get('flags', [])
+            if flag in flags and flag not in self.collected_flags:
+                self.collected_flags.append(flag)
+                total_points = self.active_assignment.get('points', 0)
+                per_flag = total_points // len(flags) if flags else total_points
+                return True, per_flag
+        return False, 0
+    
+    def is_assignment_complete(self) -> bool:
+        """Проверить, все ли флаги задания собраны"""
+        if not self.active_assignment:
+            return False
+        flags = self.active_assignment.get('flags', [])
+        return len(self.collected_flags) >= len(flags)
+    
+    def get_assignment_progress(self) -> Dict[str, Any]:
+        """Получить прогресс по активному заданию"""
+        if not self.active_assignment:
+            return {}
+        flags = self.active_assignment.get('flags', [])
+        total = len(flags)
+        collected = len(self.collected_flags)
+        per_flag = self.active_assignment.get('points', 0) // total if total else 0
+        earned = per_flag * collected
+        return {
+            'id': self.active_assignment.get('id'),
+            'title': self.active_assignment.get('title'),
+            'total_flags': total,
+            'collected_flags': collected,
+            'remaining': total - collected,
+            'points_earned': earned
+        }
+    
     def save_to_file(self, path: str = "./memory/app_state.json"):
         """Сохранить состояние в файл"""
         import json
@@ -95,7 +142,9 @@ class AppState:
             "current_mode": self.current_mode,
             "current_persona": self.current_persona,
             "learning_context": self.learning_context,
-            "course_progress": self.course_progress
+            "course_progress": self.course_progress,
+            "active_assignment": self.active_assignment,
+            "collected_flags": self.collected_flags
         }
         try:
             with open(path, 'w', encoding='utf-8') as f:
@@ -119,6 +168,8 @@ class AppState:
                 self.current_persona = data.get("current_persona", "teacher")
                 self.learning_context = data.get("learning_context", self.learning_context)
                 self.course_progress = data.get("course_progress", {})
+                self.active_assignment = data.get("active_assignment")
+                self.collected_flags = data.get("collected_flags", [])
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")
