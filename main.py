@@ -26,7 +26,7 @@ import logging
 os.environ["TQDM_DISABLE"] = "1"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
-# Подавляем INFO-логи от сторонних библиотек (huggingface, transformers, httpx и т.д.)
+# Подавляем логи от сторонних библиотек (huggingface, transformers, httpx и т.д.)
 _noisy_prefixes = [
     "sentence_transformers",
     "transformers",
@@ -39,6 +39,13 @@ _noisy_prefixes = [
 ]
 for _p in _noisy_prefixes:
     logging.getLogger(_p).setLevel(logging.WARNING)
+
+# Также подавляем специфические предупреждения transformers о непредвиденных весах
+try:
+    from transformers import logging as hf_logging
+    hf_logging.set_verbosity_error()
+except Exception:
+    pass  # Если transformers не установлен, игнорируем
 
 # Конфигурация корневого логгера (our own logs)
 logging.basicConfig(
