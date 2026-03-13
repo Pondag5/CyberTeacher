@@ -45,6 +45,7 @@ def show_help():
 [bold cyan]КОМАНДЫ:[/bold cyan]
   /quiz         - Викторина
   /task         - Задание
+  /genassignment - Сгенерировать практическое задание (CTF/лаба/упражнение)
   /story        - Режим истории (20 эпизодов)
   /flag         - Проверить флаг
   /achievements - Достижения
@@ -57,6 +58,8 @@ def show_help():
   /stats        - Статистика
   /check        - Проверить контейнеры
   /terminal     - Лог терминала
+  /cache stats  - Статистика кэша
+  /clearcache   - Очистить кэш
   /help         - Справка
   /exit         - Выход
     """
