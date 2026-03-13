@@ -62,6 +62,10 @@ MAX_WORKERS = 8   # Уменьшили для снижения нагрузки
 CHUNK_SIZE = 600  # Оптимально для технической документации (было 300)
 CHUNK_OVERLAP = 50  # Сохраняем контекст между чанками (было 15)
 
+# === ПЕДАГОГИКА ===
+SOCRATIC_ENABLED = True
+THINKING_ENABLED = True
+
 # === RERANKING ===
 RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 RERANK_TOP_K = 5  # Сколько лучших чанков возвращать после реранкинга
