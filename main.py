@@ -18,6 +18,60 @@ import atexit
 import os
 from handlers.core import handle_commands, _response_cache
 
+# ===== НАСТРОЙКА ЛОГИРОВАНИЯ ЧТОБЫ УБРАТЬ ШУМ =====
+import os
+import logging
+
+# Отключаем прогресс-бары и лишние логи от библиотек
+os.environ["TQDM_DISABLE"] = "1"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+
+# Подавляем INFO-логи от сторонних библиотек (huggingface, transformers, httpx и т.д.)
+_noisy_prefixes = [
+    "sentence_transformers",
+    "transformers",
+    "huggingface_hub",
+    "httpx",
+    "httpcore",
+    "urllib3",
+    "filelock",
+    "torch",
+]
+for _p in _noisy_prefixes:
+    logging.getLogger(_p).setLevel(logging.WARNING)
+
+# Конфигурация корневого логгера (our own logs)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+# ===== НАСТРОЙКА ЛОГИРОВАНИЯ ЧТОБЫ УБРАТЬ ШУМ =====
+import logging
+
+# Подавляем INFO-логи от сторонних библиотек (huggingface, transformers, httpx и т.д.)
+_noisy_loggers = [
+    "sentence_transformers",
+    "transformers",
+    "huggingface_hub",
+    "httpx",
+    "httpcore",
+    "urllib3",
+    "filelock",
+    "torch",
+    "tqdm",
+]
+for _ln in _noisy_loggers:
+    logging.getLogger(_ln).setLevel(logging.WARNING)
+
+# Конфигурация корневого логгера (our own logs)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 # === МОДУЛИ ===
 from config import (
     LazyLoader, KNOWLEDGE_DIR, PERSIST_DIR, DB_FILE,
