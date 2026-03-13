@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import shlex
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
@@ -23,7 +24,7 @@ from code_review import code_review_function
 from knowledge import get_knowledge_status
 
 # Config
-from config import KNOWLEDGE_DIR
+from config import KNOWLEDGE_DIR, RESPONSE_CACHE_SIZE
 
 # DB Operations
 from memory import (
@@ -32,6 +33,45 @@ from memory import (
     get_weak_topics,
     update_topic_progress
 )
+
+# LLM Response Cache with LRU eviction
+from collections import OrderedDict, deque
+class ResponseCache:
+    def __init__(self, capacity: int = RESPONSE_CACHE_SIZE):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+        self.access_order = deque(maxlen=capacity)
+    
+    def get(self, key: str) -> Optional[Any]:
+        if key not in self.cache:
+            return None
+        # Move to end (most recently used)
+        self.cache.move_to_end(key)
+        self.access_order.remove(key)
+        self.access_order.append(key)
+        return self.cache[key]
+    
+    def put(self, key: str, value: Any):
+        if key in self.cache:
+            self.cache.move_to_end(key)
+            self.access_order.remove(key)
+        self.cache[key] = value
+        self.access_order.append(key)
+        if len(self.cache) > self.capacity:
+            oldest = self.access_order.popleft()
+            del self.cache[oldest]
+    
+    def clear(self):
+        self.cache.clear()
+        self.access_order.clear()
+    
+    def stats(self) -> Dict:
+        return {"size": len(self.cache), "capacity": self.capacity}
+
+_response_cache = ResponseCache(RESPONSE_CACHE_SIZE)
+
+# LLM cache
+_response_cache = {}
 
 
 def show_help():

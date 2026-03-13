@@ -70,6 +70,9 @@ THINKING_ENABLED = True
 RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 RERANK_TOP_K = 5  # Сколько лучших чанков возвращать после реранкинга
 
+# === КЭШИРОВАНИЕ ===
+RESPONSE_CACHE_SIZE = 100  # LRU кэш для ответов LLM
+
 # === LAZY LOADING (Оптимизация) ===
 class LazyLoader:
     """Ленивая загрузка моделей - загружаются только при первом использовании"""

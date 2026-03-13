@@ -200,6 +200,15 @@ def load_knowledge_base():
             "total_chunks": total_chunks_final
         })
         console.print(f"[bold cyan]📊 Total chunks: {total_chunks_final}, files: {len(updated_files)}[/bold cyan]")
+        
+        # Free GPU memory after embedding operations
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
+        
         return vectordb
 
     # Incremental addition path (only new files)
@@ -242,6 +251,14 @@ def load_knowledge_base():
         vectordb.add_documents(new_chunks)
         vectordb.save_local(PERSIST_DIR)
         progress.console.print("[bold green]✓ New documents added to knowledge base!")
+        
+        # Free GPU memory after embedding operations
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
 
         # Update metadata
         updated_files = {**saved_files, **{f: current_files[f] for f in new_files}}
