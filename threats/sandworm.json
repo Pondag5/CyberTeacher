@@ -1,0 +1,19 @@
+{
+  "name": "Sandworm",
+  "aliases": ["APT44", "BlackEnergy", "TeleBots", "Iron Viking"],
+  "country": "Russia",
+  "first_seen": "2004",
+  "targets": ["Energy", "Utilities", "Government", "Transportation", "Media"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact", "Command and Control"],
+  "tools": ["BlackEnergy", "Industroyer", "KillDisk", "Exaramel", "Wiper"],
+  "techniques": [
+    "T1485 - Data Destruction",
+    "T1486 - Data Encrypted for Impact",
+    "T1499 - Endpoint Denial of Service",
+    "T1561.002 - Disk Wipe: Disk Content Wipe"
+  ],
+  "recent_activity": "Атаки на энергосистемы Украины 2015, 2016, NotPetya 2017",
+  "references": [
+    "https://attack.mitre.org/groups/G0034/"
+  ]
+}

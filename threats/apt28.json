@@ -1,0 +1,19 @@
+{
+  "name": "APT28",
+  "aliases": ["Fancy Bear", "Sofacy", "STRONTIUM"],
+  "country": "Russia",
+  "first_seen": "2004",
+  "targets": ["Government", "Military", "Media", "NGOs"],
+  "tactics": ["Initial Access", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["X-Agent", "X-Tunnel", "CHOPSTICK", "WinRAR", "Mimikatz"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1134.001 - Access Token Manipulation",
+    "T1087.001 - Account Discovery: Local Account",
+    "T1071.001 - Application Layer Protocol: Web Protocols"
+  ],
+  "recent_activity": "Активен, связан с вмешательством в выборы 2016, 2020",
+  "references": [
+    "https://attack.mitre.org/groups/G0007/"
+  ]
+}

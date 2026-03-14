@@ -10,6 +10,10 @@ if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
 
+# Настройка консоли для корректного вывода UTF-8 (эмодзи, спецсимволы)
+from utils.console_encoding import setup_utf8_console
+setup_utf8_console()
+
 import sqlite3
 from enum import Enum
 from dataclasses import dataclass
@@ -17,6 +21,7 @@ import hashlib
 import atexit
 import os
 from handlers.core import handle_commands, _response_cache
+from config import NUMERIC_MENU
 
 # ===== НАСТРОЙКА ЛОГИРОВАНИЯ ЧТОБЫ УБРАТЬ ШУМ =====
 import os
@@ -250,7 +255,6 @@ def main():
         console.print(f"[bold yellow]Совет:[/bold yellow] Твоя слабая тема - [cyan]{rec['topic']}[/cyan] (Успех: {rec['rate']}%). Попробуй /quiz!")
     
     current_mode = Mode.TEACHER
-    student_level = None
 
     show_help()
     show_menu()
@@ -273,6 +277,11 @@ def main():
             continue
         user_input = user_input.strip()
         
+        # Валидация длины ввода (S-02)
+        if len(user_input) > 2000:
+            console.print("[red]❌ Слишком длинный ввод (максимум 2000 символов)[/red]")
+            continue
+        
         # Отмечаем отправку сообщения в state (для статистики)
         try:
             get_state().send_message()
@@ -286,9 +295,14 @@ def main():
         except Exception:  # ✅ Более-specific исключение
             pass
 
-        # Обработка команд
+        # Нормализуем ввод: если цифра -> команда, иначе убираем /
+        if user_input.isdigit() and user_input in NUMERIC_MENU:
+            action = NUMERIC_MENU[user_input]
+        else:
+            action = user_input[1:] if user_input.startswith('/') else user_input
+
         continue_loop, new_mode, new_level, action_taken = handle_commands(
-            user_input, conn, get_llm, current_mode, student_level
+            action, conn, get_llm
         )
 
         if action_taken:
@@ -298,7 +312,6 @@ def main():
                 current_mode = new_mode
                 # Сохраняем персону в state
                 get_state().set_persona(current_mode.value if hasattr(current_mode, 'value') else str(current_mode))
-            student_level = new_level if new_level else student_level
             # Обновляем отображение режима
             mode_display = current_mode.value if current_mode else "Учитель"
             console.print(f"\n[bold]Режим:[/bold] {mode_display}")
@@ -325,6 +338,7 @@ def main():
         terminal_info = ""
         kb_info = ""
         weak_info = ""
+        risk_info = ""
         
         try:
             # Данные о базе знаний
@@ -337,6 +351,12 @@ def main():
             if weak_topics:
                 topics_str = ", ".join([f"{t['topic']} ({t['rate']}% успеха)" for t in weak_topics])
                 weak_info = f"Слабые темы ученика: {topics_str}."
+            
+            # ДОБАВЛЕНО: Информация об уровне риска для CTF/Story режимов
+            state = get_state()
+            if state.get_persona() in ("ctf", "story"):
+                risk_status = state.get_risk_status()
+                risk_info = f"⚠️ Уровень риска (trace/compromise): {risk_status} ({state.risk_level}/100).\n"
             
             from practice import get_all_running_labs, get_container_logs
             from terminal_log import get_terminal_log
@@ -366,11 +386,12 @@ def main():
 
 {kb_info}
 {weak_info}
+{risk_info}
 {container_info}
 {terminal_info}
 """
         else:
-            study_context = f"=== КОНТЕКСТ: Ученик ===\n{kb_info}\n{weak_info}\n{container_info}\n{terminal_info}"
+            study_context = f"=== КОНТЕКСТ: Ученик ===\n{kb_info}\n{weak_info}\n{risk_info}\n{container_info}\n{terminal_info}"
         
         system_prompt = get_mode_prompt(current_mode, context_str, docs_context, study_context)
 
@@ -391,15 +412,19 @@ def main():
         else:
             try:
                 llm = get_llm()
-                console.print(f"[bold green]БОТ ({current_mode.value}):[/bold green] ", end="")
-                for chunk in llm.stream(f"{system_prompt}\n\nВопрос: {user_input}"):
-                    # VL Studio через ChatOpenAI возвращает AIMessageChunk
-                    chunk_text = str(chunk.content) if hasattr(chunk, 'content') else str(chunk)
-                    full_response += chunk_text
-                    console.print(chunk_text, end="")
-                console.print()
-                if full_response:
-                    _response_cache.put(cache_key, full_response)
+                if llm is None:
+                    console.print("[red]❌ LLM недоступна. Проверьте настройки провайдера (OpenRouter API ключ или Ollama).[/red]")
+                    full_response = ""
+                else:
+                    console.print(f"[bold green]БОТ ({current_mode.value}):[/bold green] ", end="")
+                    for chunk in llm.stream(f"{system_prompt}\n\nВопрос: {user_input}"):
+                        # VL Studio через ChatOpenAI возвращает AIMessageChunk
+                        chunk_text = str(chunk.content) if hasattr(chunk, 'content') else str(chunk)
+                        full_response += chunk_text
+                        console.print(chunk_text, end="")
+                    console.print()
+                    if full_response:
+                        _response_cache.put(cache_key, full_response)
             except Exception as e:
                 console.print(f"[red]Ошибка: {e}[/red]")
                 full_response = ""

@@ -1,0 +1,19 @@
+{
+  "name": "APT29",
+  "aliases": ["Cozy Bear", "The Dukes", "YTTRIUM"],
+  "country": "Russia",
+  "first_seen": "2008",
+  "targets": ["Government", "Diplomatic", "Think Tanks", "Healthcare"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["PowerDuke", "CozyCar", "MiniDuke", "OnionDuke", "SeaDuke"],
+  "techniques": [
+    "T1566.002 - Spearphishing Link",
+    "T1105 - Ingress Tool Transfer",
+    "T1055 - Process Injection",
+    "T1036 - Masquerading"
+  ],
+  "recent_activity": "Известен атаками на NASA, State Department, Белый дом",
+  "references": [
+    "https://attack.mitre.org/groups/G0016/"
+  ]
+}

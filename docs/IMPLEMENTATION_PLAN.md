@@ -21,11 +21,11 @@
 
 | ID | Задача | Описание | Источник | Статус |
 |----|--------|----------|----------|--------|
-| B-01 | Полная интеграция state.py | Убрать передачу mode/level через аргументы, везде использовать get_state(). Сейчас часть кода использует глобальные переменные, часть — параметры. | review_notes.md:219-221 | Not started |
-| B-02 | Устранение циклических импортов | Вынести общие функции (get_learning_context, logging utils) в отдельный модуль (common.py). Основная проблема: main ↔ handlers, handlers ↔ code_review ↔ config. | review_notes.md:222-224 | In progress (частично исправлено) |
+| B-01 | Полная интеграция state.py | Убрать передачу mode/level через аргументы, везде использовать get_state(). Сейчас часть кода использует глобальные переменные, часть — параметры. | review_notes.md:219-221 | Done |
+| B-02 | Устранение циклических импортов | Вынести общие функции (get_learning_context, logging utils) в отдельный модуль (common.py). Основная проблема: main ↔ handlers, handlers ↔ code_review ↔ config. | review_notes.md:222-224 | Done |
 | B-03 | Исправить generators.py | Добавить недостающие импорты (random, get_relevant_docs, print_panel), реализовать extract_json_block. Сейчас код неработоспособен. | КОНТЕКСТ_2026-03-09.md:29 | Done |
-| B-04 | Проверка Docker в practice.py | Добавить проверку availability перед запуском контейнеров, выводить понятное сообщение если Docker не запущен. | review_notes.md:263 | Not started |
-| B-05 | Валидация команд Docker exec | Экранировать пользовательский ввод через shlex.quote, использовать белый список разрешённых команд для предотвращения escape-а. | review_notes.md:309-313 | Not started |
+| B-04 | Проверка Docker в practice.py | Добавить проверку availability перед запуском контейнеров, выводить понятное сообщение если Docker не запущен. | review_notes.md:263 | Done |
+| B-05 | Валидация команд Docker exec | Экранировать пользовательский ввод через shlex.quote, использовать белый список разрешённых команд для предотвращения escape-а. | review_notes.md:309-313 | Done |
 
 ---
 
@@ -35,13 +35,13 @@
 
 | ID | Задача | Описание | Источник | Статус |
 |----|--------|----------|----------|--------|
-| C-01 | risk_level в state.py | Переменная для механики компрометации/следования. Интегрировать в CTF и story mode. | roadmap.md:165, fantasy-mao.md:41 | Not started |
-| C-02 | Команда /social (социальная инженерия) | Интерактивный диалоговый тренажёр: ученик общается с ботом-"жертвой", LLM оценивает убедительность фраз. Прототип через LLM с системой выборов. | roadmap.md:53-57, 245-252 | Not started |
-| C-03 | Команда /threats | Еженедельная сводка актуальных угроз (APT, DDoS, ransomware) с анализом от учителя. Парсить RSS-ленты (SecurityWeek, CISA). | roadmap.md:149-150, 172-173 | Not started |
-| C-04 | Команда /group <name> | Досье на APT-группы из JSON-файла (27 групп, техники, инструменты). | roadmap.md:151, 174 | Not started |
-| C-05 | Умный RAG с реранкингом | После top-K (10) чанков прогонять cross-encoder (cross-encoder/ms-marco-MiniLM-L-6v2) и оставлять top-3-5. | roadmap.md:199-201 | Not started |
+| C-01 | risk_level в state.py | Переменная для механики компрометации/следования. Интегрировать в CTF и story mode. | roadmap.md:165, fantasy-mao.md:41 | Done |
+| C-02 | Команда /social (социальная инженерия) | Интерактивный диалоговый тренажёр: ученик общается с ботом-"жертвой", LLM оценивает убедительность фраз. Прототип через LLM с системой выборов. | roadmap.md:53-57, 245-252 | Done |
+| C-03 | Команда /threats | Еженедельная сводка актуальных угроз (APT, DDoS, ransomware) с анализом от учителя. Парсить RSS-ленты (SecurityWeek, CISA). | roadmap.md:149-150, 172-173 | ✅ Done |
+| C-04 | Команда /group <name> | Досье на APT-группы из JSON-файла (27 групп, техники, инструменты). | roadmap.md:151, 174 | ✅ Partially done (7/27 групп, структура готова) |
+| C-05 | Умный RAG с реранкингом | После top-K (10) чанков прогонять cross-encoder (cross-encoder/ms-marco-MiniLM-L-6v2) и оставлять top-3-5. | roadmap.md:199-201 | ✅ Partially done (реранкер загружен, нужна интеграция)
 | C-06 | Гибридный поиск (BM25) | Добавить keyword-based поиск к векторному для редких терминов. | roadmap.md:201 | Not started |
-| C-07 | Кэширование ответов LLM | Таблица query_cache в SQLite: hash запроса + режим + контекст → ответ. TTL: 1 день для актуальных, вечно для теории. | roadmap.md:205-210 | In progress (есть in-memory кэш) |
+| C-07 | Кэширование ответов LLM | Таблица query_cache в SQLite: hash запроса + режим + контекст → ответ. TTL: 1 день для актуальных, вечно для теории. | roadmap.md:205-210 | ✅ Partially done (in-memory кэш, нужен SQLite + TTL)
 | C-08 | Песочница для кода | Запуск кода ученика (Python, Bash) в Docker-контейнере с проверкой результата. | roadmap.md:212-218 | Not started |
 | C-09 | Адаптивный план обучения | После квиза/задачи анализировать ошибки через LLM, записывать слабые темы в state. Подбор следующих материалов. | roadmap.md:227-230 | Not started |
 | C-10 | Интервальные повторения (Spaced Repetition) | Алгоритм SuperMemo: повторение через 1 день, 3 дня, неделю, месяц. Уведомление при старте. | roadmap.md:233-238 | Not started |
@@ -70,6 +70,9 @@
 | H-10 | Документация (пир接头) | Полные docstrings, Architecture Decision Records, Руководство пользователя. | review_notes.md:6, 334-339 | Not started |
 | H-11 | Увеличение coverage тестов | Покрыть >70% кода (unittest + моки). | ЧЕКЛИСТ_2026-03-09.md:86 | In progress (15% сейчас) |
 | H-12 | CI/CD (GitHub Actions) | Автотесты, линтинг, форматирование на push/PR. | ЧЕКЛИСТ_2026-03-09.md:85 | Not started |
+| H-13 | Мульти-провайдер LLM | Поддержка Ollama, OpenRouter, HuggingFace с переключением через `/provider`. Каждый провайдер использует свои настройки из .env. | — | Done |
+| H-14 | Команда `/model` | Переключение моделей внутри провайдера без редактирования конфига. | — | Done |
+| H-15 | Команда `/set-api-key` | Установка API ключей для OpenRouter/HuggingFace прямо из CLI (сессионно). | — | Done |
 
 ---
 
@@ -95,7 +98,7 @@
 | M-14 | Плагинная архитектура | API для сторонних модулей, загрузка плагинов из папки. | roadmap.md:326-329 | Not started |
 | M-15 | Курсы от экспертов | Приглашение практикующих специалистов для авторских курсов. | roadmap.md:334-337 | Not started |
 | M-16 | Видео / подкасты внутри | Встроенный плеер для YouTube, синхронизация с конспектом. | roadmap.md:338-341 | Not started |
-| M-17 | Новости с аналитикой | Учитель комментирует новости: "Эта атака напоминает Митника..." | roadmap.md:343-344 | In progress (база есть) |
+| M-17 | Новости с аналитикой | Учитель комментирует новости: "Эта атака напоминает Митника..." | roadmap.md:343-344 | ✅ Partially done (база есть, нужен анализ)
 | M-18 | Временная петля / альтернативные реальности | Ветвящиеся сюжеты в story_mode, разные концовки. | roadmap.md:350-352 | Not started |
 | M-19 | Учитель с эмоциями | Сентимент-анализ ответов ученика, изменение тона учителя (обида, радость). | roadmap.md:354-357 | Not started |
 | M-20 | Кроссплатформенная синхронизация | Firebase/custom бэкенд для синхронизации прогресса между ПК, вебом, мобильным. | roadmap.md:358-361 | Not started |
@@ -103,8 +106,8 @@
 | M-22 | Sumarization истории | Каждые 20 сообщений сворачивать в краткий вывод через LLM. | ЧЕКЛИСТ_2026-03-09.md:93 | Not started |
 | M-23 | Расширение QUIZ_TOPICS | Добавить cloud, mobile, iot, blockchain. | ЧЕКЛИСТ_2026-03-09.md:93 | Not started |
 | M-24 | Команда /help detail | Подробная справка по каждой команде с примерами. | ЧЕКЛИСТ_2026-03-09.md:90 | Not started |
-| M-25 | Graceful degradation LLM | Если OpenRouter недоступен, показать "LLM временно недоступна" вместо падения. | ЧЕКЛИСТ_2026-03-09.md:96 | Not started |
-| M-26 | Проверка длины ответа LLM | Лимит 2000 символов. | ЧЕКЛИСТ_2026-03-09.md:97 | Not started |
+| M-25 | Graceful degradation LLM | Если OpenRouter недоступен, показать "LLM временно недоступна" вместо падения. | ЧЕКЛИСТ_2026-03-09.md:96 | Done |
+| M-26 | Проверка длины ответа LLM | Лимит 2000 символов. | ЧЕКЛИСТ_2026-03-09.md:97 | Done |
 | M-27 | Улучшение новостного парсера | Заменить html.parser на lxml, добавить обработку ошибок. | review_notes.md:245 | Not started |
 
 ---
@@ -157,29 +160,54 @@
 | D-17 | .gitignore | Исключены __pycache__, memory/, embeddings/, *.db, *.log. | 2026-03-09 |
 | D-18 | Исправление generators.py | Добавлены импорты, extract_json_block, ALLOWED_TOPICS. | 2026-03-09 |
 | D-19 | Проверка Docker в practice.py | Добавлена docker_available(). | 2026-03-09 |
-| D-20 | Инкрементальное обновление RAG | Перестраивается только при изменении PDF. | 2026-03-09 |
+ | D-20 | Инкрементальное обновление RAG | Перестраивается только при изменении PDF. | 2026-03-09 |
+ | D-21 | Завершено цифровое меню (0-39) | Добавлены недостающие маппинги цифр 34-39 в NUMERIC_MENU (read_url, threats, groups, threat summary, cve, news search). | 2026-03-14 |
+ | D-22 | Блокировка неизвестных команд | handle_commands теперь возвращает action_taken=True для неизвестных команд, предотвращая передачу в LLM. | 2026-03-14 |
+ | D-23 | Удаление неиспользуемого handle_mode | Удалён импорт и экспорт handle_mode из handlers/__init__.py (функция отсутствовала). | 2026-03-14 |
+| D-24 | Tests for risk_level integration | Created test_risk_integration.py with 13 tests covering risk mechanics, story mode adjustments, and study_context integration. | 2026-03-14 |
+| D-25 | Tests for /social command | Created test_social.py with 9 tests covering scenarios, evaluation, invalid input. | 2026-03-14 |
+| D-26 | UTF-8 encoding fix for Windows | Created utils/console_encoding.py, integrated into main.py. Solved UnicodeEncodeError for emojis/special chars. | 2026-03-14 |
+| D-27 | Threat summary with LLM analysis | Implemented handle_threat_summary() that fetches fresh news, filters threats (APT/DDoS/ransomware), and uses LLM to generate weekly summary with recommendations. | 2026-03-14 |
+| D-28 | Tests for threat summary | Created test_threat_summary.py with 4 tests covering LLM analysis, fallback, no news scenarios. | 2026-03-14 |
 
 ---
 
 ## 📊 Статистика плана
 
-- **Всего задач:** 100+
-- **Blocker:** 5
-- **Critical:** 14
-- **High:** 12
-- **Medium:** 25
-- **Low:** 14
-- **Done:** 20
+- **Всего задач:** ~140 (всех категорий)
+- **Blocker:** 5 ✅ Все выполнены
+- **Critical:** 14 (C-01, C-02, C-03 ✅; C-04 partially done; C-05..C-14 планы)
+- **High:** 12 (H-13..H-15 ✅; остальные планы)
+- **Medium:** 25 (M-24..M-26 ✅; M-17 partially; M-01..M-23 планы)
+- **Low:** 14 (все планы)
+- **Done:** 28 (D-25..D-28, C-01..C-03)
+- **Partially:** 4 (C-04 partially (7/27), C-05, C-07, M-17)
 
 ---
 
-## 🎯 Следующие шаги (на завтра)
+## 🎯 Следующие шаги (на ближайшую сессию)
 
-1. **Blocker B-01**: Полная интеграция state.py (убрать глобальные переменные).
-2. **Critical C-01**: Добавить risk_level в state.py.
-3. **Critical C-02**: Прототип /social (социальная инженерия).
-4. **Critical C-07**: Улучшить кэширование LLM (перейти с in-memory на SQLite с TTL).
-5. **High H-01**: ASCII карта сети (простой прототип).
+### Quick Wins (1-2 часа)
+- **C-03**: `/threats` — сводка угроз из RSS (SecurityWeek, CISA)
+- **C-04**: `/group` — досье на APT-группы из JSON
+- **D-25**: already done — tests for /social
+- **D-26**: already done — UTF-8 encoding fix
+
+### Short-term (1-2 дня)
+- **C-05**: Умный RAG — интеграция реранкера (уже загружен, нужно подключить)
+- **C-07**: SQLite кэш с TTL (in-memory кэш уже есть, нужно перенести в БД)
+- **M-17**: Анализ новостей — учитель комментирует свежие атаки
+
+### Medium-term (3-5 дней)
+- **C-06**: Гибридный поиск (BM25) для редких терминов
+- **C-08**: Песочница кода (улучшенный Docker exec)
+- **C-09**: Адаптивный план обучения (анализ ошибок → слабые темы)
+- **H-11**: Увеличить coverage тестов до >50%
+
+### Architecture (неделя+)
+- **A-04**: Unit tests >70%
+- **A-05**: CI/CD GitHub Actions
+- **A-06**: ruff/mypy линтинг
 
 ---
 

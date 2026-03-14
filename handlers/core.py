@@ -10,7 +10,7 @@ from rich.panel import Panel
 from state import get_state
 
 # ----------------------------------------------------------------------
-# Импорты модулей handlers (все функции уже в их файлах)
+# Импорты модулей handlers
 # ----------------------------------------------------------------------
 from .practice import handle_practice, handle_container_check
 from .quiz import handle_quiz_action, handle_task_action, handle_quiz_generation, handle_code_review
@@ -24,14 +24,19 @@ from .misc import (
     extract_json_block,
     check_open_answer,
     handle_story_mode,
+    handle_risk,
     handle_course,
     handle_terminal_log,
     handle_history,
     handle_version,
     handle_writeup,
     handle_add_book,
+    handle_provider,
+    handle_model,
+    handle_set_api_key,
 )
-from ui import Mode, show_help, show_menu
+from .social import handle_social
+from ui import Mode, show_help, show_menu, show_help_detail
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -198,6 +203,19 @@ def check_open_answer(
             feedback = "Частично на ключевых моментах."
     return {"score": score, "feedback": feedback}
 
+def handle_stats(conn):
+    """Показать статистику пользователя."""
+    from memory import get_stats
+    stats = get_stats(conn)
+    console.print(f"[bold cyan]📈 Статистика:[/bold cyan]")
+    console.print(f"  Сообщений: {stats.get('messages', 0)}")
+    console.print(f"  Очков: {stats.get('points', 0)}")
+    console.print(f"  Флагов: {stats.get('flags', 0)}")
+    console.print(f"  Лабораторий: {stats.get('labs', 0)}")
+    console.print(f"  Курсов: {stats.get('courses', 0)}")
+    console.print(f"  Кэш ответов: {_response_cache.stats()['size']} записей")
+    return True, None, None, True
+
 # ----------------------------------------------------------------------
 # COMMAND DISPATCHERS
 # ----------------------------------------------------------------------
@@ -205,56 +223,20 @@ def handle_commands(
     action: str,
     conn: Any,
     llm: Any,
-    mode: Optional[Any] = None,
-    student_level: Optional[Any] = None,
 ) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
-    """Главный диспетчер, вызываемый из main.py."""
-    extended = action in {
-        "news", "cve", "security_news", "flag", "achievements", "quiz",
-        "task", "practice", "lab", "htb", "next", "course", "genassignment",
-        "writeup", "add_book", "log", "terminal", "history", "threats",
-        "threat summary", "groups", "review", "code_review", "smart_test",
-        "read_url", "story", "episode", "quest", "check", "logs", "help", "menu", "guide",
-    }
-    if extended:
-        return handle_extended_commands(action, llm, conn)
-    return True, mode, student_level, False
+    """Главный диспетчер. Все команды (включая numeric menu) передаются в handle_extended_commands."""
+    return handle_extended_commands(action, llm, conn)
 
 def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
-    if action in ("news", "cve", "security_news"):
-        return handle_security_news(action, llm)
-    elif action in ("story", "episode", "quest"):
-        return handle_story_mode(action)
-    elif action.startswith("flag"):
-        flag = action.split(" ", 1)[1] if " " in action else None
-        return handle_flag_check(flag)
-    elif action in ("achievements", "achievement"):
-        return handle_achievements()
-    elif action == "threats":
-        return handle_threats(action)
-    elif action in ("threat", "threats summary"):
-        return handle_threat_summary()
-    elif action == "groups":
-        return handle_groups()
-    elif action == "practice":
-        return handle_practice(action)
-    elif action.startswith("lab") or action == "htb":
-        return handle_practice(action)
-    elif action == "next":
-        return handle_course("next")
-    elif action.startswith("course") or action == "courses":
-        return handle_course(action)
-    elif action == "quiz":
-        return handle_quiz_action()
-    elif action == "task":
-        return handle_task_action()
-    elif action == "help":
-        show_help()
+    """Обработка всех команд. Если команда неизвестна — блокируем передачу в LLM."""
+    state = get_state()
+
+    # ----- Simple commands -----
+    if action in ("help", "menu"):
+        show_help() if action == "help" else show_menu()
         return True, None, None, True
-    elif action == "menu":
-        show_menu()
-        return True, None, None, True
-    elif action == "guide":
+
+    if action == "guide":
         try:
             with open("docs/ГАЙД_VM.md", "r", encoding="utf-8") as f:
                 guide = f.read()
@@ -262,82 +244,149 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Op
         except Exception:
             console.print("[yellow]Гайд не найден[/yellow]")
         return True, None, None, True
-    elif action in ("check", "logs"):
-        return handle_container_check(action)
-    elif action in ("terminal", "term"):
-        return handle_terminal_log()
-    elif action == "history":
-        return handle_history(conn)
-    elif action == "version":
-        return handle_version()
-    elif action.startswith("log "):
-        return handle_terminal_log(action[4:])
-    elif action == "writeup":
-        return handle_writeup()
-    elif action.startswith("add_book"):
-        return handle_add_book(action)
-    else:
-        return True, None, None, False
 
-def handle_mode(
-    action: str,
-    conn: Any,
-    mode: Optional[Any] = None,
-    student_level: Optional[Any] = None,
-) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
-    if action == "help":
-        show_help()
-        return True, mode, student_level, True
-    if action == "menu":
-        show_menu()
-        return True, mode, student_level, True
+    if action == "version":
+        handle_version()
+        return True, None, None, True
+
     if action == "exit":
         console.print("[yellow]👋 Пока![/yellow]")
-        return False, mode, student_level, True
+        return False, None, None, True
+
     if action == "clear":
         if _ask_confirm("[bold red]Очистить чат?[/bold red]"):
             clear_chat_db(conn)
             console.print("[green]✅ Очищено[/green]")
-        return True, mode, student_level, True
+        return True, None, None, True
+
     if action == "clearcache":
         clear_response_cache()
         console.print("[green]✅ Кэш ответов очищен[/green]")
-        return True, mode, student_level, True
-    if action in ["kb_status", "check_kb"]:
+        return True, None, None, True
+
+    if action == "kb_status":
         from knowledge import get_knowledge_status
         status = get_knowledge_status()
-        if action == "kb_status":
-            text = f"""
-                [bold]📂 Файлов на диске:[/bold] {status.get('files_on_disk', '?')}
-                [bold]💾 Файлов в базе:[/bold] {status.get('files_in_db', '?')}
-                [bold]🧠 Всего чанков (фрагментов):[/bold] {status.get('total_chunks', '?')}
-                [bold]Список загруженных файлов:[/bold]
-            """
-            files = status.get("list", [])
-            if files:
-                files_to_show = files[-15:]
-                text += "\n".join([f"• {f}" for f in files_to_show])
-                if len(files) > 15:
-                    text += f"\n... и еще {len(files) - 15} файлов."
-            else:
-                text += "[yellow]База пуста[/yellow]"
-            console.print(Panel(text, title="📚 Состояние Базы Знаний", border_style="cyan"))
-        elif action == "check_kb":
-            console.print(Panel(str(status), title="🧪 АУДИТ ЗНАНИЙ", border_style="cyan"))
-        return True, mode, student_level, True
+        text = f"""[bold]📂 Файлов на диске:[/bold] {status.get('files_on_disk', '?')}
+[bold]💾 Файлов в базе:[/bold] {status.get('files_in_db', '?')}
+[bold]🧠 Всего чанков:[/bold] {status.get('total_chunks', '?')}
+[bold]Список файлов:[/bold]"""
+        files = status.get("list", [])
+        if files:
+            files_to_show = files[-15:]
+            text += "\n" + "\n".join([f"• {f}" for f in files_to_show])
+            if len(files) > 15:
+                text += f"\n... ещё {len(files) - 15}"
+        else:
+            text += "\n[yellow]База пуста[/yellow]"
+        console.print(Panel(text, title="📚 База знаний", border_style="cyan"))
+        return True, None, None, True
+
+    if action == "check_kb":
+        from knowledge import get_knowledge_status
+        status = get_knowledge_status()
+        console.print(Panel(str(status), title="🧪 Аудит базы", border_style="cyan"))
+        return True, None, None, True
+
     if action == "genassignment":
-        console.print("[yellow]Модуль генератора заданий временно отключён для рефакторинга[/yellow]")
-        return True, mode, student_level, True
-    if action == "ctf":
-        return True, Mode.CTF, student_level, True
+        console.print("[yellow]Генератор заданий временно отключён[/yellow]")
+        return True, None, None, True
+
+    if action == "cache stats":
+        show_cache_stats()
+        return True, None, None, True
+
+    if action == "stats":
+        handle_stats(conn)
+        return True, None, None, True
+
+    # ----- Mode switches -----
     if action == "teacher":
-        return True, Mode.TEACHER, student_level, True
+        state.set_persona("teacher")
+        return True, Mode.TEACHER, None, True
     if action == "expert":
-        return True, Mode.EXPERT, student_level, True
+        state.set_persona("expert")
+        return True, Mode.EXPERT, None, True
+    if action == "ctf":
+        state.set_persona("ctf")
+        return True, Mode.CTF, None, True
     if action == "review":
-        return True, Mode.CODE_REVIEW, student_level, True
+        state.set_persona("review")
+        return True, Mode.CODE_REVIEW, None, True
+
+    # ----- News & threats -----
+    if action in ("news", "cve", "security_news"):
+        return handle_security_news(action, llm)
+    if action == "threats":
+        return handle_threats(action)
+    if action in ("threat", "threat summary"):
+        return handle_threat_summary(action)
+
+    # ----- Groups -----
+    if action == "groups":
+        return handle_groups()
+
+    # ----- Practice & labs -----
+    if action == "practice":
+        return handle_practice(action)
     if action.startswith("lab") or action == "htb":
         return handle_practice(action)
+
+    # ----- Courses & story -----
+    if action == "next":
+        return handle_course("next")
+    if action.startswith("course") or action == "courses":
+        return handle_course(action)
+    if action in ("story", "episode", "quest"):
+        return handle_story_mode(action)
+
+    # ----- Quiz & tasks -----
+    if action == "quiz":
+        return handle_quiz_action()
+    if action == "task":
+        return handle_task_action()
+
+    # ----- Flag & achievements -----
+    if action.startswith("flag"):
+        flag = action.split(" ", 1)[1] if " " in action else None
+        return handle_flag_check(flag)
+    if action in ("achievements", "achievement"):
+        return handle_achievements()
+
+    # ----- Miscellaneous -----
+    if action == "writeup":
+        return handle_writeup()
+    if action.startswith("add_book"):
+        return handle_add_book(action)
+    if action.startswith("log "):
+        return handle_terminal_log(action[4:])
+    if action in ("terminal", "term"):
+        return handle_terminal_log()
+    if action == "history":
+        return handle_history(conn)
+    if action in ("check", "logs"):
+        return handle_container_check(action)
+    if action.startswith("provider"):
+        return handle_provider(action)
+    if action.startswith("model"):
+        return handle_model(action)
+    if action.startswith("set-api-key"):
+        return handle_set_api_key(action)
     if action in {"smart_test", "read_url"}:
-        return handle_quiz_generation(action, None, None, mode, student_level)
-    return True, mode, student_level, False
+        return handle_quiz_generation(action, None)
+
+    # ----- Social engineering trainer -----
+    if action == "social" or action.startswith("social "):
+        return handle_social(action)
+
+    # ----- Risk level -----
+    if action == "risk":
+        return handle_risk(action)
+    if action.startswith("risk "):
+        return handle_risk(action)
+
+    # ----- Unknown command -----
+    console.print("[bold red]Неизвестная команда или ввод.[/bold red]")
+    console.print("[yellow]Используй цифровое меню (0-39) или команды со /. Не трать время — я не библиотечный червь.[/yellow]")
+    console.print("[dim]Подсказка: введи /help или 9 для справки.[/dim]")
+    return True, None, None, True
