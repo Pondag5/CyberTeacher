@@ -270,6 +270,7 @@ NUMERIC_MENU = {
     "37": "threat summary", # Сводка угроз
     "38": "cve",         # CVE информация
     "39": "news search", # Search
+    "40": "sandbox",     # Песочница для кода
     
     # Выход (0)
     "0": "exit",         # Выход

@@ -13,6 +13,7 @@ from state import get_state
 # Импорты модулей handlers
 # ----------------------------------------------------------------------
 from .practice import handle_practice, handle_container_check
+from .sandbox import handle_sandbox
 from .quiz import handle_quiz_action, handle_task_action, handle_quiz_generation, handle_code_review
 from .flags import handle_flag_check
 from .achievements import handle_achievements
@@ -378,7 +379,11 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Op
     # ----- Social engineering trainer -----
     if action == "social" or action.startswith("social "):
         return handle_social(action)
-
+    
+    # ----- Sandbox -----
+    if action.startswith("sandbox"):
+        return handle_sandbox(action)
+    
     # ----- Risk level -----
     if action == "risk":
         return handle_risk(action)

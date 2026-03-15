@@ -62,17 +62,18 @@ def show_menu():
   [magenta]28[/magenta] - Добавить книгу (/add_book)
    [magenta]29[/magenta] - Social engineering trainer (/social)
 
-[bold yellow]🔍 РАЗНОЕ (30-39)[/bold yellow]
-  [yellow]30[/yellow] - Проверить флаг (/flag) [нужен аргумент]
-  [yellow]31[/yellow] - Записать лог (/log <cmd>)
-  [yellow]32[/yellow] - Установить API ключ (/set-api-key)
-  [yellow]33[/yellow] - Умный тест (/smart_test)
-  [yellow]34[/yellow] - Чтение URL (/read_url)
-  [yellow]35[/yellow] - Угрозы (/threats)
-  [yellow]36[/yellow] - Группы APT (/groups)
-  [yellow]37[/yellow] - Сводка угроз (/threat summary)
-  [yellow]38[/yellow] - CVE информация (/cve)
-  [yellow]39[/yellow] - Search (/news search)
+ [bold yellow]🔍 РАЗНОЕ (30-40)[/bold yellow]
+   [yellow]30[/yellow] - Проверить флаг (/flag) [нужен аргумент]
+   [yellow]31[/yellow] - Записать лог (/log <cmd>)
+   [yellow]32[/yellow] - Установить API ключ (/set-api-key)
+   [yellow]33[/yellow] - Умный тест (/smart_test)
+   [yellow]34[/yellow] - Чтение URL (/read_url)
+   [yellow]35[/yellow] - Угрозы (/threats)
+   [yellow]36[/yellow] - Группы APT (/groups)
+   [yellow]37[/yellow] - Сводка угроз (/threat summary)
+   [yellow]38[/yellow] - CVE информация (/cve)
+   [yellow]39[/yellow] - Search (/news search)
+   [yellow]40[/yellow] - Песочница (/sandbox <lang> <code>)
 
 [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
