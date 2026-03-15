@@ -35,6 +35,8 @@ from .misc import (
     handle_provider,
     handle_model,
     handle_set_api_key,
+    handle_adaptive,
+    handle_repeat,
 )
 from .social import handle_social
 from ui import Mode, show_help, show_menu, show_help_detail
@@ -389,6 +391,14 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Op
         return handle_risk(action)
     if action.startswith("risk "):
         return handle_risk(action)
+
+    # ----- Adaptive learning -----
+    if action == "adaptive" or action == "weaknesses":
+        return handle_adaptive(action)
+
+    # ----- Spaced Repetition -----
+    if action == "repeat":
+        return handle_repeat(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")

@@ -421,3 +421,147 @@ def handle_add_book(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
+
+
+def handle_adaptive(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Показать слабые темы и адаптивный план обучения"""
+    try:
+        state = get_state()
+        weak = state.get_weak_topics(threshold=70.0)
+        if not weak:
+            console.print("[green]Поздравляю! Нет слабых тем (все темы с успешностью >=70%)[/green]")
+        else:
+            console.print("[bold cyan]Адаптивное обучение: слабые темы[/bold cyan]")
+            console.print(f"[dim]Порог: 70%. Темы с успешностью ниже порога приоритетны для повторения.[/dim]\n")
+            for w in weak:
+                console.print(f"  • {w['topic']}: {w['success_rate']:.1f}% (попыток: {w['attempts']})")
+            # Recommend next focus
+            next_topic = state.get_next_weak_topic()
+            if next_topic:
+                console.print(f"\n[yellow]Следующая тема для фокуса: {next_topic}[/yellow]")
+                console.print("[dim]Запустите /quiz чтобы потренировать эту тему[/dim]")
+        return True, None, None, True
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
+
+
+def handle_repeat(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Интервальные повторения (Spaced Repetition) - повторение тем, готовых к проверке."""
+    try:
+        state = get_state()
+        due = state.get_due_reviews()
+        
+        if not due:
+            console.print("[green]🎉 Нет тем для повторения! Все темы в актуальном состоянии.[/green]")
+            return True, None, None, True
+        
+        console.print("[bold cyan]📚 Темы для повторения:[/bold cyan]")
+        console.print(f"[dim]Всего: {len(due)}[/dim]\n")
+        for idx, item in enumerate(due, 1):
+            console.print(f"  {idx}. {item['topic']} (интервал: {item['interval']} дней, попыток: {item['repetitions']})")
+        
+        console.print("\n[yellow]Выберите тему для повторения (номер) или /cancel для отмены[/yellow]")
+        choice = input("Номер: ").strip()
+        if choice.lower() in ['/cancel', '/exit']:
+            console.print("[yellow]Отмена[/yellow]")
+            return True, None, None, True
+        
+        try:
+            idx = int(choice) - 1
+        except ValueError:
+            console.print("[red]Неверный ввод[/red]")
+            return True, None, None, True
+        
+        if idx < 0 or idx >= len(due):
+            console.print("[red]Неверный номер[/red]")
+            return True, None, None, True
+        
+        topic = due[idx]['topic']
+        console.print(f"[cyan]Запускаю квиз по теме: {topic}[/cyan]")
+        
+        try:
+            from knowledge import get_current_vectordb
+            from generators import generate_quiz
+            vectordb = get_current_vectordb()
+            quiz = generate_quiz(vectordb, topic=topic)
+            questions = quiz.get('questions', [])
+            if not questions:
+                console.print("[yellow]Не удалось сгенерировать вопросы для этой темы[/yellow]")
+                return True, None, None, True
+        except Exception as e:
+            console.print(f"[red]Ошибка генерации квиза: {e}[/red]")
+            return True, None, None, True
+        
+        console.print(f"[bold green]📝 Квиз: {len(questions)} вопросов[/bold green]\n")
+        total_score = 0
+        max_total = 0
+        
+        for i, q in enumerate(questions, 1):
+            console.print(f"[bold cyan]Вопрос {i}/{len(questions)}:[/bold cyan]")
+            console.print(q.get('question', '?'))
+            if 'options' in q:
+                for opt_key, opt_val in q['options'].items():
+                    console.print(f"  {opt_key}) {opt_val}")
+            try:
+                user_ans = input("\nВаш ответ: ").strip()
+                if user_ans.lower() in ['/exit', '/quit']:
+                    console.print("[yellow]Квиз прерван[/yellow]")
+                    break
+                if user_ans.lower() == '/skip':
+                    console.print("[dim]Пропущено[/dim]\n")
+                    continue
+                if not user_ans:
+                    console.print("[dim]Пустой ответ[/dim]\n")
+                    continue
+            except KeyboardInterrupt:
+                console.print("\n[yellow]Прервано[/yellow]")
+                break
+            
+            # Evaluate
+            if 'options' in q:
+                correct = q.get('correct', '')
+                if user_ans.upper() == correct.upper():
+                    score = 10
+                    feedback = "✅ Верно!"
+                else:
+                    score = 0
+                    feedback = f"❌ Неверно. Правильный ответ: {correct}"
+            else:
+                result = check_open_answer(q.get('question', ''), user_ans, None)
+                score = result['score']
+                feedback = result['feedback']
+            console.print(f"[bold]Результат:[/bold] {score}/10 - {feedback}\n")
+            total_score += score
+            max_total += 10
+        
+        if max_total > 0:
+            success_rate = total_score / max_total * 100
+            console.print(f"[bold]📊 Итог:[/bold] {total_score}/{max_total} ({success_rate:.1f}%)")
+            
+            state.update_weak_topic(topic, total_score, max_total)
+            state.mark_reviewed(topic, total_score, max_total)
+            
+            entry = state.review_schedule.get(topic, {})
+            if entry:
+                import time
+                next_date = time.strftime("%Y-%m-%d", time.localtime(entry["next_review"]))
+                console.print(f"[cyan]Следующее повторение: {next_date} (интервал: {entry['interval']} дней)[/cyan]")
+            
+            state.save_to_file()
+        else:
+            console.print("[dim]Нет результатов[/dim]")
+        
+        return True, None, None, True
+        
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        import traceback
+        traceback.print_exc()
+        return True, None, None, True
+        
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        import traceback
+        traceback.print_exc()
+        return True, None, None, True

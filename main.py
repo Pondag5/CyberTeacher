@@ -312,10 +312,15 @@ def main():
     vectordb = load_knowledge_base()
 
     # === АДАПТИВНЫЙ СОВЕТ ПРИ СТАРТЕ ===
-    weak_topics = get_weak_topics(conn)
+    weak_topics = get_state().get_weak_topics(threshold=70.0)
     if weak_topics:
         rec = weak_topics[0] # Берем самую слабую
-        console.print(f"[bold yellow]Совет:[/bold yellow] Твоя слабая тема - [cyan]{rec['topic']}[/cyan] (Успех: {rec['rate']}%). Попробуй /quiz!")
+        console.print(f"[bold yellow]Совет:[/bold yellow] Твоя слабая тема - [cyan]{rec['topic']}[/cyan] (Успешность: {rec['success_rate']:.1f}%). Попробуй /quiz!")
+    
+    # === SPACED REPETITION НАПОМИНАНИЕ ===
+    due_reviews = get_state().get_due_reviews()
+    if due_reviews:
+        console.print(f"[bold magenta]⏰ Напоминание:[/bold magenta] У тебя {len(due_reviews)} тем готовы для повторения (Spaced Repetition). Введи /repeat или 42 чтобы начать.")
     
     current_mode = Mode.TEACHER
 

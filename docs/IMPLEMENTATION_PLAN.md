@@ -43,8 +43,8 @@
 | C-06 | Гибридный поиск (BM25) | Добавить keyword-based поиск к векторному для редких терминов. | roadmap.md:201 | ✅ Done (BM25 + jieba токенизация, комбинирование с векторными scores) |
 | C-07 | Кэширование ответов LLM | Таблица query_cache в SQLite: hash запроса + режим + контекст → ответ. TTL: 1 день для актуальных, вечно для теории. | roadmap.md:205-210 | ✅ Done (CachedLLM класс, интеграция завершена, все LLM вызовы через SQLite кэш с TTL)
 | C-08 | Песочница для кода | Запуск кода ученика (Python, Bash) в Docker-контейнере с проверкой результата. | roadmap.md:212-218 | ✅ Done (валидация, ограничения, команда /sandbox) |
-| C-09 | Адаптивный план обучения | После квиза/задачи анализировать ошибки через LLM, записывать слабые темы в state. Подбор следующих материалов. | roadmap.md:227-230 | Not started |
-| C-10 | Интервальные повторения (Spaced Repetition) | Алгоритм SuperMemo: повторение через 1 день, 3 дня, неделю, месяц. Уведомление при старте. | roadmap.md:233-238 | Not started |
+| C-09 | Адаптивный план обучения | После квиза/задачи анализировать ошибки, записывать слабые темы в state. Подбор следующих материалов (фокус на weak_topics). | roadmap.md:227-230 | ✅ Done (интерактивные квизы/задачи с оценкой, weak_topics в state, команда /adaptive) |
+| C-10 | Интервальные повторения (Spaced Repetition) | Алгоритм SuperMemo: повторение через 1 день, 3 дня, неделю, месяц. Уведомление при старте. | roadmap.md:233-238 | ✅ Done (SM-2 упрощённый, расписание review_schedule, команда /repeat, уведомление при старте) |
 | C-11 | Генерация конспектов (/summary) | По теме генерировать структурированный конспект в Markdown. | roadmap.md:241-242 | Not started |
 | C-12 | Автоматическая генерация writeup | После задания/эпизода генерировать отчёт в Markdown/PDF с действиями и решением. | roadmap.md:320-321 | Not started |
 | C-13 | Расширенные достижения | Добавить ачивки: Social Engineer, APT Hunter, Ghost in the Shell, Сноуден с описаниями и XP-бонусами. | roadmap.md:271-276 | Not started |
@@ -169,9 +169,11 @@
 | D-26 | UTF-8 encoding fix for Windows | Created utils/console_encoding.py, integrated into main.py. Solved UnicodeEncodeError for emojis/special chars. | 2026-03-14 |
 | D-27 | Threat summary with LLM analysis | Implemented handle_threat_summary() that fetches fresh news, filters threats (APT/DDoS/ransomware), and uses LLM to generate weekly summary with recommendations. | 2026-03-14 |
  | D-28 | Tests for threat summary | Created test_threat_summary.py with 4 tests covering LLM analysis, fallback, no news scenarios. | 2026-03-14 |
- | C-04 | APT досье | 27 групп JSON файлов создано, команды /threats и /groups функционируют. | 2026-03-15 |
- | C-06 | Гибридный BM25 поиск | BM25 + jieba токенизация, комбинирование с векторными results. | 2026-03-15 |
- | C-08 | Песочница для кода | Docker-песочница с валидацией, ограничениями по ресурсам, командой /sandbox. | 2026-03-15 |
+  | C-04 | APT досье | 27 групп JSON файлов создано, команды /threats и /groups функционируют. | 2026-03-15 |
+  | C-06 | Гибридный BM25 поиск | BM25 + jieba токенизация, комбинирование с векторными results. | 2026-03-15 |
+  | C-08 | Песочница для кода | Docker-песочница с валидацией, ограничениями по ресурсам, командой /sandbox. | 2026-03-15 |
+  | C-09 | Адаптивный план обучения | Интерактивные квизы/задачи с оценкой ответов, weak_topics в state, приоритизация тем, команда /adaptive. | 2026-03-15 |
+  | C-10 | Интервальные повторения | Упрощённый SM-2 алгоритм, review_schedule, команда /repeat, уведомление при старте о просроченных повторениях. | 2026-03-15 |
 
 ---
 
@@ -183,7 +185,7 @@
 - **High:** 12 (H-13..H-15 ✅; остальные планы)
 - **Medium:** 25 (M-24..M-26 ✅; M-17 partially; M-01..M-23 планы)
 - **Low:** 14 (все планы)
-- **Done:** 33 (D-25..D-28, C-01..C-08, C-04, C-06)
+- **Done:** 35 (D-25..D-28, C-01..C-10, C-04, C-06)
 - **Partially:** 1 (M-17)
 
 ---

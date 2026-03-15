@@ -95,7 +95,11 @@ def generate_task(vectordb=None, category=None):
     return None
 
 def generate_quiz(vectordb=None, topic=None, count=5):
-    """Генерация квиза с фильтрацией тем"""
+    """Генерация квиза с фильтрацией тем.
+    
+    Returns:
+        dict: {"topic": <topic>, "questions": [...]}
+    """
 
     # Если тема не указана или слишком общая, выбираем случайную из разрешенных
     if not topic or topic.lower() in ["all", "general", "все", "общее"]:
@@ -131,11 +135,11 @@ def generate_quiz(vectordb=None, topic=None, count=5):
         response = get_llm().invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, list):
-            return json_block
+            return {"topic": topic, "questions": json_block}
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[red]")
 
-    return []
+    return {"topic": topic, "questions": []}
 
 def generate_mermaid(vectordb):
     """Генерация Mermaid схемы"""

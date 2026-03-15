@@ -54,6 +54,148 @@ class AppState:
     active_assignment: Optional[Dict[str, Any]] = None
     collected_flags: List[str] = field(default_factory=list)
     
+    # Слабые темы (для адаптивного обучения)
+    weak_topics: List[Dict[str, Any]] = field(default_factory=list)  # [{"topic": "SQLi", "success_rate": 45.0, "attempts": 3, "total_score": 135, "max_score": 300}]
+    
+    # Расписание интервальных повторений (Spaced Repetition)
+    # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
+    review_schedule: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    
+    def update_weak_topic(self, topic: str, score: float, max_score: float = 10.0):
+        """Обновить статистику по слабой теме.
+        
+        Args:
+            topic: Название темы (например, "sql", "xss")
+            score: Полученный балл
+            max_score: Максимальный возможный балл (по умолчанию 10)
+        """
+        # Найти существующую запись
+        for entry in self.weak_topics:
+            if entry["topic"] == topic:
+                # Обновить: добавить новый результат к совокупной статистике
+                entry["attempts"] += 1
+                entry["total_score"] += score
+                entry["max_score"] += max_score
+                entry["success_rate"] = (entry["total_score"] / entry["max_score"]) * 100 if entry["max_score"] > 0 else 0
+                return
+        
+        # Создать новую запись
+        self.weak_topics.append({
+            "topic": topic,
+            "attempts": 1,
+            "total_score": score,
+            "max_score": max_score,
+            "success_rate": (score / max_score) * 100 if max_score > 0 else 0
+        })
+    
+    def get_weak_topics(self, threshold: float = 70.0) -> List[Dict[str, Any]]:
+        """Получить список тем с успешностью ниже threshold%.
+        
+        Returns:
+            List[Dict] с полями topic, success_rate, attempts, отсортированный по возрастанию success_rate
+        """
+        weak = [t for t in self.weak_topics if t["success_rate"] < threshold]
+        return sorted(weak, key=lambda x: x["success_rate"])
+    
+    def get_next_weak_topic(self, threshold: float = 70.0) -> Optional[str]:
+        """Получить следующую тему для фокуса (самую слабую).
+        
+        Returns:
+            topic ID (str) или None если всё хорошо
+        """
+        weak = self.get_weak_topics(threshold)
+        if weak:
+            return weak[0]["topic"]
+        return None
+    
+    def clear_weak_topics(self):
+        """Очистить статистику слабых тем."""
+        self.weak_topics = []
+    
+    # === SPACED REPETITION (SuperMemo-like) ===
+    
+    def _compute_next_review(self, interval_days: int) -> float:
+        """Вычислить timestamp следующего повторения."""
+        import time
+        return time.time() + interval_days * 86400
+    
+    def schedule_review(self, topic: str, grade: float, max_grade: float = 10.0):
+        """Запланировать следующее повторение для темы на основе оценки (SM-2 algorithm simplified).
+        
+        Args:
+            topic: Название темы
+            grade: Полученный балл (0..max_grade)
+            max_grade: Максимальный балл (по умолчанию 10)
+        """
+        quality = (grade / max_grade) * 5  # Преобразуем в шкалу 0-5
+        
+        if topic not in self.review_schedule:
+            # Первое изучение: первое повторение через 1 день
+            entry = {
+                "repetitions": 0,
+                "interval": 1,
+                "next_review": self._compute_next_review(1),
+                "last_grade": grade,
+                "ef": 2.5  # ease factor
+            }
+        else:
+            entry = self.review_schedule[topic]
+            repetitions = entry.get("repetitions", 0)
+            interval = entry.get("interval", 1)
+            ef = entry.get("ef", 2.5)
+            
+            if quality < 3:
+                # Плохое запоминание - начать заново
+                repetitions = 0
+                interval = 1
+                ef = 2.5
+            else:
+                repetitions += 1
+                if repetitions == 1:
+                    interval = 1
+                elif repetitions == 2:
+                    interval = 3
+                else:
+                    # Увеличить интервал на основе коэффициента легкости (EF)
+                    new_ef = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+                    new_ef = max(1.3, new_ef)
+                    entry["ef"] = new_ef
+                    interval = max(1, int(interval * new_ef))
+                entry["repetitions"] = repetitions
+                entry["interval"] = interval
+            
+            entry["next_review"] = self._compute_next_review(interval)
+            entry["last_grade"] = grade
+        
+        self.review_schedule[topic] = entry
+    
+    def get_due_reviews(self) -> List[Dict[str, Any]]:
+        """Получить список тем, готовых к повторению (next_review <= сейчас).
+        
+        Returns:
+            List[Dict] с полями: topic, interval, repetitions, отсортированный по дате
+        """
+        import time
+        now = time.time()
+        due = []
+        for topic, entry in self.review_schedule.items():
+            if entry.get("next_review", 0) <= now:
+                due.append({
+                    "topic": topic,
+                    "interval": entry.get("interval", 0),
+                    "repetitions": entry.get("repetitions", 0)
+                })
+        due.sort(key=lambda x: self.review_schedule[x["topic"]]["next_review"])
+        return due
+    
+    def mark_reviewed(self, topic: str, grade: float, max_grade: float = 10.0):
+        """Отметить повторение как завершённое и запланировать следующее."""
+        self.schedule_review(topic, grade, max_grade)
+    
+    def clear_review_schedule(self):
+        """Очистить всё расписание повторений."""
+        self.review_schedule = {}
+    
     def reset_course(self):
         """Сбросить прогресс курса"""
         self.current_course = None
@@ -269,7 +411,9 @@ class AppState:
             "quizzes_taken": self.quizzes_taken,
             "news_checked": self.news_checked,
             "messages_sent": self.messages_sent,
-            "earned_achievements": self.earned_achievements if hasattr(self, 'earned_achievements') else []
+            "earned_achievements": self.earned_achievements if hasattr(self, 'earned_achievements') else [],
+            "weak_topics": self.weak_topics,
+            "review_schedule": self.review_schedule
         }
         try:
             with open(path, 'w', encoding='utf-8') as f:
@@ -303,6 +447,8 @@ class AppState:
                 self.news_checked = data.get("news_checked", 0)
                 self.messages_sent = data.get("messages_sent", 0)
                 self.earned_achievements = data.get("earned_achievements", [])
+                self.weak_topics = data.get("weak_topics", [])
+                self.review_schedule = data.get("review_schedule", {})
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")
