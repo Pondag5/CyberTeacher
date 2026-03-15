@@ -1,0 +1,20 @@
+{
+  "name": "APT3",
+  "aliases": ["Gothic Panda", "APT3", "Buckeye", "UnionCrew"],
+  "country": "China",
+  "first_seen": "2010",
+  "targets": ["Government", "Defense", "Telecom", "Technology"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["BOURNEBACKDOOR", "CROSSWALK", "RARSTONE", "ZxShell"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1055 - Process Injection",
+    "T1218.011 - Msiexec",
+    "T1036.005 - Match Legitimate Name or Location",
+    "T1071.001 - Application Layer Protocol: Web Protocols"
+  ],
+  "recent_activity": "Активен в атаках на государственные istituzioni в Юго-Восточной Азии и США, известен использованием 0-day уязвимостей.",
+  "references": [
+    "https://attack.mitre.org/groups/G0005/"
+  ]
+}

@@ -515,8 +515,13 @@ def handle_security_news(action: str, LLM: Any):
         else:
             news_text = news_for_llm
 
-        # Сохраняем в state
+        # Сохраняем в state и отмечаем проверку новостей
         get_state().last_news = news_text
+        get_state().check_news()
+        newly_earned = get_state().check_achievements()
+        if newly_earned:
+            for ach in newly_earned:
+                console.print(f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points',0)} XP[/bold magenta]")
         console.print(Panel(news_text[:800], title="НОВОСТИ"))
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
@@ -677,94 +682,6 @@ def handle_story_mode(action: str) -> Tuple[bool, Optional[Any], Optional[Any], 
         console.print("[yellow]Режим истории временно недоступен[/yellow]")
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
-    return True, None, None, True
-
-def handle_flag_check(flag: str = None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
-    """Проверка флага /flag <флаг>"""
-    try:
-        if not flag:
-            console.print("[cyan]Использование: /flag <FLAG{...}>[/cyan]")
-            return True, None, None, True
-
-        # Простая проверка формата FLAG{...}
-        import re
-        pattern = r'FLAG\{[^}]+\}'
-        if re.fullmatch(pattern, flag.strip()):
-            console.print(f"[bold green]✅ Флаг '{flag}' валиден по формату![/bold green]")
-            # TODO: Интеграция с базой данных для проверки правильности флага
-            console.print("[yellow]Функция проверки корректности флага будет реализована позже.[/yellow]")
-        else:
-            console.print(f"[bold red]❌ Флаг '{flag}' имеет неверный формат.[/bold red]")
-            console.print("[cyan]Ожидается формат: FLAG{...}[/cyan]")
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
-    return True, None, None, True
-
-def handle_achievements(*args, **kwargs):
-    """Управление достижениями: list, earn <id>, help"""
-    try:
-        action = args[0] if args else "achievements"
-        parts = action.split() if isinstance(action, str) else ["achievements"]
-        subcmd = parts[1] if len(parts) > 1 else "list"
-        
-        achievements_file = "data/achievements.json"
-        if not os.path.exists(achievements_file):
-            console.print("[yellow]Файл достижений не найден[/yellow]")
-            return True, None, None, True
-        
-        with open(achievements_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        achievements = {ach["id"]: ach for ach in data.get("achievements", [])}
-        
-        # Подкоманда: earn <id> - "получить" достижение (для тестов/демо)
-        if subcmd == "earn":
-            if len(parts) < 3:
-                console.print("[cyan]Использование: /achievements earn <id>[/cyan]")
-                console.print("Пример: /achievements earn first_blood")
-                return True, None, None, True
-            
-            ach_id = parts[2]
-            if ach_id not in achievements:
-                console.print(f"[yellow]Достижение '{ach_id}' не найдено[/yellow]")
-                console.print("[cyan]Доступные ID: " + ", ".join(sorted(achievements.keys())) + "[/cyan]")
-                return True, None, None, True
-            
-            # В реальной системе здесь будет логика проверки условий
-            # Сейчас просто показываем, что достижение "получено"
-            ach = achievements[ach_id]
-            console.print(f"[bold green]✅ Достижение получено![/bold green]")
-            console.print(f"{ach.get('icon', '🏆')} **{ach.get('name')}** (+{ach.get('xp', 0)} XP)")
-            console.print(f"[dim]{ach.get('description', '')}[/dim]")
-            console.print("\n[cyan]В будущем это будет интегрировано с системой прогресса.[/cyan]")
-            return True, None, None, True
-        
-        # Подкоманда: help
-        elif subcmd == "help":
-            console.print("[bold cyan]🏆 Достижения — помощь[/bold cyan]\n")
-            console.print("Команды:")
-            console.print("  /achievements — показать список всех достижений")
-            console.print("  /achievements earn <id> — получить достижение (тестовый режим)")
-            console.print("  /achievements help — эта справка")
-            return True, None, None, True
-        
-        # По умолчанию: list
-        console.print("[bold cyan]🏆 Все достижения[/bold cyan]\n")
-        for ach_id, ach in achievements.items():
-            name = ach.get("name", "Без названия")
-            description = ach.get("description", "")
-            icon = ach.get("icon", "🏆")
-            xp = ach.get("xp", 0)
-            
-            console.print(f"{icon} **{name}** (+{xp} XP)")
-            if description:
-                console.print(f"   {description}")
-            console.print(f"   [dim]ID: {ach_id}[/dim]\n")
-            
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
-        import traceback
-        traceback.print_exc()
     return True, None, None, True
 
 def handle_threats(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
@@ -1274,8 +1191,15 @@ def handle_practice(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
 
         elif parts[0] in ["lab", "practice"] and len(parts) >= 3 and parts[1] == "start":
             lab_name = parts[2]
+            # Отмечаем запуск лаборатории в state (достижение)
+            get_state().start_lab()
             result = start_lab(lab_name)
             console.print(result)
+            # Проверяем, не заработано ли новое достижение
+            newly_earned = get_state().check_achievements()
+            if newly_earned:
+                for ach in newly_earned:
+                    console.print(f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points',0)} XP[/bold magenta]")
             return True, None, None, True
 
         elif parts[0] in ["lab", "practice"] and len(parts) >= 3 and parts[1] == "stop":
@@ -1512,6 +1436,8 @@ def handle_course(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool
 
 def handle_quiz_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
     try:
+        from state import get_state
+        state_obj = get_state()
         from knowledge import get_current_vectordb
         vectordb = get_current_vectordb()
         if GENERATORS_AVAILABLE:
@@ -1527,6 +1453,12 @@ def handle_quiz_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
                         console.print(f"   - {opt}")
             if len(qs) > 5:
                 console.print(f"... и еще {len(qs) - 5} вопросов")
+            # Отмечаем прохождение квиза
+            state_obj.take_quiz()
+            newly_earned = state_obj.check_achievements()
+            if newly_earned:
+                for ach in newly_earned:
+                    console.print(f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points',0)} XP[/bold magenta]")
         else:
             console.print("[yellow]Генератор квизов недоступен[/yellow]")
     except Exception as e:

@@ -1,0 +1,20 @@
+{
+  "name": "APT38",
+  "aliases": ["Bluenoroff", "APT38", "BeagleBoyz", "Cobalt Gypsies"],
+  "country": "North Korea",
+  "first_seen": "2015",
+  "targets": ["Financial", "Banking", "Cryptocurrency", "Technology", "Energy"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["Cobalt Strike", "PLAINTEE", "BGCONNECT", "RICKROLL", "FRMDOS"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1136.001 - Create Account: Local Account",
+    "T1078 - Valid Accounts",
+    "T1105 - Ingress Tool Transfer",
+    "T1562.001 - Impair Defenses: Disable or Modify Tools"
+  ],
+  "recent_activity": "Известна крупными кражами денег через банковские системы и криптобиржи, операции по отмыванию денег.",
+  "references": [
+    "https://attack.mitre.org/groups/G0076/"
+  ]
+}

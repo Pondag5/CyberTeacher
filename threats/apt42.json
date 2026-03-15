@@ -1,0 +1,20 @@
+{
+  "name": "APT42",
+  "aliases": ["Vicious Panda", "APT42", "Redalpha"],
+  "country": "China",
+  "first_seen": "2016",
+  "targets": ["Government", "Technology", "Telecom", "Healthcare", "Education"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["Cobalt Strike", "QUADAGENT", "FRPCONFIG", "BLOODALVECONSOLE"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1566.002 - Spearphishing Link",
+    "T1204.001 - User Execution: Malicious Link",
+    "T1055 - Process Injection",
+    "T1574.002 - DLL Side-Loading"
+  ],
+  "recent_activity": "Активность, связанная с китайскими спецслужбами, целенаправленный шпионаж за научно-исследовательскими учреждениями.",
+  "references": [
+    "https://attack.mitre.org/groups/G0114/"
+  ]
+}

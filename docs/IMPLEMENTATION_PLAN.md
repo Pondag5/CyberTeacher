@@ -38,10 +38,10 @@
 | C-01 | risk_level в state.py | Переменная для механики компрометации/следования. Интегрировать в CTF и story mode. | roadmap.md:165, fantasy-mao.md:41 | Done |
 | C-02 | Команда /social (социальная инженерия) | Интерактивный диалоговый тренажёр: ученик общается с ботом-"жертвой", LLM оценивает убедительность фраз. Прототип через LLM с системой выборов. | roadmap.md:53-57, 245-252 | Done |
 | C-03 | Команда /threats | Еженедельная сводка актуальных угроз (APT, DDoS, ransomware) с анализом от учителя. Парсить RSS-ленты (SecurityWeek, CISA). | roadmap.md:149-150, 172-173 | ✅ Done |
-| C-04 | Команда /group <name> | Досье на APT-группы из JSON-файла (27 групп, техники, инструменты). | roadmap.md:151, 174 | ✅ Partially done (7/27 групп, структура готова) |
-| C-05 | Умный RAG с реранкингом | После top-K (10) чанков прогонять cross-encoder (cross-encoder/ms-marco-MiniLM-L-6v2) и оставлять top-3-5. | roadmap.md:199-201 | ✅ Partially done (реранкер загружен, нужна интеграция)
-| C-06 | Гибридный поиск (BM25) | Добавить keyword-based поиск к векторному для редких терминов. | roadmap.md:201 | Not started |
-| C-07 | Кэширование ответов LLM | Таблица query_cache в SQLite: hash запроса + режим + контекст → ответ. TTL: 1 день для актуальных, вечно для теории. | roadmap.md:205-210 | ✅ Partially done (in-memory кэш, нужен SQLite + TTL)
+| C-04 | Команда /group <name> | Досье на APT-группы из JSON-файла (27 групп, техники, инструменты). | roadmap.md:151, 174 | ✅ Done (27 JSON файлов создано, команды /threats и /groups работают) |
+| C-05 | Умный RAG с реранкингом | После top-K (10) чанков прогонять cross-encoder (cross-encoder/ms-marco-MiniLM-L-6v2) и оставлять top-3-5. | roadmap.md:199-201 | ✅ Done (интеграция в knowledge.py готова, работает)
+| C-06 | Гибридный поиск (BM25) | Добавить keyword-based поиск к векторному для редких терминов. | roadmap.md:201 | ✅ Done (BM25 + jieba токенизация, комбинирование с векторными scores) |
+| C-07 | Кэширование ответов LLM | Таблица query_cache в SQLite: hash запроса + режим + контекст → ответ. TTL: 1 день для актуальных, вечно для теории. | roadmap.md:205-210 | ✅ Done (CachedLLM класс, интеграция завершена, все LLM вызовы через SQLite кэш с TTL)
 | C-08 | Песочница для кода | Запуск кода ученика (Python, Bash) в Docker-контейнере с проверкой результата. | roadmap.md:212-218 | Not started |
 | C-09 | Адаптивный план обучения | После квиза/задачи анализировать ошибки через LLM, записывать слабые темы в state. Подбор следующих материалов. | roadmap.md:227-230 | Not started |
 | C-10 | Интервальные повторения (Spaced Repetition) | Алгоритм SuperMemo: повторение через 1 день, 3 дня, неделю, месяц. Уведомление при старте. | roadmap.md:233-238 | Not started |
@@ -168,7 +168,9 @@
 | D-25 | Tests for /social command | Created test_social.py with 9 tests covering scenarios, evaluation, invalid input. | 2026-03-14 |
 | D-26 | UTF-8 encoding fix for Windows | Created utils/console_encoding.py, integrated into main.py. Solved UnicodeEncodeError for emojis/special chars. | 2026-03-14 |
 | D-27 | Threat summary with LLM analysis | Implemented handle_threat_summary() that fetches fresh news, filters threats (APT/DDoS/ransomware), and uses LLM to generate weekly summary with recommendations. | 2026-03-14 |
-| D-28 | Tests for threat summary | Created test_threat_summary.py with 4 tests covering LLM analysis, fallback, no news scenarios. | 2026-03-14 |
+ | D-28 | Tests for threat summary | Created test_threat_summary.py with 4 tests covering LLM analysis, fallback, no news scenarios. | 2026-03-14 |
+ | C-04 | APT досье | 27 групп JSON файлов создано, команды /threats и /groups функционируют. | 2026-03-15 |
+ | C-06 | Гибридный BM25 поиск | BM25 + jieba токенизация, комбинирование с векторными results. | 2026-03-15 |
 
 ---
 
@@ -176,12 +178,12 @@
 
 - **Всего задач:** ~140 (всех категорий)
 - **Blocker:** 5 ✅ Все выполнены
-- **Critical:** 14 (C-01, C-02, C-03 ✅; C-04 partially done; C-05..C-14 планы)
+- **Critical:** 14 (C-01, C-02, C-03, C-05 ✅; C-04 partially; C-06..C-14 планы)
 - **High:** 12 (H-13..H-15 ✅; остальные планы)
 - **Medium:** 25 (M-24..M-26 ✅; M-17 partially; M-01..M-23 планы)
 - **Low:** 14 (все планы)
-- **Done:** 28 (D-25..D-28, C-01..C-03)
-- **Partially:** 4 (C-04 partially (7/27), C-05, C-07, M-17)
+- **Done:** 32 (D-25..D-28, C-01..C-07, C-04, C-06)
+- **Partially:** 1 (M-17)
 
 ---
 

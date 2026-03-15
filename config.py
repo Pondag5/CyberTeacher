@@ -74,6 +74,10 @@ THINKING_ENABLED = True
 RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 RERANK_TOP_K = 5  # Сколько лучших чанков возвращать после реранкинга
 
+# === ГИБРИДНЫЙ ПОИСК (BM25) ===
+BM25_ENABLED = os.getenv("BM25_ENABLED", "true").lower() == "true"
+BM25_K = int(os.getenv("BM25_K", "20"))
+
 # === ЛИМИТЫ LLM ===
 MAX_TOKENS = 2000  # Максимальное количество токенов в ответе LLM
 

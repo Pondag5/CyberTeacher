@@ -22,6 +22,7 @@ import atexit
 import os
 from handlers.core import handle_commands, _response_cache
 from config import NUMERIC_MENU
+from memory import get_cached_response, cache_response, cleanup_expired_cache
 
 # ===== НАСТРОЙКА ЛОГИРОВАНИЯ ЧТОБЫ УБРАТЬ ШУМ =====
 import os
@@ -77,6 +78,61 @@ _noisy_loggers = [
 for _ln in _noisy_loggers:
     logging.getLogger(_ln).setLevel(logging.WARNING)
 
+
+class CachedLLM:
+    """Обёртка для LLM с кэшированием ответов в SQLite"""
+    def __init__(self, llm, conn):
+        self.llm = llm
+        self.conn = conn
+    
+    def invoke(self, prompt):
+        import hashlib
+        # Хешируем запрос + модель (разные модели — разные ответы)
+        model_id = getattr(self.llm, 'model', 'default')
+        query_string = f"{prompt}|{model_id}"
+        query_hash = hashlib.sha256(query_string.encode()).hexdigest()
+        
+        # Проверяем кэш
+        cached = get_cached_response(self.conn, query_hash)
+        if cached:
+            # Возвращаем объект с атрибутом content для совместимости
+            class CachedResponse:
+                def __init__(self, content):
+                    self.content = content
+            return CachedResponse(cached)
+        
+        # Кэша нет — вызываем реальный LLM
+        response = self.llm.invoke(prompt)
+        text = response.content if hasattr(response, 'content') else str(response)
+        
+        # Сохраняем в кэш с TTL 1 день (актуальные данные)
+        cache_response(self.conn, query_hash, text, ttl_seconds=86400)
+    def stream(self, prompt):
+        """Стриминг с кэшированием полного ответа в SQLite."""
+        model_id = getattr(self.llm, 'model', 'default')
+        query_string = f"{prompt}|{model_id}"
+        query_hash = hashlib.sha256(query_string.encode()).hexdigest()
+        
+        cached = get_cached_response(self.conn, query_hash)
+        if cached:
+            # Возвращаем кэшированный ответ как один чанк
+            yield cached
+            return
+        
+        # Кэша нет — стримим от реального LLM и накапливаем
+        full_chunks = []
+        for chunk in self.llm.stream(prompt):
+            full_chunks.append(chunk)
+            yield chunk
+        
+        # После завершения стрима собираем полный текст и кэшируем
+        full_text = ''.join(
+            str(ch.content) if hasattr(ch, 'content') else str(ch)
+            for ch in full_chunks
+        )
+        if full_text:
+            cache_response(self.conn, query_hash, full_text, ttl_seconds=86400)
+
 # Конфигурация корневого логгера (our own logs)
 logging.basicConfig(
     level=logging.INFO,
@@ -95,6 +151,12 @@ from state import get_state
 # Функции для lazy loading
 def get_llm():
     return LazyLoader.get_llm()
+
+def get_cached_llm(conn):
+    llm = get_llm()
+    if llm is None:
+        return None
+    return CachedLLM(llm, conn)
 
 # Новости (lazy)
 _news_cache = None
@@ -246,6 +308,7 @@ def main():
         have_prompt_toolkit = False
     
     conn = init_db()
+    cleanup_expired_cache(conn)  # Очистка просроченных записей кэша
     vectordb = load_knowledge_base()
 
     # === АДАПТИВНЫЙ СОВЕТ ПРИ СТАРТЕ ===
@@ -302,7 +365,7 @@ def main():
             action = user_input[1:] if user_input.startswith('/') else user_input
 
         continue_loop, new_mode, new_level, action_taken = handle_commands(
-            action, conn, get_llm
+            action, conn, lambda: get_cached_llm(conn)
         )
 
         if action_taken:
@@ -400,34 +463,20 @@ def main():
             thinking = ThinkingVisualizer.generate_thinking(context_str, user_input, "socratic")
             print_thinking(thinking)
 
-        # === CACHING & STREAMING ===
         full_response = ""
-        # Кэширование: ключ на основе режима и полного промпта
-        cache_key_base = f"{current_mode.value}:{system_prompt}:{user_input}"
-        cache_key = hashlib.md5(cache_key_base.encode()).hexdigest()
-        cached = _response_cache.get(cache_key)
-        if cached is not None:
-            full_response = cached
-            console.print(f"[bold green]БОТ ({current_mode.value}):[/bold green] {full_response}")
-        else:
-            try:
-                llm = get_llm()
-                if llm is None:
-                    console.print("[red]❌ LLM недоступна. Проверьте настройки провайдера (OpenRouter API ключ или Ollama).[/red]")
-                    full_response = ""
-                else:
-                    console.print(f"[bold green]БОТ ({current_mode.value}):[/bold green] ", end="")
-                    for chunk in llm.stream(f"{system_prompt}\n\nВопрос: {user_input}"):
-                        # VL Studio через ChatOpenAI возвращает AIMessageChunk
-                        chunk_text = str(chunk.content) if hasattr(chunk, 'content') else str(chunk)
-                        full_response += chunk_text
-                        console.print(chunk_text, end="")
-                    console.print()
-                    if full_response:
-                        _response_cache.put(cache_key, full_response)
-            except Exception as e:
-                console.print(f"[red]Ошибка: {e}[/red]")
-                full_response = ""
+        try:
+            llm = get_cached_llm(conn)
+            if llm is None:
+                console.print("[red]❌ LLM недоступна. Проверьте настройки провайдера (OpenRouter API ключ или Ollama).[/red]")
+            else:
+                console.print(f"[bold green]БОТ ({current_mode.value}):[/bold green] ", end="")
+                for chunk in llm.stream(f"{system_prompt}\n\nВопрос: {user_input}"):
+                    chunk_text = str(chunk.content) if hasattr(chunk, 'content') else str(chunk)
+                    full_response += chunk_text
+                    console.print(chunk_text, end="")
+                console.print()
+        except Exception as e:
+            console.print(f"[red]Ошибка: {e}[/red]")
         
         if full_response:
             save_message(conn, "user", user_input, current_mode.value)

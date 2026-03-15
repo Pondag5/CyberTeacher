@@ -1,0 +1,20 @@
+{
+  "name": "APT37",
+  "aliases": ["Group123", "Reaper", "Kimsuky?"],
+  "country": "North Korea",
+  "first_seen": "2012",
+  "targets": ["Government", "Defense", "Technology", "Telecom", "Healthcare", "Media"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["Baby Shark", "ROKRAT", "005cursor", "EscherRAT", "Fallchill"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1566.002 - Spearphishing Link",
+    "T1055 - Process Injection",
+    "T1574.002 - DLL Side-Loading",
+    "T1485 - Data Destruction"
+  ],
+  "recent_activity": "Северокорейская группа, ответственная за операции шпионажа и разрушения данных, атаки на Südkorea и другие страны.",
+  "references": [
+    "https://attack.mitre.org/groups/G0067/"
+  ]
+}

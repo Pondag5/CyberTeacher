@@ -1,0 +1,20 @@
+{
+  "name": "APT33",
+  "aliases": ["Elfin", "APT33", "Refined Kitten"],
+  "country": "Iran",
+  "first_seen": "2014",
+  "targets": ["Aviation", "Defense", "Energy", "Government", "Technology"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["SHAPESHIFT", "PERSIANIZE", "PLAINTEE", "DROPWIRE", "TURNEDUP"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1133 - External Remote Services",
+    "T1078 - Valid Accounts",
+    "T1486 - Data Encrypted for Impact",
+    "T1490 - Inhibit System Recovery"
+  ],
+  "recent_activity": "Целевые атаки на энергетические компании и авиапромышленность в США и Ближнем Востоке, связь с операциями по шпионажу и саботажу.",
+  "references": [
+    "https://attack.mitre.org/groups/G0064/"
+  ]
+}

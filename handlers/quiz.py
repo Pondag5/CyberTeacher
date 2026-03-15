@@ -64,7 +64,7 @@ def handle_task_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
     return True, None, None, True
 
 
-def handle_quiz_generation(action: str, conn: Any, llm_obj: Any = None, mode=None, student_level=None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+def handle_quiz_generation(action: str, conn: Any, llm_obj: Any = None) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
     """Генерация квиза через /smart_test или /read_url"""
     try:
         if GENERATORS_AVAILABLE:

@@ -17,10 +17,14 @@ def init_terminal_log():
 
 
 def log_command(command: str, output: str = "", is_input: bool = True):
-    """Записать команду в лог"""
+    """Записать команду в лог (с санитизацией)"""
+    from config import sanitize_log
+    
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     entry = f"\n[{timestamp}] {'>>> ' if is_input else '<<< '}"
-    entry += f" {command}"
+    # Санитизируем команду (убираем пароли, ключи)
+    sanitized = sanitize_log(command)
+    entry += f" {sanitized}"
     if output:
         entry += f"\n{output}"
     

@@ -1,0 +1,20 @@
+{
+  "name": "Cobalt Group",
+  "aliases": ["Cobalt Group", "Cobalt Gang", "Cobalt Spider"],
+  "country": "Russia/Eastern Europe",
+  "first_seen": "2016",
+  "targets": ["Financial", "Banking", "Retail", "Hospitality", "Technology"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["Cobalt Strike", "Aveo Protection", "Cortana Security", "Responder", "Mimikatz"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1136 - Create Account",
+    "T1021.001 - Remote Desktop Protocol",
+    "T1003 - OS Credential Dumping",
+    "T1105 - Ingress Tool Transfer"
+  ],
+  "recent_activity": "Целевые атаки на банковский сектор с использованием Catch- все времена.",
+  "references": [
+    "https://attack.mitre.org/groups/G0080/"
+  ]
+}

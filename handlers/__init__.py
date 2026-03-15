@@ -9,7 +9,6 @@
 # ── Константы & утилиты ────────────────────────────────────────
 from .core import (
     handle_commands,
-    handle_mode,
 )  # основной диспетчер
 
 # ── Обработчики команд ───────────────────────────────────────
@@ -31,7 +30,6 @@ from .misc      import (
 
 __all__ = [
     "handle_commands",
-    "handle_mode",
     "handle_practice",
     "handle_container_check",
     "handle_quiz_action",

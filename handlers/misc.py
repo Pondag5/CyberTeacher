@@ -65,12 +65,110 @@ def check_open_answer(
     return {"score": score, "feedback": feedback}
 
 def handle_story_mode(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
-    """Режим истории (20 эпизодов)"""
+    """Режим истории (20 эпизодов) с интеграцией risk_level"""
     try:
-        console.print("[yellow]Режим истории временно недоступен[/yellow]")
+        from story_mode import start_story_mode, submit_flag, get_story_list, get_achievements_list, get_player
+        from state import get_state
+        
+        state = get_state()
+        parts = action.split()
+        
+        if action == "story" or action == "episode" or action == "quest":
+            # Показать список эпизодов
+            console.print(get_story_list())
+            return True, None, None, True
+            
+        elif len(parts) >= 2 and parts[0] == "story" and parts[1] == "start":
+            # Начать конкретный эпизод
+            try:
+                if len(parts) >= 3:
+                    episode_id = int(parts[2])
+                    console.print(start_story_mode(episode_id))
+                else:
+                    console.print(start_story_mode())
+            except ValueError:
+                console.print("[red]Неверный номер эпизода[/red]")
+            return True, None, None, True
+            
+        elif len(parts) >= 2 and parts[0] in ("story", "flag"):
+            # Проверить флаг
+            if len(parts) >= 3:
+                flag = parts[2] if parts[0] == "flag" else " ".join(parts[2:])
+                result = submit_flag(flag)
+                console.print(result)
+                
+                # Обновляем риск уровень на основе успеха
+                if "✅" in result or "ПРОЙДЕН" in result:
+                    state.decrease_risk(15)  # Успех снижает риск
+                    console.print(f"[green]🛡️ Уровень риска снижен! Текущий: {state.get_risk_status()} ({state.risk_level}/100)[/green]")
+                else:
+                    state.increase_risk(10)  # Ошибка повышает риск
+                    console.print(f"[red]⚠️  Уровень риска повышен! Текущий: {state.get_risk_status()} ({state.risk_level}/100)[/red]")
+            else:
+                console.print("[yellow]Использование: /flag <флаг>  или  /story flag <флаг>[/yellow]")
+            return True, None, None, True
+            
+        elif len(parts) >= 2 and parts[0] == "achievements":
+            # Показать достижения
+            console.print(get_achievements_list())
+            return True, None, None, True
+            
+        else:
+            console.print("[cyan]Использование Story Mode:[/cyan]")
+            console.print("  /story            - список эпизодов")
+            console.print("  /story start [N]  - начать эпизод N (или следующий)")
+            console.print("  /flag <флаг>      - отправить флаг")
+            console.print("  /achievements     - список достижений")
+            return True, None, None, True
+            
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
-    return True, None, None, True
+        import traceback
+        traceback.print_exc()
+        return True, None, None, True
+
+def handle_risk(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Управление и просмотр уровня риска"""
+    try:
+        from state import get_state
+        state = get_state()
+        parts = action.split()
+        
+        if len(parts) == 1:
+            # Показать текущий статус
+            status = state.get_risk_status()
+            console.print(f"[bold cyan]⚡ Уровень риска: {status} ({state.risk_level}/100)[/bold cyan]")
+            console.print("[dim]Уровень риска повышается при ошибках и снижается при успехах в CTF/Story режимах.[/dim]")
+            return True, None, None, True
+        
+        # Изменить уровень вручную (для отладки/админа)
+        if len(parts) >= 2:
+            try:
+                if parts[1] == "reset":
+                    state.reset_risk()
+                    console.print(f"[green]✅ Уровень риска сброшен[/green]")
+                elif parts[1] == "up":
+                    amount = int(parts[2]) if len(parts) >= 3 else 10
+                    state.increase_risk(amount)
+                    console.print(f"[yellow]⚠️  Уровень риска увеличен на {amount}[/yellow]")
+                elif parts[1] == "down":
+                    amount = int(parts[2]) if len(parts) >= 3 else 5
+                    state.decrease_risk(amount)
+                    console.print(f"[green]🛡️ Уровень риска уменьшен на {amount}[/green]")
+                else:
+                    amount = int(parts[1])
+                    state.risk_level = max(0, min(100, amount))
+                    console.print(f"[cyan]Уровень риска установлен: {state.risk_level}/100[/cyan]")
+                
+                console.print(f"[bold]Текущий статус: {state.get_risk_status()} ({state.risk_level}/100)[/bold]")
+            except ValueError:
+                console.print("[red]Использование: /risk [reset|up|down <колво>|число 0-100][/red]")
+            
+            return True, None, None, True
+            
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
 
 def handle_history(conn) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
     try:
@@ -144,6 +242,144 @@ def handle_writeup() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
 """
     console.print(Panel(template, title="📝 Шаблон Write-up", border_style="magenta"))
     return True, None, None, True
+
+def handle_provider(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Управление провайдером LLM"""
+    import config
+    from config import LLM_PROVIDER, LazyLoader
+    
+    # Показать текущий провайдер
+    if not action or action == "provider":
+        console.print(f"[cyan]📡 Текущий провайдер: {LLM_PROVIDER}[/cyan]")
+        console.print("[cyan]Доступные провайдеры:[/cyan]")
+        console.print("  • ollama      - локально, бесплатно (рекомендуется)")
+        console.print("  • openrouter  - облако, требуется API ключ")
+        console.print("  • huggingface - HF Inference API, требуется HF_TOKEN")
+        console.print("\nИспользование: /provider <имя>")
+        return True, None, None, True
+    
+    parts = action.split(maxsplit=1)
+    if len(parts) < 2:
+        console.print("[yellow]Использование: /provider <ollama|openrouter|huggingface>[/yellow]")
+        return True, None, None, True
+    
+    provider = parts[1].strip()
+    
+    if provider not in ("ollama", "openrouter", "huggingface"):
+        console.print("[red]❌ Неизвестный провайдер. Доступные: ollama, openrouter, huggingface[/red]")
+        return True, None, None, True
+    
+    # Меняем провайдер
+    old_provider = LLM_PROVIDER
+    config.LLM_PROVIDER = provider
+    # Сбрасываем кэш LLM для перезагрузки
+    LazyLoader._llm = None
+    
+    console.print(f"[green]✅ Провайдер изменён: {old_provider} → {provider}[/green]")
+    console.print("[yellow]Следующий запрос загрузит модель нового провайдера.[/yellow]")
+    
+    # Показываем настройки для нового провайдера
+    if provider == "ollama":
+        console.print(f"[dim]Модель: {config.OLLAMA_MODEL}[/dim]")
+        console.print("[dim]Запустите 'ollama serve' и 'ollama pull <модель>' если ещё не[/dim]")
+    elif provider == "openrouter":
+        console.print(f"[dim]Модель: {config.OPENROUTER_MODEL}[/dim]")
+        console.print("[dim]Убедитесь, что OPENROUTER_API_KEY установлен в .env[/dim]")
+    elif provider == "huggingface":
+        console.print(f"[dim]Модель: {config.HF_MODEL}[/dim]")
+        console.print("[dim]Убедитесь, что HF_TOKEN установлен в .env[/dim]")
+    
+    return True, None, None, True
+
+
+def handle_model(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Управление моделями LLM для текущего провайдера"""
+    import config
+    
+    provider = config.LLM_PROVIDER
+    
+    # Показать текущую модель
+    if not action or action == "model":
+        console.print(f"[cyan]🤖 Текущий провайдер: {provider}[/cyan]")
+        if provider == "ollama":
+            console.print(f"[cyan]Модель: {config.OLLAMA_MODEL}[/cyan]")
+            console.print("[cyan]Доступные модели: qwen2.5:7b, mistral:7b, llama2:7b и другие[/cyan]")
+        elif provider == "openrouter":
+            console.print(f"[cyan]Модель: {config.OPENROUTER_MODEL}[/cyan]")
+            console.print("[cyan]Примеры: meta-llama/llama-3.3-70b-instruct:free, google/gemma-3-27b-it:free[/cyan]")
+        elif provider == "huggingface":
+            console.print(f"[cyan]Модель: {config.HF_MODEL}[/cyan]")
+            console.print("[cyan]Примеры: mistralai/Mixtral-8x7B-Instruct-v0.1, meta-llama/Llama-2-70b-chat-hf[/cyan]")
+        console.print("\nИспользование: /model <имя_модели>")
+        return True, None, None, True
+    
+    # Изменить модель
+    parts = action.split(maxsplit=1)
+    if len(parts) < 2:
+        console.print("[yellow]Использование: /model <имя_модели>[/yellow]")
+        return True, None, None, True
+    
+    model_name = parts[1].strip()
+    
+    # Устанавливаем модель в зависимости от провайдера
+    if provider == "ollama":
+        config.OLLAMA_MODEL = model_name
+        console.print(f"[green]✅ Модель Ollama изменена: {model_name}[/green]")
+        console.print("[yellow]Сброс кэша LLM...[/yellow]")
+        config.LazyLoader._llm = None
+    elif provider == "openrouter":
+        config.OPENROUTER_MODEL = model_name
+        console.print(f"[green]✅ Модель OpenRouter изменена: {model_name}[/green]")
+        console.print("[yellow]Сброс кэша LLM...[/yellow]")
+        config.LazyLoader._llm = None
+    elif provider == "huggingface":
+        config.HF_MODEL = model_name
+        console.print(f"[green]✅ Модель HuggingFace изменена: {model_name}[/green]")
+        console.print("[yellow]Сброс кэша LLM...[/yellow]")
+        config.LazyLoader._llm = None
+    else:
+        console.print("[red]❌ Неизвестный провайдер[/red]")
+        return True, None, None, True
+    
+    console.print("[dim]Следующий запрос загрузит новую модель.[/dim]")
+    return True, None, None, True
+
+
+def handle_set_api_key(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+    """Установка API ключа для провайдера"""
+    import os
+    
+    if not action or action == "set-api-key":
+        console.print("[cyan]Установка API ключа[/cyan]")
+        console.print("Использование:")
+        console.print("  /set-api-key openrouter <ключ>")
+        console.print("  /set-api-key huggingface <ключ>")
+        console.print("\nПримечание: Ключ будет сохранён только в текущей сессии.")
+        return True, None, None, True
+    
+    parts = action.split(maxsplit=2)
+    if len(parts) < 3:
+        console.print("[yellow]Использование: /set-api-key <openrouter|huggingface> <api_key>[/yellow]")
+        return True, None, None, True
+    
+    provider = parts[1].strip().lower()
+    api_key = parts[2].strip()
+    
+    if provider == "openrouter":
+        os.environ["OPENROUTER_API_KEY"] = api_key
+        console.print("[green]✅ OPENROUTER_API_KEY установлен для текущей сессии[/green]")
+        console.print("[yellow]Сброс кэша LLM...[/yellow]")
+        config.LazyLoader._llm = None
+    elif provider == "huggingface":
+        os.environ["HF_TOKEN"] = api_key
+        console.print("[green]✅ HF_TOKEN установлен для текущей сессии[/green]")
+        console.print("[yellow]Сброс кэша LLM...[/yellow]")
+        config.LazyLoader._llm = None
+    else:
+        console.print("[red]❌ Поддерживаются только: openrouter, huggingface[/red]")
+    
+    return True, None, None, True
+
 
 def handle_add_book(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
     """Добавить PDF книгу в базу знаний"""

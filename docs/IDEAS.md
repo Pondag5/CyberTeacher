@@ -40,9 +40,7 @@
 | C-02 | Команда `/social` (социальная инженерия) | 9 | 5 | B-01, C-01 | ✅ Done |
 | C-03 | Команда `/threats` (сводки угроз) | 9 | 4 | B-01 | ✅ Done |
 | C-04 | Команда `/group` (APT досье) | 8 | 3 | B-01 | ✅ Partially done (7/27 групп, можно расширять) |
-| C-05 | Умный RAG с реранкингом | 9 | 4 | B-01 | ✅ Partially (re
-
-指着reranker уже загружен) |
+| C-05 | Умный RAG с реранкингом | 9 | 4 | B-01 | ✅ Done (интегрирован в knowledge.get_relevant_docs) |
 | C-06 | Гибридный поиск (BM25) | 8 | 5 | C-05 | ❌ Not started |
 | C-07 | Кэширование ответов LLM | 7 | 4 | B-01 | ✅ Partially (in-memory кэш, нужен SQLite + TTL) |
 | C-08 | Песочница для кода | 10 | 8 | B-01, practice.py | ❌ Not started |

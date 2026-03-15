@@ -1,0 +1,20 @@
+{
+  "name": "APT1",
+  "aliases": ["Comment Crew", "APT1", "Comment Group", "Shanghai Group"],
+  "country": "China",
+  "first_seen": "2006",
+  "targets": ["Aerospace", "Defense", "Energy", "Technology", "Telecom"],
+  "tactics": ["Initial Access", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["SOUREDROP", "Downloader", "Custom Backdoors", "Winnti"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1136.001 - Create Account: Local Account",
+    "T1078.001 - Valid Accounts: Local Accounts",
+    "T1041 - Exfiltration Over C2 Channel",
+    "T1105 - Ingress Tool Transfer"
+  ],
+  "recent_activity": "Один из самых активных китайских APT, ответственный за кражу интеллектуальной собственности, операции Shady RAT.",
+  "references": [
+    "https://attack.mitre.org/groups/G0004/"
+  ]
+}

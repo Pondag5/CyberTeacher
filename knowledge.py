@@ -9,7 +9,6 @@ import shutil
 from datetime import datetime
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import glob
-
 from typing import Any, List
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -19,7 +18,7 @@ from langchain_community.vectorstores import FAISS
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
 import gc
 
-from config import KNOWLEDGE_DIR, PERSIST_DIR, METADATA_FILE, LazyLoader, CHUNK_SIZE, CHUNK_OVERLAP, MAX_WORKERS, RERANKER, RERANK_TOP_K
+from config import KNOWLEDGE_DIR, PERSIST_DIR, METADATA_FILE, LazyLoader, CHUNK_SIZE, CHUNK_OVERLAP, MAX_WORKERS, RERANKER, RERANK_TOP_K, BM25_ENABLED, BM25_K
 from langchain_core.embeddings import Embeddings
 from ui import console
 
@@ -299,32 +298,135 @@ def load_knowledge_base():
 
 
 def get_relevant_docs(vectordb, query, k=3):
+    """Гибридный поиск: векторный + BM25 + reranker"""
     if vectordb is None:
         return []
     try:
-        # Initial retrieval with more documents for reranking
-        initial_k = k * 3  # Get 3x more to rerank
+        # Получаем настройки из config с безопасным fallback
+        try:
+            bm25_enabled = BM25_ENABLED
+            bm25_k = BM25_K
+        except NameError:
+            # Fallback если константы ещё не инициализированы (например, в тестах)
+            bm25_enabled = False
+            bm25_k = 20
+        
+        # Начинаем с векторного поиска (больше документов)
+        initial_k = max(k * 3, bm25_k if bm25_enabled else k * 3)
         docs = vectordb.similarity_search(query, k=initial_k)
         
         if not docs:
             return []
         
-        # Apply reranking if configured
+        # === ШАГ 1: BM25 ===
+        if bm25_enabled:
+            try:
+                from rank_bm25 import BM25Okapi
+                import jieba
+                
+                # Токенизация
+                doc_texts = [doc.page_content for doc in docs]
+                tokenized_docs = [jieba.lcut(text) for text in doc_texts]
+                tokenized_query = jieba.lcut(query)
+                
+                # Создаём BM25
+                bm25 = BM25Okapi(tokenized_docs)
+                bm25_scores = bm25.get_scores(tokenized_query)
+                
+                # Нормализация 0-1
+                min_score, max_score = min(bm25_scores), max(bm25_scores)
+                if max_score - min_score > 0:
+                    bm25_norm = [(s - min_score) / (max_score - min_score) for s in bm25_scores]
+                else:
+                    bm25_norm = [0.5] * len(bm25_scores)
+                
+                # Комбинируем: 50% векторная (по позиции) + 50% BM25
+                combined_scores = []
+                for i in range(len(docs)):
+                    vector_score = 1.0 - (i / len(docs))  # позиция в векторном результате
+                    combined = 0.5 * vector_score + 0.5 * bm25_norm[i]
+                    combined_scores.append((i, combined))
+                
+                # Сортируем по комбинированному скору
+                sorted_indices = [i for i, _ in sorted(combined_scores, key=lambda x: x[1], reverse=True)]
+                bm25_docs = [docs[i] for i in sorted_indices[:bm25_k]]
+                docs = bm25_docs
+            except Exception as e:
+                console.print(f"[yellow]⚠️ BM25 не сработал: {e}[/yellow]")
+                # Продолжаем с векторными результатами
+        
+        # === ШАГ 2: RERANKER ===
         if RERANKER:
             try:
                 reranker = LazyLoader.get_reranker()
-                # Prepare pairs for cross-encoder
                 pairs = [(query, doc.page_content) for doc in docs]
-                # Get scores
                 scores = reranker.predict(pairs)
-                # Sort by score descending
                 sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
-                # Take top k
                 reranked_docs = [docs[i] for i in sorted_indices[:k]]
                 return reranked_docs
             except Exception as e:
                 console.print(f"[yellow]⚠️ Reranking failed: {e}[/yellow]")
-                # Fallback to original results
+                return docs[:k]
+        
+        return docs[:k]
+    except Exception as e:
+        console.print(f"[yellow]⚠️ Ошибка при поиске документов: {e}[/yellow]")
+        return []
+    try:
+        # Начинаем с векторного поиска (больше документов)
+        initial_k = max(k * 3, BM25_K if BM25_ENABLED else k * 3)
+        
+        if not docs:
+            return []
+        
+        # === ШАГ 1: BM25 ===
+        if BM25_ENABLED:
+            try:
+                from rank_bm25 import BM25Okapi
+                import jieba
+                
+                # Токенизация
+                doc_texts = [doc.page_content for doc in docs]
+                tokenized_docs = [jieba.lcut(text) for text in doc_texts]
+                tokenized_query = jieba.lcut(query)
+                
+                # Создаём BM25
+                bm25 = BM25Okapi(tokenized_docs)
+                bm25_scores = bm25.get_scores(tokenized_query)
+                
+                # Нормализация 0-1
+                min_score, max_score = min(bm25_scores), max(bm25_scores)
+                if max_score - min_score > 0:
+                    bm25_norm = [(s - min_score) / (max_score - min_score) for s in bm25_scores]
+                else:
+                    bm25_norm = [0.5] * len(bm25_scores)
+                
+                # Комбинируем: 50% векторная (по позиции) + 50% BM25
+                combined_scores = []
+                for i in range(len(docs)):
+                    vector_score = 1.0 - (i / len(docs))  # позиция в векторном результате
+                    combined = 0.5 * vector_score + 0.5 * bm25_norm[i]
+                    combined_scores.append((i, combined))
+                
+                # Сортируем по комбинированному скору
+                sorted_indices = [i for i, _ in sorted(combined_scores, key=lambda x: x[1], reverse=True)]
+                bm25_docs = [docs[i] for i in sorted_indices[:BM25_K]]
+                docs = bm25_docs
+            except Exception as e:
+                console.print(f"[yellow]⚠️ BM25 не сработал: {e}[/yellow]")
+                # Продолжаем с векторными результатами
+        
+        # === ШАГ 2: RERANKER ===
+        if RERANKER:
+            try:
+                reranker = LazyLoader.get_reranker()
+                pairs = [(query, doc.page_content) for doc in docs]
+                scores = reranker.predict(pairs)
+                sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+                reranked_docs = [docs[i] for i in sorted_indices[:k]]
+                return reranked_docs
+            except Exception as e:
+                console.print(f"[yellow]⚠️ Reranking failed: {e}[/yellow]")
                 return docs[:k]
         
         return docs[:k]

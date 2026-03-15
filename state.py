@@ -38,6 +38,9 @@ class AppState:
     # Персона (персистентная)
     current_persona: str = "teacher"
     
+    # Уровень риска / компрометации (для CTF/story режимов)
+    risk_level: int = 0  # 0-100, увеличивается при ошибках, снижается при успехах
+    
     # Статистика для достижений
     total_flags_collected: int = 0
     assignments_completed: int = 0
@@ -46,6 +49,10 @@ class AppState:
     news_checked: int = 0
     messages_sent: int = 0
     earned_achievements: List[str] = field(default_factory=list)
+    
+    # Активное задание (для story/ctf)
+    active_assignment: Optional[Dict[str, Any]] = None
+    collected_flags: List[str] = field(default_factory=list)
     
     def reset_course(self):
         """Сбросить прогресс курса"""
@@ -136,6 +143,32 @@ class AppState:
             'points_earned': earned
         }
     
+    # === RISK LEVEL (CTF/Story mode) ===
+    def increase_risk(self, amount: int = 10):
+        """Увеличить уровень риска (при ошибке/срабатывании защиты)"""
+        self.risk_level = min(100, self.risk_level + amount)
+        self.check_achievements()
+    
+    def decrease_risk(self, amount: int = 5):
+        """Уменьшить уровень риска (при успехе)"""
+        self.risk_level = max(0, self.risk_level - amount)
+        self.check_achievements()
+    
+    def reset_risk(self):
+        """Сбросить уровень риска"""
+        self.risk_level = 0
+    
+    def get_risk_status(self) -> str:
+        """Получить текстовый статус риска"""
+        if self.risk_level < 20:
+            return "🟢 Низкий"
+        elif self.risk_level < 50:
+            return "🟡 Умеренный"
+        elif self.risk_level < 80:
+            return "🟠 Высокий"
+        else:
+            return "🔴 Критический"
+    
     # === СТАТИСТИКА ===
     def increment_flag(self):
         """Увеличить счётчик собранных флагов"""
@@ -214,7 +247,7 @@ class AppState:
                 newly_earned.append(ach)
         
         return newly_earned
-
+    
     def save_to_file(self, path: str = "./memory/app_state.json"):
         """Сохранить состояние в файл"""
         import json
@@ -225,6 +258,7 @@ class AppState:
             "points": self.points,
             "current_mode": self.current_mode,
             "current_persona": self.current_persona,
+            "risk_level": self.risk_level,
             "learning_context": self.learning_context,
             "course_progress": self.course_progress,
             "active_assignment": self.active_assignment,
@@ -257,6 +291,7 @@ class AppState:
                 self.points = data.get("points", 0)
                 self.current_mode = data.get("current_mode", "teacher")
                 self.current_persona = data.get("current_persona", "teacher")
+                self.risk_level = data.get("risk_level", 0)
                 self.learning_context = data.get("learning_context", self.learning_context)
                 self.course_progress = data.get("course_progress", {})
                 self.active_assignment = data.get("active_assignment")

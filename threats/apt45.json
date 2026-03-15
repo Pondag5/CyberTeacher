@@ -1,0 +1,20 @@
+{
+  "name": "APT45",
+  "aliases": ["WindShift", "APT45", "Bahamut"],
+  "country": "South Asia (Pakistan?)",
+  "first_seen": "2016",
+  "targets": ["Military", "Government", "Defense", "Technology", "Media"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["WINDMCBACK", "WINDMC", "Micro Backdoor", "Android Spyware"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1136 - Create Account",
+    "T1055 - Process Injection",
+    "T1105 - Ingress Tool Transfer",
+    "T1070.004 - File Deletion: File Deletion"
+  ],
+  "recent_activity": "Целевые кампании против военных и государственных учреждений в Южной Азии.",
+  "references": [
+    "https://attack.mitre.org/groups/G0112/"
+  ]
+}

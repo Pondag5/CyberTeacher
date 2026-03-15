@@ -1,0 +1,20 @@
+{
+  "name": "APT39",
+  "aliases": ["Charming Kitten", "APT39", "NewsKeeper", "PKC's Team"],
+  "country": "Iran",
+  "first_seen": "2014",
+  "targets": ["Government", "Technology", "Telecom", "Healthcare", "Media"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["PULSECHECK", "RULER.HTML", "SC彩带", "NETWIRE", "NANOCORE"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1566.002 - Spearphishing Link",
+    "T1136.001 - Create Account: Local Account",
+    "T1055 - Process Injection",
+    "T1105 - Ingress Tool Transfer"
+  ],
+  "recent_activity": "Целевые кампании по шпионажу против политических целей и технологических компаний, связанные с Ираном.",
+  "references": [
+    "https://attack.mitre.org/groups/G0088/"
+  ]
+}

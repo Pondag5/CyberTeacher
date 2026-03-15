@@ -1,0 +1,20 @@
+{
+  "name": "APT40",
+  "aliases": ["Axiom", "APT40", "Wicked Panda", "Periwinkle Tempest"],
+  "country": "China",
+  "first_seen": "2011",
+  "targets": ["Aerospace", "Defense", "Technology", "Telecom", "Energy", "Maritime"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["DOWNPAT", "PATCHWORK", "BOUNCER", "COLDZERO", "MURKYWATER"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1190 - Exploit Public-Facing Application",
+    "T1059 - Command and Scripting Interpreter",
+    "T1505.003 - Web Shell: Web Shell",
+    "T1041 - Exfiltration Over C2 Channel"
+  ],
+  "recent_activity": "Широкомасштабная китайская группа, ответственная за кражу интеллектуальной собственности из аэрокосмической и оборонной промышленности.",
+  "references": [
+    "https://attack.mitre.org/groups/G0021/"
+  ]
+}

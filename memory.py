@@ -54,6 +54,14 @@ def init_db():
             c.execute("ALTER TABLE progress ADD COLUMN last_seen TEXT")
             print("База данных: Добавлена колонка 'last_seen'.")
 
+    # 4. Таблица кэша ответов LLM (с TTL)
+    c.execute('''CREATE TABLE IF NOT EXISTS query_cache
+                 (query_hash TEXT PRIMARY KEY,
+                  response TEXT,
+                  created_at TEXT,
+                  expires_at TEXT,
+                  ttl_seconds INTEGER)''')
+    
     # Проверяем, есть ли запись статистики
     c.execute("SELECT count(*) FROM stats")
     if c.fetchone()[0] == 0:
@@ -63,11 +71,16 @@ def init_db():
     return conn
 
 def save_message(conn, role: str, content: str, mode: str = "teacher"):
-    """Сохранить сообщение"""
+    """Сохранить сообщение (с санитизацией)"""
+    from config import sanitize_log
+    
+    # Санитизируем контент перед сохранением
+    sanitized_content = sanitize_log(content)
+    
     c = conn.cursor()
     c.execute(
         "INSERT INTO messages (role, content, timestamp, mode) VALUES (?, ?, ?, ?)",
-        (role, content, datetime.now().isoformat(), mode)
+        (role, sanitized_content, datetime.now().isoformat(), mode)
     )
     conn.commit()
 
@@ -144,3 +157,53 @@ def get_weak_topics(conn, limit=3):
     
     rows = c.fetchall()
     return [{"topic": r[0], "correct": r[1], "total": r[2], "rate": int(r[1]/r[2]*100) if r[2] > 0 else 0} for r in rows]
+
+
+# === КЭШИРОВАНИЕ LLM ОТВЕТОВ (SQLite + TTL) ===
+
+def cleanup_expired_cache(conn):
+    """Удалить просроченные записи кэша"""
+    c = conn.cursor()
+    now = datetime.now().isoformat()
+    c.execute("DELETE FROM query_cache WHERE expires_at IS NOT NULL AND expires_at < ?", (now,))
+    conn.commit()
+
+def get_cached_response(conn, query_hash: str):
+    """Получить ответ из кэша если не просрочен"""
+    c = conn.cursor()
+    c.execute("SELECT response, expires_at FROM query_cache WHERE query_hash = ?", (query_hash,))
+    row = c.fetchone()
+    if row:
+        response, expires_at = row
+        if expires_at is None or expires_at > datetime.now().isoformat():
+            return response
+        # Просрочен — удаляем
+        c.execute("DELETE FROM query_cache WHERE query_hash = ?", (query_hash,))
+        conn.commit()
+    return None
+
+def cache_response(conn, query_hash: str, response: str, ttl_seconds: int = None):
+    """Сохранить ответ в кэш с TTL"""
+    c = conn.cursor()
+    created_at = datetime.now().isoformat()
+    expires_at = None
+    if ttl_seconds:
+        from datetime import timedelta
+        expires = datetime.now() + timedelta(seconds=ttl_seconds)
+        expires_at = expires.isoformat()
+    
+    c.execute("""
+        INSERT OR REPLACE INTO query_cache (query_hash, response, created_at, expires_at, ttl_seconds)
+        VALUES (?, ?, ?, ?, ?)
+    """, (query_hash, response, created_at, expires_at, ttl_seconds))
+    conn.commit()
+
+def get_cache_stats(conn):
+    """Статистика кэша"""
+    c = conn.cursor()
+    c.execute("SELECT count(*) FROM query_cache")
+    total = c.fetchone()[0]
+    c.execute("SELECT count(*) FROM query_cache WHERE expires_at IS NULL OR expires_at > ?", (datetime.now().isoformat(),))
+    valid = c.fetchone()[0]
+    return {"total": total, "valid": valid, "expired": total - valid}
+
