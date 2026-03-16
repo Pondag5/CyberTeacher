@@ -62,7 +62,7 @@ def show_menu():
   [magenta]28[/magenta] - Добавить книгу (/add_book)
    [magenta]29[/magenta] - Social engineering trainer (/social)
 
-  [bold yellow]🔍 РАЗНОЕ (30-43)[/bold yellow]
+  [bold yellow]🔍 РАЗНОЕ (30-44)[/bold yellow]
     [yellow]30[/yellow] - Проверить флаг (/flag) [нужен аргумент]
     [yellow]31[/yellow] - Записать лог (/log <cmd>)
     [yellow]32[/yellow] - Установить API ключ (/set-api-key)
@@ -77,6 +77,7 @@ def show_menu():
     [yellow]41[/yellow] - Адаптивные слабые темы (/adaptive)
     [yellow]42[/yellow] - Повторение (Spaced Repetition) (/repeat)
     [yellow]43[/yellow] - Генерация конспекта (/summary <тема>)
+    [yellow]44[/yellow] - Авто-writeup (/auto_writeup)
 
 [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -112,6 +113,7 @@ def show_help():
   /adaptive     - Показать слабые темы (адаптивное обучение)
   /repeat       - Интервальные повторения (Spaced Repetition)
   /summary <topic> - Генерация конспекта (Markdown)
+  /auto_writeup - Автоматический writeup (по последней активности)
   /help         - Справка
   /exit         - Выход
     """

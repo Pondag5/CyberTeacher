@@ -1,5 +1,6 @@
 # handlers/quiz.py
 import os
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
@@ -57,6 +58,7 @@ def handle_quiz_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
         console.print("[yellow]Напишите ответ на каждый вопрос. Введите /skip чтобы пропустить, /exit для выхода.[/yellow]\n")
         
         scores = []  # List of (score, max_score) for each question
+        responses = []  # Detailed responses for writeup
         total_score = 0
         max_total = 0
         
@@ -76,10 +78,24 @@ def handle_quiz_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
                 if user_ans.lower() == '/skip':
                     console.print("[dim]Пропущено[/dim]\n")
                     scores.append((0, 10))
+                    responses.append({
+                        "question": q.get('question', ''),
+                        "user_answer": "<пропущено>",
+                        "correct_answer": q.get('correct', ''),
+                        "score": 0,
+                        "feedback": "Пропущено"
+                    })
                     continue
                 if not user_ans:
                     console.print("[dim]Пустой ответ[/dim]\n")
                     scores.append((0, 10))
+                    responses.append({
+                        "question": q.get('question', ''),
+                        "user_answer": "",
+                        "correct_answer": q.get('correct', ''),
+                        "score": 0,
+                        "feedback": "Пустой ответ"
+                    })
                     continue
             except KeyboardInterrupt:
                 console.print("\n[yellow]Прервано[/yellow]")
@@ -109,8 +125,55 @@ def handle_quiz_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
             scores.append((score, 10))
             total_score += score
             max_total += 10
+            
+            # Record response for writeup
+            responses.append({
+                "question": q.get('question', ''),
+                "user_answer": user_ans,
+                "correct_answer": correct if 'options' in q else None,
+                "score": score,
+                "feedback": feedback
+            })
         
         # Показать итоги и обновить weak_topics
+        if scores:
+            success_rate = (total_score / max_total * 100) if max_total > 0 else 0
+            console.print(f"[bold]📊 Итог:[/bold] {total_score}/{max_total} ({success_rate:.1f}%)")
+            
+            # Сохранить активность для writeup
+            state_obj.last_writeup_activity = {
+                "type": "quiz",
+                "topic": quiz_topic,
+                "total_score": total_score,
+                "max_total": max_total,
+                "success_rate": success_rate,
+                "timestamp": time.time(),
+                "questions_count": len(questions),
+                "responses": responses
+            }
+            
+            # Обновить weak_topics
+            state_obj.update_weak_topic(quiz_topic, total_score, max_total)
+            
+            # Запланировать следующее повторение (Spaced Repetition)
+            state_obj.schedule_review(quiz_topic, total_score, max_total)
+            
+            # Дать рекомендации
+            if success_rate < 50:
+                console.print("[red]Рекомендую повторить эту тему![/red]")
+            elif success_rate < 70:
+                console.print("[yellow]Есть пробелы - стоит потренировать[/yellow]")
+            else:
+                console.print("[green]Отлично! Тема усвоена[/green]")
+            
+            # Показать слабые темы если есть
+            weak = state_obj.get_weak_topics(threshold=70.0)
+            if weak:
+                console.print(f"\n[bold cyan]Слабые темы (нужно повторить):[/bold cyan]")
+                for w in weak[:5]:
+                    console.print(f"  • {w['topic']}: {w['success_rate']:.1f}% ({w['attempts']} попыток)")
+        else:
+            console.print("[dim]Нет результатов для анализа[/dim]")
         if scores:
             success_rate = (total_score / max_total * 100) if max_total > 0 else 0
             console.print(f"[bold]📊 Итог:[/bold] {total_score}/{max_total} ({success_rate:.1f}%)")
@@ -218,6 +281,19 @@ def handle_task_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
             return True, None, None, True
         
         console.print(f"\n[bold]Результат:[/bold] {score}/10 - {feedback}")
+        
+        # Сохранить активность для writeup
+        state_obj.last_writeup_activity = {
+            "type": "task",
+            "category": task.category,
+            "question": task.question,
+            "correct_answer": task.answer,
+            "hint": task.hint,
+            "user_answer": user_ans,
+            "score": score,
+            "feedback": feedback,
+            "timestamp": time.time()
+        }
         
         # Обновить weak_topics по категории задачи
         state_obj.update_weak_topic(task.category, score, 10)

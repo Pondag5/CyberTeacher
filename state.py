@@ -61,6 +61,10 @@ class AppState:
     # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
     review_schedule: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     
+    # Данные для автоматического writeup
+    last_writeup_activity: Optional[Dict[str, Any]] = None  # Последнее завершённое activity (quiz/task/episode)
+    writeup_history: List[Dict[str, Any]] = field(default_factory=list)  # История сгенерированных writeup'ов
+    
     def update_weak_topic(self, topic: str, score: float, max_score: float = 10.0):
         """Обновить статистику по слабой теме.
         
@@ -413,7 +417,9 @@ class AppState:
             "messages_sent": self.messages_sent,
             "earned_achievements": self.earned_achievements if hasattr(self, 'earned_achievements') else [],
             "weak_topics": self.weak_topics,
-            "review_schedule": self.review_schedule
+            "review_schedule": self.review_schedule,
+            "last_writeup_activity": self.last_writeup_activity,
+            "writeup_history": self.writeup_history
         }
         try:
             with open(path, 'w', encoding='utf-8') as f:
@@ -449,6 +455,8 @@ class AppState:
                 self.earned_achievements = data.get("earned_achievements", [])
                 self.weak_topics = data.get("weak_topics", [])
                 self.review_schedule = data.get("review_schedule", {})
+                self.last_writeup_activity = data.get("last_writeup_activity")
+                self.writeup_history = data.get("writeup_history", [])
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")

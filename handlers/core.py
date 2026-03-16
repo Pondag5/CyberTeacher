@@ -20,6 +20,7 @@ from .achievements import handle_achievements
 from .threats import handle_threats, handle_groups, handle_threat_summary
 from .news import handle_security_news, get_last_news
 from .summary import handle_summary
+from .writeup_auto import handle_auto_writeup
 from .misc import (
     _ask_confirm,
     clear_chat_db,
@@ -405,8 +406,12 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Op
     if action.startswith("summary"):
         return handle_summary(action)
 
+    # ----- Auto Writeup -----
+    if action == "auto_writeup":
+        return handle_auto_writeup(action)
+
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")
-    console.print("[yellow]Используй цифровое меню (0-43) или команды со /. Не трать время — я не библиотечный червь.[/yellow]")
+    console.print("[yellow]Используй цифровое меню (0-44) или команды со /. Не трать время — я не библиотечный червь.[/yellow]")
     console.print("[dim]Подсказка: введи /help или 9 для справки.[/dim]")
     return True, None, None, True
