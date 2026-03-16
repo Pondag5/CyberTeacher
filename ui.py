@@ -62,7 +62,7 @@ def show_menu():
   [magenta]28[/magenta] - Добавить книгу (/add_book)
    [magenta]29[/magenta] - Social engineering trainer (/social)
 
-  [bold yellow]🔍 РАЗНОЕ (30-42)[/bold yellow]
+  [bold yellow]🔍 РАЗНОЕ (30-43)[/bold yellow]
     [yellow]30[/yellow] - Проверить флаг (/flag) [нужен аргумент]
     [yellow]31[/yellow] - Записать лог (/log <cmd>)
     [yellow]32[/yellow] - Установить API ключ (/set-api-key)
@@ -76,6 +76,7 @@ def show_menu():
     [yellow]40[/yellow] - Песочница (/sandbox <lang> <code>)
     [yellow]41[/yellow] - Адаптивные слабые темы (/adaptive)
     [yellow]42[/yellow] - Повторение (Spaced Repetition) (/repeat)
+    [yellow]43[/yellow] - Генерация конспекта (/summary <тема>)
 
 [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -109,6 +110,8 @@ def show_help():
   /clearcache   - Очистить кэш
   /version      - Версия приложения
   /adaptive     - Показать слабые темы (адаптивное обучение)
+  /repeat       - Интервальные повторения (Spaced Repetition)
+  /summary <topic> - Генерация конспекта (Markdown)
   /help         - Справка
   /exit         - Выход
     """
@@ -161,19 +164,22 @@ def show_help_detail():
   Пример: /exit
 
 [bold]Другие полезные команды:[/bold]
-  /task           — Сгенерировать задание (как /quiz, но открытый ответ)
-  /practice       — Практика (CTF/HTB) — показать список лаб
-  /lab start <name> — Запустить Docker-лабораторию
-  /lab stop <name>  — Остановить лабораторию
-  /lab status       — Показать запущенные лабы
-  /flag FLAG{...}   — Проверить флаг (в активном задании или глобальной базе)
-  /writeup          — Шаблон для撰写 отчёта о решении задачи
-  /terminal         — Показать лог терминала (последние 20 строк)
-  /log <cmd>        — Записать команду в лог (для истории)
-  /cache stats      — Статистика кэша ответов LLM
-  /clearcache       — Очистить кэш ответов
-  /version          — Версия приложения
-  /guide            — Гайд по настройке VM
+   /task           — Сгенерировать задание (как /quiz, но открытый ответ)
+   /practice       — Практика (CTF/HTB) — показать список лаб
+   /lab start <name> — Запустить Docker-лабораторию
+   /lab stop <name>  — Остановить лабораторию
+   /lab status       — Показать запущенные лабы
+   /flag FLAG{...}   — Проверить флаг (в активном задании или глобальной базе)
+   /writeup          — Шаблон для撰写 отчёта о решении задачи
+   /terminal         — Показать лог терминала (последние 20 строк)
+   /log <cmd>        — Записать команду в лог (для истории)
+   /cache stats      — Статистика кэша ответов LLM
+   /clearcache       — Очистить кэш ответов
+   /version          — Версия приложения
+   /adaptive         — Показать слабые темы (адаптивное обучение)
+   /repeat           — Интервальные повторения (Spaced Repetition)
+   /summary <topic>  — Генерация конспекта в Markdown по теме
+   /guide            — Гайд по настройке VM
 
 [dim]Примечание: можно использовать цифры 0-9 вместо команд (см. меню).[/dim]
     """
