@@ -99,16 +99,104 @@
         "threshold": 1
       }
     },
-    {
-      "id": "news_follower",
-      "name": "Следящий за новостями",
-      "description": "Проверили новости хотя бы раз",
-      "icon": "📰",
-      "points": 5,
-      "condition": {
-        "type": "news_checked",
-        "threshold": 1
-      }
-    }
-  ]
-}
+     {
+       "id": "news_follower",
+       "name": "Следящий за новостями",
+       "description": "Проверили новости хотя бы раз",
+       "icon": "📰",
+       "points": 5,
+       "condition": {
+         "type": "news_checked",
+         "threshold": 1
+       }
+     },
+     {
+       "id": "social_engineer_5",
+       "name": "Социальный инженер",
+       "description": "Успешно провели 5 сценариев социальной инженерии",
+       "icon": "🎭",
+       "points": 30,
+       "condition": {
+         "type": "social_success",
+         "threshold": 5
+       }
+     },
+     {
+       "id": "social_engineer_20",
+       "name": "Мастер социальной инженерии",
+       "description": "Успешно провели 20 сценариев социальной инженерии",
+       "icon": "🎪",
+       "points": 75,
+       "condition": {
+         "type": "social_success",
+         "threshold": 20
+       }
+     },
+     {
+       "id": "apt_hunter_10",
+       "name": "APT Охотник",
+       "description": "Изучили 10 досье на APT-группы",
+       "icon": "🔍",
+       "points": 40,
+       "condition": {
+         "type": "apt_groups_viewed",
+         "threshold": 10
+       }
+     },
+     {
+       "id": "apt_hunter_25",
+       "name": "APT Охотник Эксперт",
+       "description": "Изучили 25 досье на APT-группы",
+       "icon": "🛡️",
+       "points": 100,
+       "condition": {
+         "type": "apt_groups_viewed",
+         "threshold": 25
+       }
+     },
+     {
+       "id": "ghost_in_the_shell_5",
+       "name": "Призрак в Сети",
+       "description": "Завершили 5 заданий с низким уровнем риска (риск < 20)",
+       "icon": "👻",
+       "points": 50,
+       "condition": {
+         "type": "stealth_ops",
+         "threshold": 5
+       }
+     },
+     {
+       "id": "ghost_in_the_shell_15",
+       "name": "Призрак в Стелле",
+       "description": "Завершили 15 заданий с низким уровнем риска (риск < 20)",
+       "icon": "🌑",
+       "points": 150,
+       "condition": {
+         "type": "stealth_ops",
+         "threshold": 15
+       }
+     },
+     {
+       "id": "snowden_10",
+       "name": "Сноуден",
+       "description": "Изучили 10 угроз через аналитические сводки",
+       "icon": "📊",
+       "points": 60,
+       "condition": {
+         "type": "threat_exposures",
+         "threshold": 10
+       }
+     },
+     {
+       "id": "snowden_25",
+       "name": "Сноуден Легенда",
+       "description": "Изучили 25 угроз через аналитические сводки",
+       "icon": "🗽",
+       "points": 200,
+       "condition": {
+         "type": "threat_exposures",
+         "threshold": 25
+       }
+     }
+   ]
+ }

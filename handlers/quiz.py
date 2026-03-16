@@ -140,6 +140,15 @@ def handle_quiz_action() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
             success_rate = (total_score / max_total * 100) if max_total > 0 else 0
             console.print(f"[bold]📊 Итог:[/bold] {total_score}/{max_total} ({success_rate:.1f}%)")
             
+            # === C-13: Изменение уровня риска и отслеживание стелс-операций ===
+            if success_rate < 50:
+                state_obj.increase_risk(10)
+            else:
+                state_obj.decrease_risk(5)
+            if state_obj.risk_level < 20:
+                state_obj.increment_stealth_ops()
+            # Отметить завершение задания
+            state_obj.complete_assignment()
             # Сохранить активность для writeup
             state_obj.last_writeup_activity = {
                 "type": "quiz",

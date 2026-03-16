@@ -50,6 +50,12 @@ class AppState:
     messages_sent: int = 0
     earned_achievements: List[str] = field(default_factory=list)
     
+    # Новые счётчики для расширенных достижений (C-13)
+    social_success: int = 0  # Успешные сценарии социальной инженерии
+    apt_groups_viewed: int = 0  # Просмотренные досье APT-групп
+    stealth_ops: int = 0  # Стелс-операции (задания с низким уровнем риска)
+    threat_exposures: int = 0  # Изучение угроз (анализ сводок, новости)
+    
     # Активное задание (для story/ctf)
     active_assignment: Optional[Dict[str, Any]] = None
     collected_flags: List[str] = field(default_factory=list)
@@ -346,6 +352,28 @@ class AppState:
         self.messages_sent += 1
         # Не проверяем достижения для каждого сообщения (слишком часто)
     
+    # === НОВЫЕ СЧЁТЧИКИ ДЛЯ РАСШИРЕННЫХ ДОСТИЖЕНИЙ (C-13) ===
+    
+    def increment_social_success(self):
+        """Увеличить счётчик успешных сценариев социальной инженерии"""
+        self.social_success += 1
+        self.check_achievements()
+    
+    def increment_apt_groups_viewed(self):
+        """Увеличить счётчик просмотренных досье APT-групп"""
+        self.apt_groups_viewed += 1
+        self.check_achievements()
+    
+    def increment_stealth_ops(self):
+        """Увеличить счётчик стелс-операций (задания с низким риском)"""
+        self.stealth_ops += 1
+        self.check_achievements()
+    
+    def increment_threat_exposures(self):
+        """Увеличить счётpicker изучения угроз (сводки, анализ)"""
+        self.threat_exposures += 1
+        self.check_achievements()
+    
     def check_achievements(self):
         """Проверить и выдать новые достижения"""
         import json, os
@@ -384,6 +412,14 @@ class AppState:
                 unlocked = self.quizzes_taken >= threshold
             elif cond_type == "news_checked":
                 unlocked = self.news_checked >= threshold
+            elif cond_type == "social_success":
+                unlocked = self.social_success >= threshold
+            elif cond_type == "apt_groups_viewed":
+                unlocked = self.apt_groups_viewed >= threshold
+            elif cond_type == "stealth_ops":
+                unlocked = self.stealth_ops >= threshold
+            elif cond_type == "threat_exposures":
+                unlocked = self.threat_exposures >= threshold
             
             if unlocked:
                 self.earned_achievements.append(ach_id)
@@ -419,7 +455,12 @@ class AppState:
             "weak_topics": self.weak_topics,
             "review_schedule": self.review_schedule,
             "last_writeup_activity": self.last_writeup_activity,
-            "writeup_history": self.writeup_history
+            "writeup_history": self.writeup_history,
+            # Новые счётчики (C-13)
+            "social_success": self.social_success if hasattr(self, 'social_success') else 0,
+            "apt_groups_viewed": self.apt_groups_viewed if hasattr(self, 'apt_groups_viewed') else 0,
+            "stealth_ops": self.stealth_ops if hasattr(self, 'stealth_ops') else 0,
+            "threat_exposures": self.threat_exposures if hasattr(self, 'threat_exposures') else 0
         }
         try:
             with open(path, 'w', encoding='utf-8') as f:
@@ -457,6 +498,11 @@ class AppState:
                 self.review_schedule = data.get("review_schedule", {})
                 self.last_writeup_activity = data.get("last_writeup_activity")
                 self.writeup_history = data.get("writeup_history", [])
+                # Новые счётчики (C-13)
+                self.social_success = data.get("social_success", 0)
+                self.apt_groups_viewed = data.get("apt_groups_viewed", 0)
+                self.stealth_ops = data.get("stealth_ops", 0)
+                self.threat_exposures = data.get("threat_exposures", 0)
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")

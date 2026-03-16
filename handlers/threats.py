@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from rich.console import Console
 from rich.panel import Panel
 from config import LazyLoader
+from state import get_state
 
 console = Console()
 
@@ -50,6 +51,9 @@ def handle_threats(action: str) -> Tuple[bool, Optional[Any], Optional[Any], boo
             if threat.get('references'):
                 console.print(f"[bold]Ссылки:[/bold] {threat['references'][0]}")
             console.print()
+            # Увеличить счётчик просмотренных APT-групп (C-13)
+            state = get_state()
+            state.increment_apt_groups_viewed()
             return True, None, None, True
         else:
             console.print("[cyan]Использование: /threats <имя_группы>[/cyan]")
@@ -220,6 +224,8 @@ def handle_threat_summary(action: str) -> Tuple[bool, Optional[Any], Optional[An
             analysis = response.content if hasattr(response, 'content') else str(response)
 
             console.print(Panel(analysis, title="📊 Недельная сводка угроз", border_style="red"))
+            state = get_state()
+            state.increment_threat_exposures()
 
             # 5. Показываем исходники
             console.print("\n[bold]📌 Источники:[/bold]")
