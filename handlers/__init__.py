@@ -32,6 +32,7 @@ from .quiz import (
     handle_task_action,
 )
 from .threats import handle_groups, handle_threat_summary, handle_threats
+from .shop import handle_shop
 
 __all__ = [
     "get_last_news",

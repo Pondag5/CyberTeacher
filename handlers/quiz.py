@@ -11,7 +11,7 @@ console = Console()
 
 # Generators (quiz/task) - optional import
 try:
-    from generators import generate_quiz, generate_task
+    from quiz_generator import generate_quiz, generate_task
 
     GENERATORS_AVAILABLE = True
 except ImportError:

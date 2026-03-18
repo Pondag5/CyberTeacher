@@ -24,7 +24,7 @@
 |----|--------|----------|----------|--------|
 | Q-01 | Unit tests >70% coverage | Покрыть основные модули (state, handlers, knowledge). | H-11 | Not started |
 | Q-02 | CI/CD GitHub Actions | Автотесты, ruff, mypy на каждый PR/commit. | H-12 | Not started |
-| Q-03 | Ruff + mypy линтинг | Единый стандарт кода, типы. | A-06 | Not started |
+| Q-03 | Ruff + mypy линтинг | Единый стандарт кода, типы. | A-06 | ✅ Done |
 | Q-04 | Metrics & health checks | Логирование времени ответа, токенов, hit rate кэша. Эндпоинт /health. | H-18 | Not started |
 | Q-05 | Rate limiting | Максимум 10 запросов в минуту к боту. | M-21 | Not started |
 | Q-06 | Бэкапы state/БД | Автоматический бэкап memory/app_state.json, knowledge_base/news_cache.json. | — | Not started |
@@ -66,7 +66,7 @@
 | C-11 | Генерация конспектов (/summary) | По теме генерировать структурированный конспект в Markdown с использованием RAG. | roadmap.md:241-242 | ✅ Done (команда /summary, RAG поиск, шаблон Markdown, сохранение в файл) |
 | C-12 | Автоматическая генерация writeup | После задания/эпизода генерировать структурированный отчёт в Markdown с анализом, рекомендациями, ссылками на источники. | roadmap.md:320-321 | ✅ Done (команда /auto_writeup, сбор данных из квизов/заданий, RAG контекст, сохранение в файл) |
 | C-13 | Расширенные достижения | Добавить ачивки: Social Engineer, APT Hunter, Ghost in the Shell, Сноуден с описаниями и XP-бонусами. | roadmap.md:271-276 | ✅ Done |
-| C-14 | Магазин / прокачка | За XP покупать инструменты, темы, косметику, подсказки. | roadmap.md:279-285 | Next |
+| C-14 | Магазин / прокачка | За XP покупать инструменты, темы, косметику, подсказки. | roadmap.md:279-285 | ✅ Done |
 
 ---
 

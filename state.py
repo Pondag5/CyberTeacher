@@ -59,6 +59,14 @@ class AppState:
     stealth_ops: int = 0  # Стелс-операции (задания с низким уровнем риска)
     threat_exposures: int = 0  # Изучение угроз (анализ сводок, новости)
 
+    # === Магазин (C-14) ===
+    owned_themes: list[str] = field(default_factory=list)
+    current_theme: str = "default"
+    unlocked_topics: list[str] = field(default_factory=list)
+    hint_credits: int = 0
+    xp_boost_multiplier: float = 1.0
+    xp_boost_expiry: float = 0.0  # timestamp, 0 = no boost
+
     # Активное задание (для story/ctf)
     active_assignment: dict[str, Any] | None = None
     collected_flags: list[str] = field(default_factory=list)
@@ -345,6 +353,44 @@ class AppState:
         else:
             return "🔴 Критический"
 
+    def get_xp_multiplier(self) -> float:
+        """Возвращает текущий множитель XP с учетом активного буста."""
+        if self.xp_boost_expiry > 0:
+            import time
+
+            if time.time() < self.xp_boost_expiry:
+                return self.xp_boost_multiplier
+            else:
+                # Бонус истек, сбрасываем
+                self.xp_boost_multiplier = 1.0
+                self.xp_boost_expiry = 0.0
+        return 1.0
+
+    def apply_item_effect(self, item: dict) -> None:
+        """Применить эффект купленного предмета к состоянию."""
+        item_type = item.get("type")
+        if item_type == "theme":
+            theme_id = item.get("value")
+            if theme_id and theme_id not in self.owned_themes:
+                self.owned_themes.append(theme_id)
+                # Автоматически активировать? Оставим пользователю /theme
+        elif item_type == "unlock_topic":
+            topic = item.get("value")
+            if topic and topic not in self.unlocked_topics:
+                self.unlocked_topics.append(topic)
+        elif item_type == "consumable":
+            effect = item.get("effect")
+            qty = item.get("quantity", 1)
+            if effect == "hint_credit":
+                self.hint_credits += qty
+        elif item_type == "xp_boost":
+            multiplier = item.get("multiplier", 2.0)
+            duration_hours = item.get("duration_hours", 1)
+            import time
+
+            self.xp_boost_multiplier = multiplier
+            self.xp_boost_expiry = time.time() + duration_hours * 3600
+
     # === СТАТИСТИКА ===
     def increment_flag(self):
         """Увеличить счётчик собранных флагов"""
@@ -451,7 +497,7 @@ class AppState:
                 self.earned_achievements.append(ach_id)
                 xp = ach.get("points", 0)
                 if xp > 0:
-                    self.points += xp
+                    self.points += xp * self.get_xp_multiplier()
                 newly_earned.append(ach)
 
         return newly_earned
@@ -496,6 +542,13 @@ class AppState:
             "threat_exposures": self.threat_exposures
             if hasattr(self, "threat_exposures")
             else 0,
+            # Магазин (C-14)
+            "owned_themes": self.owned_themes,
+            "current_theme": self.current_theme,
+            "unlocked_topics": self.unlocked_topics,
+            "hint_credits": self.hint_credits,
+            "xp_boost_multiplier": self.xp_boost_multiplier,
+            "xp_boost_expiry": self.xp_boost_expiry,
         }
         try:
             with open(path, "w", encoding="utf-8") as f:
@@ -541,6 +594,13 @@ class AppState:
                 self.apt_groups_viewed = data.get("apt_groups_viewed", 0)
                 self.stealth_ops = data.get("stealth_ops", 0)
                 self.threat_exposures = data.get("threat_exposures", 0)
+                # Магазин (C-14)
+                self.owned_themes = data.get("owned_themes", [])
+                self.current_theme = data.get("current_theme", "default")
+                self.unlocked_topics = data.get("unlocked_topics", [])
+                self.hint_credits = data.get("hint_credits", 0)
+                self.xp_boost_multiplier = data.get("xp_boost_multiplier", 1.0)
+                self.xp_boost_expiry = data.get("xp_boost_expiry", 0.0)
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")

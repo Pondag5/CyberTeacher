@@ -48,6 +48,7 @@ from .sandbox import handle_sandbox
 from .social import handle_social
 from .summary import handle_summary
 from .threats import handle_groups, handle_threat_summary, handle_threats
+from .shop import handle_shop
 from .writeup_auto import handle_auto_writeup
 
 console = Console()

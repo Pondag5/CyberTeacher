@@ -1,0 +1,62 @@
+{
+  "items": [
+    {
+      "id": "theme_matrix",
+      "name": "Тема Matrix",
+      "description": "Зелёный неоновый текст на чёрном фоне",
+      "cost": 50,
+      "type": "theme",
+      "value": "matrix"
+    },
+    {
+      "id": "theme_cyberpunk",
+      "name": "Тема Cyberpunk",
+      "description": "Неоновая розово-голубая стилистика",
+      "cost": 100,
+      "type": "theme",
+      "value": "cyberpunk"
+    },
+    {
+      "id": "theme_hacker",
+      "name": "Тема Hacker",
+      "description": "Яблочно-золотые тона для стичного хакера",
+      "cost": 150,
+      "type": "theme",
+      "value": "hacker"
+    },
+    {
+      "id": "hint_single",
+      "name": "Одна подсказка",
+      "description": "Одна подсказка от учителя в следующих заданиях",
+      "cost": 20,
+      "type": "consumable",
+      "effect": "hint_credit",
+      "quantity": 1
+    },
+    {
+      "id": "hint_pack_3",
+      "name": "Пакет из 3 подсказок",
+      "description": "Три подсказки по скидке",
+      "cost": 50,
+      "type": "consumable",
+      "effect": "hint_credit",
+      "quantity": 3
+    },
+    {
+      "id": "topic_cloud",
+      "name": "Раздел Cloud Security",
+      "description": "Разблокировать темы по облачной безопасности",
+      "cost": 200,
+      "type": "unlock_topic",
+      "value": "cloud"
+    },
+    {
+      "id": "topic_mobile",
+      "name": "Раздел Mobile Security",
+      "description": "Разблокировать темы по мобильной безопасности",
+      "cost": 200,
+      "type": "unlock_topic",
+      "value": "mobile"
+    }
+  ]
+}
