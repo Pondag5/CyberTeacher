@@ -542,13 +542,13 @@ class AppState:
             "threat_exposures": self.threat_exposures
             if hasattr(self, "threat_exposures")
             else 0,
-            # Магазин (C-14)
-            "owned_themes": self.owned_themes,
-            "current_theme": self.current_theme,
-            "unlocked_topics": self.unlocked_topics,
-            "hint_credits": self.hint_credits,
-            "xp_boost_multiplier": self.xp_boost_multiplier,
-            "xp_boost_expiry": self.xp_boost_expiry,
+            # Метрики (Q-04)
+            "llm_call_count": self.llm_call_count,
+            "llm_total_time": self.llm_total_time,
+            "llm_total_tokens": self.llm_total_tokens,
+            "cache_hits": self.cache_hits,
+            "cache_misses": self.cache_misses,
+            "start_time": self.start_time,
         }
         # Add metric fields (Q-04)
         state_dict.update(
