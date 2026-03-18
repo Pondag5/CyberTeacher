@@ -1,0 +1,20 @@
+{
+  "name": "APT44",
+  "aliases": ["Emdivi", "APT44", "Moonworm"],
+  "country": "Russia",
+  "first_seen": "2016",
+  "targets": ["Government", "Defense", "Energy", "Technology"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["X-Agent", "X-Tunnel", "ChCHP", "SOUREDROP", "Zebrocy"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1566.002 - Spearphishing Link",
+    "T1135 - Network Share Discovery",
+    "T1041 - Exfiltration Over C2 Channel",
+    "T1027 - Obfuscated Files or Information"
+  ],
+  "recent_activity": "Российская группа, ответственная за атаки на государственные учреждения в Европе.",
+  "references": [
+    "https://attack.mitre.org/groups/G1010/"
+  ]
+}

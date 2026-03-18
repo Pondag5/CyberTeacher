@@ -1,0 +1,20 @@
+{
+  "name": "APT32",
+  "aliases": ["OceanLotus", "APT32", "SeaLotus", "Kimsuky?"],
+  "country": "Vietnam",
+  "first_seen": "2012",
+  "targets": ["Government", "Defense", "Technology", "Telecom", "Manufacturing", "Automotive"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["Cobalt Strike", "CUSTOM SDBOT", "CORESHELL", "PHONEBOOK", "GOBY"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1204.002 - User Execution: Malicious File",
+    "T1055 - Process Injection",
+    "T1078 - Valid Accounts",
+    "T1485 - Data Destruction"
+  ],
+  "recent_activity": "Целевые кампании против зарубежных компаний и правительств, особенно в Юго-Восточной Азии, связанные с шпионажем и краде данных.",
+  "references": [
+    "https://attack.mitre.org/groups/G0045/"
+  ]
+}

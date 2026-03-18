@@ -1,0 +1,20 @@
+{
+  "name": "APT19",
+  "aliases": ["Deep Panda", "APT19", "G0009", "Dive Bar"],
+  "country": "China",
+  "first_seen": "2012",
+  "targets": ["Government", "Defense", "Technology", "Telecom", "Healthcare"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["PlugX", "PoisonIvy", "Backdoors", "BANDBLADE"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1566.002 - Spearphishing Link",
+    "T1059.005 - Visual Basic",
+    "T1218.011 - Msiexec",
+    "T1574.002 - DLL Side-Loading"
+  ],
+  "recent_activity": "Кампании против аэрокосмических и медицинских организаций, связанные с краже чувствительных данных.",
+  "references": [
+    "https://attack.mitre.org/groups/G0013/"
+  ]
+}

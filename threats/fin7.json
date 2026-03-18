@@ -1,0 +1,19 @@
+{
+  "name": "FIN7",
+  "aliases": ["Carbanak", "ALPHV", "Red Spider", "Gold Nioka"],
+  "country": "Russia",
+  "first_seen": "2013",
+  "targets": ["Retail", "Restaurant", "Hospitality", "Financial"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact", "Command and Control"],
+  "tools": ["CARBANAK", "DOPLAR", "BABYMETAL", "PAS", "RDPRaider"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1059.003 - Command and Scripting Interpreter: Windows Command Shell",
+    "T1086 - PowerShell",
+    "T1078 - Valid Accounts"
+  ],
+  "recent_activity": "Кража карт данных из POS-терминалов, атаки на рестораны и ритейл",
+  "references": [
+    "https://attack.mitre.org/groups/G0046/"
+  ]
+}

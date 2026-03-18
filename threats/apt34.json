@@ -1,0 +1,20 @@
+{
+  "name": "APT34",
+  "aliases": ["OILRIG", "APT34", "Helix Kitten", "Crambus"],
+  "country": "Iran",
+  "first_seen": "2014",
+  "targets": ["Financial", "Government", "Energy", "Telecom", "Technology"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["POWRUNER", "BONDUPDATER", "NANOCORE", "NETWIRE", "TwoFace"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1136.001 - Create Account: Local Account",
+    "T1078.001 - Valid Accounts: Local Accounts",
+    "T1105 - Ingress Tool Transfer",
+    "T1041 - Exfiltration Over C2 Channel"
+  ],
+  "recent_activity": "Активные кампании против финансовых учреждений и государственных организаций в Ближнем Востоке, использование кастомных бэкдоров.",
+  "references": [
+    "https://attack.mitre.org/groups/G0057/"
+  ]
+}

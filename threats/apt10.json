@@ -1,0 +1,20 @@
+{
+  "name": "APT10",
+  "aliases": ["Cloud Hopper", "MenuPass", "CVNX", "Hellsing"],
+  "country": "China",
+  "first_seen": "2009",
+  "targets": ["Government", "Technology", "Telecom", "Healthcare", "Defense"],
+  "tactics": ["Initial Access", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["PlugX", "PoisonIvy", "ChChes", "ADVSTORESHELL", "REDLEAVES"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1055 - Process Injection",
+    "T1105 - Ingress Tool Transfer",
+    "T1078 - Valid Accounts",
+    "T1087 - Account Discovery"
+  ],
+  "recent_activity": "Массовая кампания по краде данных из госучреждений и корпораций по всему миру, используя облачные сервисы для эксфильтрации.",
+  "references": [
+    "https://attack.mitre.org/groups/G0006/"
+  ]
+}

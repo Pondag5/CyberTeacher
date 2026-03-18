@@ -1,0 +1,20 @@
+{
+  "name": "APT16",
+  "aliases": ["APT16", "Penrim", "Slow drifted"],
+  "country": "China",
+  "first_seen": "2013",
+  "targets": ["Financial", "Telecom", "Technology", "Government"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration"],
+  "tools": ["PlugX", "PoisonIvy", "REDLEAVES", "COULDANGER"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1055 - Process Injection",
+    "T1218.011 - Msiexec",
+    "T1036.005 - Match Legitimate Name or Location",
+    "T1071.001 - Application Layer Protocol: Web Protocols"
+  ],
+  "recent_activity": "Атаки на финансовые организации в Азии-Pacific region, использование在会上感染.",
+  "references": [
+    "https://attack.mitre.org/groups/G0009/"
+  ]
+}

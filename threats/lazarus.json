@@ -1,0 +1,19 @@
+{
+  "name": "Lazarus Group",
+  "aliases": ["APT38", "Hidden Cobra", "ZINC", "Labyrinth Chollima"],
+  "country": "North Korea",
+  "first_seen": "2009",
+  "targets": ["Financial", "Cryptocurrency", "Defense", "Aerospace", "Media"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact", "Command and Control"],
+  "tools": ["BLINDINGCAN", "HOTCROISSANT", "BADCALL", "DISTANTCROSS", "ELECTRICFISH"],
+  "techniques": [
+    "T1566.002 - Spearphishing Link",
+    "T1059.001 - Command and Scripting Interpreter: PowerShell",
+    "T1106 - Native API",
+    "T1041 - Exfiltration Over C2 Channel"
+  ],
+  "recent_activity": "Атаки на банки, криптобиржи, Sony Pictures (2014), WannaCry 2017",
+  "references": [
+    "https://attack.mitre.org/groups/G0032/"
+  ]
+}

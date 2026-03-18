@@ -1,0 +1,20 @@
+{
+  "name": "APT43",
+  "aliases": ["APT43", "Charming Kitten", "MUDCARP"],
+  "country": "Iran",
+  "first_seen": "2014",
+  "targets": ["Government", "Technology", "Telecom", "Healthcare", "Education"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["NANOCORE", "NETWIRE", "Cobalt Strike", "RemCom"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1566.002 - Spearphishing Link",
+    "T1133 - External Remote Services",
+    "T1078 - Valid Accounts",
+    "T1105 - Ingress Tool Transfer"
+  ],
+  "recent_activity": "Фокус на шпионаж и сбор информации от правительственных и технологических организаций.",
+  "references": [
+    "https://attack.mitre.org/groups/G0088/"
+  ]
+}

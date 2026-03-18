@@ -1,0 +1,202 @@
+{
+  "achievements": [
+    {
+      "id": "first_flag",
+      "name": "Первый флаг",
+      "description": "Нашли первый флаг в задании или самостоятельно",
+      "icon": "🚩",
+      "points": 10,
+      "condition": {
+        "type": "flags_total",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "flag_collector_10",
+      "name": "Сборщик флагов",
+      "description": "Собрали 10 флагов",
+      "icon": "🏹",
+      "points": 25,
+      "condition": {
+        "type": "flags_total",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "flag_master_50",
+      "name": "Мастер флагов",
+      "description": "Собрали 50 флагов",
+      "icon": "🎯",
+      "points": 100,
+      "condition": {
+        "type": "flags_total",
+        "threshold": 50
+      }
+    },
+    {
+      "id": "assignment_completer",
+      "name": "Исполнитель заданий",
+      "description": "Завершили первое задание",
+      "icon": "✅",
+      "points": 15,
+      "condition": {
+        "type": "assignments_completed",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "assignment_master_10",
+      "name": "Мастер заданий",
+      "description": "Завершили 10 заданий",
+      "icon": "👑",
+      "points": 100,
+      "condition": {
+        "type": "assignments_completed",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "points_earner_100",
+      "name": "Новичок с очками",
+      "description": "Накопили 100 очков",
+      "icon": "💰",
+      "points": 0,
+      "condition": {
+        "type": "total_points",
+        "threshold": 100
+      }
+    },
+    {
+      "id": "points_earner_500",
+      "name": "Опытный хакер",
+      "description": "Накопили 500 очков",
+      "icon": "💎",
+      "points": 0,
+      "condition": {
+        "type": "total_points",
+        "threshold": 500
+      }
+    },
+    {
+      "id": "docker_explorer",
+      "name": "Исследователь Docker",
+      "description": "Запустили первую лабораторию",
+      "icon": "🐳",
+      "points": 20,
+      "condition": {
+        "type": "labs_started",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "quiz_taker",
+      "name": "Тестировщик",
+      "description": "Прoha first quiz",
+      "icon": "❓",
+      "points": 5,
+      "condition": {
+        "type": "quizzes_taken",
+        "threshold": 1
+      }
+    },
+     {
+       "id": "news_follower",
+       "name": "Следящий за новостями",
+       "description": "Проверили новости хотя бы раз",
+       "icon": "📰",
+       "points": 5,
+       "condition": {
+         "type": "news_checked",
+         "threshold": 1
+       }
+     },
+     {
+       "id": "social_engineer_5",
+       "name": "Социальный инженер",
+       "description": "Успешно провели 5 сценариев социальной инженерии",
+       "icon": "🎭",
+       "points": 30,
+       "condition": {
+         "type": "social_success",
+         "threshold": 5
+       }
+     },
+     {
+       "id": "social_engineer_20",
+       "name": "Мастер социальной инженерии",
+       "description": "Успешно провели 20 сценариев социальной инженерии",
+       "icon": "🎪",
+       "points": 75,
+       "condition": {
+         "type": "social_success",
+         "threshold": 20
+       }
+     },
+     {
+       "id": "apt_hunter_10",
+       "name": "APT Охотник",
+       "description": "Изучили 10 досье на APT-группы",
+       "icon": "🔍",
+       "points": 40,
+       "condition": {
+         "type": "apt_groups_viewed",
+         "threshold": 10
+       }
+     },
+     {
+       "id": "apt_hunter_25",
+       "name": "APT Охотник Эксперт",
+       "description": "Изучили 25 досье на APT-группы",
+       "icon": "🛡️",
+       "points": 100,
+       "condition": {
+         "type": "apt_groups_viewed",
+         "threshold": 25
+       }
+     },
+     {
+       "id": "ghost_in_the_shell_5",
+       "name": "Призрак в Сети",
+       "description": "Завершили 5 заданий с низким уровнем риска (риск < 20)",
+       "icon": "👻",
+       "points": 50,
+       "condition": {
+         "type": "stealth_ops",
+         "threshold": 5
+       }
+     },
+     {
+       "id": "ghost_in_the_shell_15",
+       "name": "Призрак в Стелле",
+       "description": "Завершили 15 заданий с низким уровнем риска (риск < 20)",
+       "icon": "🌑",
+       "points": 150,
+       "condition": {
+         "type": "stealth_ops",
+         "threshold": 15
+       }
+     },
+     {
+       "id": "snowden_10",
+       "name": "Сноуден",
+       "description": "Изучили 10 угроз через аналитические сводки",
+       "icon": "📊",
+       "points": 60,
+       "condition": {
+         "type": "threat_exposures",
+         "threshold": 10
+       }
+     },
+     {
+       "id": "snowden_25",
+       "name": "Сноуден Легенда",
+       "description": "Изучили 25 угроз через аналитические сводки",
+       "icon": "🗽",
+       "points": 200,
+       "condition": {
+         "type": "threat_exposures",
+         "threshold": 25
+       }
+     }
+   ]
+ }

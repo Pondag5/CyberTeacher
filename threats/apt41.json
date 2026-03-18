@@ -1,0 +1,19 @@
+{
+  "name": "APT41",
+  "aliases": ["Winnti", "Barium", "Wicked Panda", "Wing Panda"],
+  "country": "China",
+  "first_seen": "2012",
+  "targets": ["Healthcare", "Telecom", "High-Tech", "Gaming", "Government", "NGOs"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact", "Command and Control"],
+  "tools": ["Cobalt Strike", "MIMIKATZ", "SOURBITS", "Hydra", "PlugX"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1071.001 - Application Layer Protocol: Web Protocols",
+    "T1086 - PowerShell",
+    "T1218 - System Binary Proxy Execution"
+  ],
+  "recent_activity": "Кибершпионаж и киберпреступность, атаки на healthcare в период COVID-19",
+  "references": [
+    "https://attack.mitre.org/groups/G0096/"
+  ]
+}

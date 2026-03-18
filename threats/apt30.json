@@ -1,0 +1,20 @@
+{
+  "name": "APT30",
+  "aliases": ["Blackfly", "APT30", "Numbered Panda", "Юэ Чжи"],
+  "country": "China",
+  "first_seen": "2006",
+  "targets": ["Government", "Technology", "Telecom", "Energy", "Transportation"],
+  "tactics": ["Initial Access", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["Custom Backdoors", "CARBON", "SPACESHIP", "FIVEALL"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1547.001 - Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder",
+    "T1078 - Valid Accounts",
+    "T1574.002 - DLL Side-Loading",
+    "T1041 - Exfiltration Over C2 Channel"
+  ],
+  "recent_activity": "Длительные кампании с фокусом на политическую разведку и шпионаж в Юго-Восточной Азии.",
+  "references": [
+    "https://attack.mitre.org/groups/G0014/"
+  ]
+}

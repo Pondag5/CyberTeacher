@@ -1,0 +1,19 @@
+{
+  "name": "REvil",
+  "aliases": ["Sodinokibi", "Ransom Cartel", "Sodin"],
+  "country": "Russia (assumed)",
+  "first_seen": "2019",
+  "targets": ["IT", "Manufacturing", "Legal", "Agriculture", "Banking", "Government"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["REvil Ransomware", "Sodinokibi", "GandCrab (earlier)", "Cobalt Strike"],
+  "techniques": [
+    "T1486 - Data Encrypted for Impact",
+    "T1566.001 - Spearphishing Attachment",
+    "T1135 - Network Share Discovery",
+    "T1087 - Account Discovery"
+  ],
+  "recent_activity": "Ransomware-as-a-Service, атаки на JBS Foods, Kaseya 2021",
+  "references": [
+    "https://attack.mitre.org/groups/G0049/"
+  ]
+}

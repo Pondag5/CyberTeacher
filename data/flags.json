@@ -1,0 +1,10 @@
+{
+  "flags": [
+    {
+      "flag": "FLAG{SAMPLE_TEST}",
+      "points": 10,
+      "category": "test",
+      "description": "Тестовый флаг"
+    }
+  ]
+}

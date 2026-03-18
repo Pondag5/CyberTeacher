@@ -1,0 +1,20 @@
+{
+  "name": "APT12",
+  "aliases": ["Ke3chang", "Numbered Panda", "CosmicDew"],
+  "country": "China",
+  "first_seen": "2009",
+  "targets": ["Government", "Defense", "Technology", "Telecom", "Energy"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration"],
+  "tools": ["ZSocket", "MIRCBackdoor", "PoisonIvy", "CUCKL", "ASPXSPY"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1059.005 - Visual Basic",
+    "T1105 - Ingress Tool Transfer",
+    "T1218.011 - Msiexec",
+    "T1574.001 - DLL Side-Loading"
+  ],
+  "recent_activity": "Целенаправленные атаки на дипломатические миссии и оборонные подразделения, особенно в Европе и Азии.",
+  "references": [
+    "https://attack.mitre.org/groups/G0007/"
+  ]
+}

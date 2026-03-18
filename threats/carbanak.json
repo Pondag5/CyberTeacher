@@ -1,0 +1,20 @@
+{
+  "name": "Carbanak",
+  "aliases": ["Carbanak", "Anunak", "Cobalt Spider", "FIN7 precursor"],
+  "country": "Russia/Eastern Europe",
+  "first_seen": "2013",
+  "targets": ["Financial", "Banking", "Hospitality", "Retail", "POS"],
+  "tactics": ["Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement", "Collection", "Exfiltration", "Impact"],
+  "tools": ["Carbanak Backdoor", "FEXEL", "GRABAT", "Cobalt Strike", "Ammyy Admin"],
+  "techniques": [
+    "T1566.001 - Spearphishing Attachment",
+    "T1078 - Valid Accounts",
+    "T1021.001 - Remote Services: RDP",
+    "T1486 - Data Encrypted for Impact (Ransomware)",
+    "T1566.002 - Spearphishing Link"
+  ],
+  "recent_activity": "Позволила украсть более 1 миллиарда долларов из банков через植入Malware на системы бухгалтерии.",
+  "references": [
+    "https://attack.mitre.org/groups/G0008/"
+  ]
+}
