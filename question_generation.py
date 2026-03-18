@@ -1,35 +1,37 @@
 """
 Генерация вопросов и задач
 """
+
 import random
 
 QUIZ_TOPICS = {
     "sql": {
         "question": "Что такое SQL-инъекция?",
         "answer": "Внедрение SQL кода в запрос",
-        "key_points": ["внедрение SQL", "небезопасный ввод", "обход аутентификации"]
+        "key_points": ["внедрение SQL", "небезопасный ввод", "обход аутентификации"],
     },
     "xss": {
         "question": "Что такое XSS?",
         "answer": "Межсайтовый скриптинг",
-        "key_points": ["внедрение скрипта", "выполнение в браузере", "cookie кража"]
+        "key_points": ["внедрение скрипта", "выполнение в браузере", "cookie кража"],
     },
     "network": {
         "question": "Что такое TCP и UDP?",
         "answer": "Протоколы передачи данных",
-        "key_points": ["TCP надежный", "UDP быстрый", "порты"]
+        "key_points": ["TCP надежный", "UDP быстрый", "порты"],
     },
     "crypto": {
         "question": "Что такое хеширование?",
         "answer": "Преобразование в строку фикс длины",
-        "key_points": ["односторонняя функция", " MD5 SHA", "верификация"]
+        "key_points": ["односторонняя функция", " MD5 SHA", "верификация"],
     },
     "linux": {
         "question": "Какие права доступа в Linux?",
         "answer": "rwx для владельца/группы/остальных",
-        "key_points": ["read write execute", "chmod", "владелец файл"]
+        "key_points": ["read write execute", "chmod", "владелец файл"],
     },
 }
+
 
 def generate_open_quiz(conn=None, topic=""):
     """Генерация вопроса"""
@@ -43,23 +45,25 @@ def generate_open_quiz(conn=None, topic=""):
                 break
         else:
             topic = random.choice(list(QUIZ_TOPICS.keys()))
-    
+
     q = QUIZ_TOPICS[topic]
     return {
         "question": q["question"],
         "answer": q["answer"],
         "key_points": q["key_points"],
-        "topic": topic
+        "topic": topic,
     }
+
 
 def check_open_answer(question, user_answer, key_points, topic="общий"):
     """Проверка ответа с помощью LLM для понимания смысла"""
     from config import LazyLoader
+
     llm = LazyLoader.get_llm()
-    
+
     prompt = f"""Ты - учитель кибербезопасности. Оцени ответ ученика на вопрос квиза.
 Вопрос: {question}
-Правильный ответ должен содержать: {', '.join(key_points)}
+Правильный ответ должен содержать: {", ".join(key_points)}
 Ответ ученика: {user_answer}
 
 Оцени ответ по 10-балльной шкале. 
@@ -72,8 +76,9 @@ def check_open_answer(question, user_answer, key_points, topic="общий"):
         response = llm.invoke(prompt)
         import json
         import re
+
         # Ищем JSON в ответе
-        match = re.search(r'\{.*\}', response, re.DOTALL)
+        match = re.search(r"\{.*\}", response, re.DOTALL)
         if match:
             # Парсим JSON и очищаем от возможных лишних кавычек
             res_str = match.group()
@@ -81,23 +86,26 @@ def check_open_answer(question, user_answer, key_points, topic="общий"):
             return {
                 "score": result.get("score", 0),
                 "feedback": result.get("feedback", "Неплохо..."),
-                "matched": [] # В этой версии не требуется
+                "matched": [],  # В этой версии не требуется
             }
     except Exception as e:
         print(f"Ошибка проверки LLM: {e}")
-    
+
     # Фолбек на старую проверку если LLM упал
     user_lower = user_answer.lower()
     score = 0
     for point in key_points:
         if point.lower() in user_lower:
             score += 3
-    
+
     return {
         "score": min(score, 10),
-        "feedback": "Проверка (fallback): перечитай материал." if score < 5 else "Пойдет.",
-        "matched": []
+        "feedback": "Проверка (fallback): перечитай материал."
+        if score < 5
+        else "Пойдет.",
+        "matched": [],
     }
+
 
 # Для обратной совместимости
 generate_quiz = generate_open_quiz

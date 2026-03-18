@@ -4,11 +4,15 @@ import os
 from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
+
 from state import get_state
 
 console = Console()
 
-def handle_achievements(*args, **kwargs) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+
+def handle_achievements(
+    *args, **kwargs
+) -> tuple[bool, Any | None, Any | None, bool]:
     """Управление достижениями: list, earn <id> (test mode), help"""
     try:
         action = args[0] if args else "achievements"
@@ -20,7 +24,7 @@ def handle_achievements(*args, **kwargs) -> Tuple[bool, Optional[Any], Optional[
             console.print("[yellow]Файл достижений не найден[/yellow]")
             return True, None, None, True
 
-        with open(achievements_file, 'r', encoding='utf-8') as f:
+        with open(achievements_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         achievements = {ach["id"]: ach for ach in data.get("achievements", [])}
@@ -39,7 +43,11 @@ def handle_achievements(*args, **kwargs) -> Tuple[bool, Optional[Any], Optional[
             ach_id = parts[2]
             if ach_id not in achievements:
                 console.print(f"[yellow]Достижение '{ach_id}' не найдено[/yellow]")
-                console.print("[cyan]Доступные ID: " + ", ".join(sorted(achievements.keys())) + "[/cyan]")
+                console.print(
+                    "[cyan]Доступные ID: "
+                    + ", ".join(sorted(achievements.keys()))
+                    + "[/cyan]"
+                )
                 return True, None, None, True
 
             ach = achievements[ach_id]
@@ -63,7 +71,9 @@ def handle_achievements(*args, **kwargs) -> Tuple[bool, Optional[Any], Optional[
             console.print("[bold cyan]🏆 Достижения — помощь[/bold cyan]\n")
             console.print("Команды:")
             console.print("  /achievements - показать список всех достижений")
-            console.print("  /achievements earn <id> - получить достижение (тестовый режим)")
+            console.print(
+                "  /achievements earn <id> - получить достижение (тестовый режим)"
+            )
             console.print("  /achievements help - эта справка")
             return True, None, None, True
 
@@ -84,5 +94,6 @@ def handle_achievements(*args, **kwargs) -> Tuple[bool, Optional[Any], Optional[
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
         import traceback
+
         traceback.print_exc()
     return True, None, None, True

@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
 """Настройка кодировки консоли для Windows"""
 
-import sys
-import os
 import io
+import os
+import sys
+
 
 def setup_utf8_console() -> None:
     """Настраивает stdout/stderr на UTF-8 для Windows.
-    
+
     Решает проблему UnicodeEncodeError при выводе эмодзи и спецсимволов
     в консоли Windows (cp1251/cp437).
     """
@@ -23,17 +23,15 @@ def setup_utf8_console() -> None:
 
     try:
         # Переупаковываем stdout в UTF-8 с заменой недопустимых символов
-        if hasattr(sys.stdout, 'buffer'):
+        if hasattr(sys.stdout, "buffer"):
             sys.stdout = io.TextIOWrapper(
                 sys.stdout.buffer,
-                encoding='utf-8',
-                errors='replace'  # заменяет недопустимые символы на ?
+                encoding="utf-8",
+                errors="replace",  # заменяет недопустимые символы на ?
             )
-        if hasattr(sys.stderr, 'buffer'):
+        if hasattr(sys.stderr, "buffer"):
             sys.stderr = io.TextIOWrapper(
-                sys.stderr.buffer,
-                encoding='utf-8',
-                errors='replace'
+                sys.stderr.buffer, encoding="utf-8", errors="replace"
             )
     except Exception:
         # Если не получилось — просто игнорируем

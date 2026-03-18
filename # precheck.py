@@ -1,10 +1,13 @@
 # precheck.py
 
-from handlers import handle_command  # Исправлено импорт
 import sys
-sys.path.append('.')
+
+from handlers import handle_command  # Исправлено импорт
+
+sys.path.append(".")
 
 from llm import LLM, StreamingResponse
+
 
 def load_llm():
     try:
@@ -13,6 +16,7 @@ def load_llm():
         print(f"Error loading LLM: {e}")
         return None
 
+
 def get_streaming_response(model, input_message):
     response = model.predict(input_message)
     if isinstance(response, StreamingResponse):
@@ -20,6 +24,7 @@ def get_streaming_response(model, input_message):
             print(chunk)
     else:
         print(f"No streaming response: {response}")
+
 
 if __name__ == "__main__":
     # Проверка загрузки модели

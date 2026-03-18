@@ -2,32 +2,52 @@
 🔐 База знаний
 """
 
-import os
-import json
-import hashlib
-import shutil
-from datetime import datetime
-from concurrent.futures import ProcessPoolExecutor, as_completed
+import gc
 import glob
+import hashlib
+import json
+import os
+import shutil
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime
 from typing import Any, List
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_community.vectorstores import FAISS
-
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
-import gc
-
-from config import KNOWLEDGE_DIR, PERSIST_DIR, METADATA_FILE, LazyLoader, CHUNK_SIZE, CHUNK_OVERLAP, MAX_WORKERS, RERANKER, RERANK_TOP_K, BM25_ENABLED, BM25_K
 from langchain_core.embeddings import Embeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
+
+from config import (
+    BM25_ENABLED,
+    BM25_K,
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
+    KNOWLEDGE_DIR,
+    MAX_WORKERS,
+    METADATA_FILE,
+    PERSIST_DIR,
+    RERANK_TOP_K,
+    RERANKER,
+    LazyLoader,
+)
 from ui import console
 
 # Global vectordb for runtime access
 _current_vectordb = None
 
+
 def get_current_vectordb():
     """Get the currently loaded vector database."""
     return _current_vectordb
+
 
 def set_current_vectordb(v):
     """Set the current vector database."""
@@ -37,6 +57,7 @@ def set_current_vectordb(v):
 
 class ProgressEmbeddings(Embeddings):
     """Обёртка для отслеживания прогресса создания эмбеддингов"""
+
     def __init__(self, base_embeddings, progress_obj, progress_task):
         self.base = base_embeddings
         self.progress = progress_obj
@@ -46,7 +67,7 @@ class ProgressEmbeddings(Embeddings):
         batch_size = 64  # increased for better throughput
         all_embeddings = []
         for i in range(0, len(texts), batch_size):
-            batch = texts[i:i+batch_size]
+            batch = texts[i : i + batch_size]
             embeddings_batch = self.base.embed_documents(batch)
             all_embeddings.extend(embeddings_batch)
             self.progress.advance(self.task, len(batch))
@@ -63,19 +84,21 @@ class ProgressEmbeddings(Embeddings):
 def get_file_hash(file_path: str) -> str:
     h = hashlib.sha256()
     try:
-        with open(file_path, 'rb') as f:
-            for chunk in iter(lambda: f.read(65536), b''):  # increased buffer
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):  # increased buffer
                 h.update(chunk)
         return h.hexdigest()
     except Exception as e:
-        console.print(f"[yellow]⚠️ Ошибка при вычислении хеша для {file_path}: {e}[/yellow]")
+        console.print(
+            f"[yellow]⚠️ Ошибка при вычислении хеша для {file_path}: {e}[/yellow]"
+        )
         return ""
 
 
 def load_metadata() -> dict:
     if os.path.exists(METADATA_FILE):
         try:
-            with open(METADATA_FILE, 'r') as f:
+            with open(METADATA_FILE, "r") as f:
                 return json.load(f)
         except Exception as e:
             console.print(f"[yellow]⚠️ Ошибка при загрузке метаданных: {e}[/yellow]")
@@ -84,14 +107,14 @@ def load_metadata() -> dict:
 
 def save_metadata(data: dict):
     os.makedirs(PERSIST_DIR, exist_ok=True)
-    with open(METADATA_FILE, 'w') as f:
+    with open(METADATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
 
 def scan_knowledge_files() -> dict:
     files = {}
     if os.path.exists(KNOWLEDGE_DIR):
-        for ext in ['*.txt', '*.md', '*.pdf']:
+        for ext in ["*.txt", "*.md", "*.pdf"]:
             for file_path in glob.glob(os.path.join(KNOWLEDGE_DIR, ext)):
                 rel_path = os.path.relpath(file_path, KNOWLEDGE_DIR)
                 files[rel_path] = get_file_hash(file_path)
@@ -101,12 +124,14 @@ def scan_knowledge_files() -> dict:
 def load_and_split_file(file_path: str):
     """Load a file and return its text chunks (CPU‑intensive part)."""
     try:
-        if file_path.endswith('.pdf'):
+        if file_path.endswith(".pdf"):
             loader = PyPDFLoader(file_path)
         else:
-            loader = TextLoader(file_path, encoding='utf-8')
+            loader = TextLoader(file_path, encoding="utf-8")
         docs = loader.load()
-        splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
+        )
         chunks = splitter.split_documents(docs)
         return file_path, chunks, None
     except Exception as e:
@@ -130,7 +155,9 @@ def load_knowledge_base():
 
     new_files = current_set - saved_set
     deleted_files = saved_set - current_set
-    modified_files = {f for f in current_set & saved_set if saved_files.get(f) != current_files[f]}
+    modified_files = {
+        f for f in current_set & saved_set if saved_files.get(f) != current_files[f]
+    }
 
     changed_files = new_files | deleted_files | modified_files
 
@@ -140,7 +167,9 @@ def load_knowledge_base():
         if os.path.exists(PERSIST_DIR):
             try:
                 base_emb = LazyLoader.get_embeddings()
-                vectordb = FAISS.load_local(PERSIST_DIR, base_emb, allow_dangerous_deserialization=True)
+                vectordb = FAISS.load_local(
+                    PERSIST_DIR, base_emb, allow_dangerous_deserialization=True
+                )
                 set_current_vectordb(vectordb)
                 return vectordb
             except Exception as e:
@@ -150,12 +179,21 @@ def load_knowledge_base():
             console.print("[yellow]Индекс не найден[/yellow]")
             return None
 
-    is_incremental = bool(new_files) and not deleted_files and not modified_files and os.path.exists(PERSIST_DIR)
+    is_incremental = (
+        bool(new_files)
+        and not deleted_files
+        and not modified_files
+        and os.path.exists(PERSIST_DIR)
+    )
 
     if is_incremental:
         console.print(f"[INFO] Adding {len(new_files)} new files")
         try:
-            vectordb = FAISS.load_local(PERSIST_DIR, LazyLoader.get_embeddings(), allow_dangerous_deserialization=True)
+            vectordb = FAISS.load_local(
+                PERSIST_DIR,
+                LazyLoader.get_embeddings(),
+                allow_dangerous_deserialization=True,
+            )
         except Exception:
             is_incremental = False
 
@@ -170,15 +208,25 @@ def load_knowledge_base():
     file_paths = [os.path.join(KNOWLEDGE_DIR, f) for f in files_to_process]
     total = len(file_paths)
 
-    all_chunks: List = []
+    all_chunks: list = []
 
-    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), BarColumn(),
-                  TextColumn("[progress.percentage]{task.percentage:>3.0f}%"), TimeElapsedColumn(),
-                  TimeRemainingColumn(), console=console) as progress:
-        load_task = progress.add_task(f"[cyan]Loading & splitting {total} files...", total=total)
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        console=console,
+    ) as progress:
+        load_task = progress.add_task(
+            f"[cyan]Loading & splitting {total} files...", total=total
+        )
         # Use ProcessPoolExecutor for CPU‑bound loading + splitting
         with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            futures = {executor.submit(load_and_split_file, fp): fp for fp in file_paths}
+            futures = {
+                executor.submit(load_and_split_file, fp): fp for fp in file_paths
+            }
             for future in as_completed(futures):
                 _, chunks, _ = future.result()
                 if chunks:
@@ -193,7 +241,9 @@ def load_knowledge_base():
         progress.console.print(f"[green]✓ Total chunks: {len(all_chunks)}")
         progress.advance(chunk_task)
 
-        embed_task = progress.add_task("[magenta]Creating embeddings...", total=len(all_chunks))
+        embed_task = progress.add_task(
+            "[magenta]Creating embeddings...", total=len(all_chunks)
+        )
 
         # Use the outer ProgressEmbeddings (has __call__)
         base_emb = LazyLoader.get_embeddings()
@@ -206,7 +256,9 @@ def load_knowledge_base():
             vectordb = FAISS.from_documents(all_chunks, progress_embeddings)
         else:
             # Incremental case: load existing index and add
-            vectordb = FAISS.load_local(PERSIST_DIR, base_emb, allow_dangerous_deserialization=True)
+            vectordb = FAISS.load_local(
+                PERSIST_DIR, base_emb, allow_dangerous_deserialization=True
+            )
             vectordb.add_documents(all_chunks)
 
         vectordb.save_local(PERSIST_DIR)
@@ -216,22 +268,29 @@ def load_knowledge_base():
         updated_files = {**saved_files, **{f: current_files[f] for f in new_files}}
         for f in deleted_files:
             updated_files.pop(f, None)
-        total_chunks_final = len(all_chunks) if full_rebuild else total_chunks_before + len(all_chunks)
-        save_metadata({
-            "files": updated_files,
-            "created": datetime.now().isoformat(),
-            "total_chunks": total_chunks_final
-        })
-        console.print(f"[bold cyan]📊 Total chunks: {total_chunks_final}, files: {len(updated_files)}[/bold cyan]")
-        
+        total_chunks_final = (
+            len(all_chunks) if full_rebuild else total_chunks_before + len(all_chunks)
+        )
+        save_metadata(
+            {
+                "files": updated_files,
+                "created": datetime.now().isoformat(),
+                "total_chunks": total_chunks_final,
+            }
+        )
+        console.print(
+            f"[bold cyan]📊 Total chunks: {total_chunks_final}, files: {len(updated_files)}[/bold cyan]"
+        )
+
         # Free GPU memory after embedding operations
         try:
             import torch
+
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
         except Exception:
             pass
-        
+
         set_current_vectordb(vectordb)
         return vectordb
 
@@ -246,12 +305,16 @@ def load_knowledge_base():
         TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         TimeElapsedColumn(),
         TimeRemainingColumn(),
-        console=console
+        console=console,
     ) as progress:
-        load_task = progress.add_task(f"[cyan]Loading & splitting {total_new} new files...", total=total_new)
-        new_chunks: List = []
+        load_task = progress.add_task(
+            f"[cyan]Loading & splitting {total_new} new files...", total=total_new
+        )
+        new_chunks: list = []
         with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            futures = {executor.submit(load_and_split_file, fp): fp for fp in new_file_paths}
+            futures = {
+                executor.submit(load_and_split_file, fp): fp for fp in new_file_paths
+            }
             for future in as_completed(futures):
                 _, chunks, _ = future.result()
                 if chunks:
@@ -266,19 +329,24 @@ def load_knowledge_base():
         progress.console.print(f"[green]✓ New chunks: {len(new_chunks)}")
         progress.advance(chunk_task)
 
-        embed_task = progress.add_task("[magenta]Creating embeddings for new chunks...", total=len(new_chunks))
+        embed_task = progress.add_task(
+            "[magenta]Creating embeddings for new chunks...", total=len(new_chunks)
+        )
         base_emb = LazyLoader.get_embeddings()
         progress_embeddings = ProgressEmbeddings(base_emb, progress, embed_task)
 
         # Load existing index
-        vectordb = FAISS.load_local(PERSIST_DIR, base_emb, allow_dangerous_deserialization=True)
+        vectordb = FAISS.load_local(
+            PERSIST_DIR, base_emb, allow_dangerous_deserialization=True
+        )
         vectordb.add_documents(new_chunks)
         vectordb.save_local(PERSIST_DIR)
         progress.console.print("[bold green]✓ New documents added to knowledge base!")
-        
+
         # Free GPU memory after embedding operations
         try:
             import torch
+
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
         except Exception:
@@ -287,12 +355,16 @@ def load_knowledge_base():
         # Update metadata
         updated_files = {**saved_files, **{f: current_files[f] for f in new_files}}
         total_chunks = total_chunks_before + len(new_chunks)
-        save_metadata({
-            "files": updated_files,
-            "created": datetime.now().isoformat(),
-            "total_chunks": total_chunks
-        })
-        console.print(f"[bold cyan]📊 Total chunks: {total_chunks}, files: {len(updated_files)}[/bold cyan]")
+        save_metadata(
+            {
+                "files": updated_files,
+                "created": datetime.now().isoformat(),
+                "total_chunks": total_chunks,
+            }
+        )
+        console.print(
+            f"[bold cyan]📊 Total chunks: {total_chunks}, files: {len(updated_files)}[/bold cyan]"
+        )
         set_current_vectordb(vectordb)
         return vectordb
 
@@ -310,64 +382,75 @@ def get_relevant_docs(vectordb, query, k=3):
             # Fallback если константы ещё не инициализированы (например, в тестах)
             bm25_enabled = False
             bm25_k = 20
-        
+
         # Начинаем с векторного поиска (больше документов)
         initial_k = max(k * 3, bm25_k if bm25_enabled else k * 3)
         docs = vectordb.similarity_search(query, k=initial_k)
-        
+
         if not docs:
             return []
-        
+
         # === ШАГ 1: BM25 ===
         if bm25_enabled:
             try:
-                from rank_bm25 import BM25Okapi
                 import jieba
-                
+                from rank_bm25 import BM25Okapi
+
                 # Токенизация
                 doc_texts = [doc.page_content for doc in docs]
                 tokenized_docs = [jieba.lcut(text) for text in doc_texts]
                 tokenized_query = jieba.lcut(query)
-                
+
                 # Создаём BM25
                 bm25 = BM25Okapi(tokenized_docs)
                 bm25_scores = bm25.get_scores(tokenized_query)
-                
+
                 # Нормализация 0-1
                 min_score, max_score = min(bm25_scores), max(bm25_scores)
                 if max_score - min_score > 0:
-                    bm25_norm = [(s - min_score) / (max_score - min_score) for s in bm25_scores]
+                    bm25_norm = [
+                        (s - min_score) / (max_score - min_score) for s in bm25_scores
+                    ]
                 else:
                     bm25_norm = [0.5] * len(bm25_scores)
-                
+
                 # Комбинируем: 50% векторная (по позиции) + 50% BM25
                 combined_scores = []
                 for i in range(len(docs)):
-                    vector_score = 1.0 - (i / len(docs))  # позиция в векторном результате
+                    vector_score = 1.0 - (
+                        i / len(docs)
+                    )  # позиция в векторном результате
                     combined = 0.5 * vector_score + 0.5 * bm25_norm[i]
                     combined_scores.append((i, combined))
-                
+
                 # Сортируем по комбинированному скору
-                sorted_indices = [i for i, _ in sorted(combined_scores, key=lambda x: x[1], reverse=True)]
+                sorted_indices = [
+                    i
+                    for i, _ in sorted(
+                        combined_scores, key=lambda x: x[1], reverse=True
+                    )
+                ]
                 bm25_docs = [docs[i] for i in sorted_indices[:bm25_k]]
                 docs = bm25_docs
             except Exception as e:
                 console.print(f"[yellow]⚠️ BM25 не сработал: {e}[/yellow]")
                 # Продолжаем с векторными результатами
-        
+
         # === ШАГ 2: RERANKER ===
         if RERANKER:
             try:
                 reranker = LazyLoader.get_reranker()
                 pairs = [(query, doc.page_content) for doc in docs]
                 scores = reranker.predict(pairs)
-                sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+                sorted_indices = sorted(
+                    range(len(scores)), key=lambda i: scores[i], reverse=True
+                )
                 reranked_docs = [docs[i] for i in sorted_indices[:k]]
                 return reranked_docs
             except Exception as e:
                 console.print(f"[yellow]⚠️ Reranking failed: {e}[/yellow]")
                 return docs[:k]
-        
+
         return docs[:k]
     except Exception as e:
         console.print(f"[yellow]⚠️ Ошибка при поиске документов: {e}[/yellow]")
@@ -375,60 +458,71 @@ def get_relevant_docs(vectordb, query, k=3):
     try:
         # Начинаем с векторного поиска (больше документов)
         initial_k = max(k * 3, BM25_K if BM25_ENABLED else k * 3)
-        
+
         if not docs:
             return []
-        
+
         # === ШАГ 1: BM25 ===
         if BM25_ENABLED:
             try:
-                from rank_bm25 import BM25Okapi
                 import jieba
-                
+                from rank_bm25 import BM25Okapi
+
                 # Токенизация
                 doc_texts = [doc.page_content for doc in docs]
                 tokenized_docs = [jieba.lcut(text) for text in doc_texts]
                 tokenized_query = jieba.lcut(query)
-                
+
                 # Создаём BM25
                 bm25 = BM25Okapi(tokenized_docs)
                 bm25_scores = bm25.get_scores(tokenized_query)
-                
+
                 # Нормализация 0-1
                 min_score, max_score = min(bm25_scores), max(bm25_scores)
                 if max_score - min_score > 0:
-                    bm25_norm = [(s - min_score) / (max_score - min_score) for s in bm25_scores]
+                    bm25_norm = [
+                        (s - min_score) / (max_score - min_score) for s in bm25_scores
+                    ]
                 else:
                     bm25_norm = [0.5] * len(bm25_scores)
-                
+
                 # Комбинируем: 50% векторная (по позиции) + 50% BM25
                 combined_scores = []
                 for i in range(len(docs)):
-                    vector_score = 1.0 - (i / len(docs))  # позиция в векторном результате
+                    vector_score = 1.0 - (
+                        i / len(docs)
+                    )  # позиция в векторном результате
                     combined = 0.5 * vector_score + 0.5 * bm25_norm[i]
                     combined_scores.append((i, combined))
-                
+
                 # Сортируем по комбинированному скору
-                sorted_indices = [i for i, _ in sorted(combined_scores, key=lambda x: x[1], reverse=True)]
+                sorted_indices = [
+                    i
+                    for i, _ in sorted(
+                        combined_scores, key=lambda x: x[1], reverse=True
+                    )
+                ]
                 bm25_docs = [docs[i] for i in sorted_indices[:BM25_K]]
                 docs = bm25_docs
             except Exception as e:
                 console.print(f"[yellow]⚠️ BM25 не сработал: {e}[/yellow]")
                 # Продолжаем с векторными результатами
-        
+
         # === ШАГ 2: RERANKER ===
         if RERANKER:
             try:
                 reranker = LazyLoader.get_reranker()
                 pairs = [(query, doc.page_content) for doc in docs]
                 scores = reranker.predict(pairs)
-                sorted_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+                sorted_indices = sorted(
+                    range(len(scores)), key=lambda i: scores[i], reverse=True
+                )
                 reranked_docs = [docs[i] for i in sorted_indices[:k]]
                 return reranked_docs
             except Exception as e:
                 console.print(f"[yellow]⚠️ Reranking failed: {e}[/yellow]")
                 return docs[:k]
-        
+
         return docs[:k]
     except Exception as e:
         console.print(f"[yellow]⚠️ Ошибка при поиске документов: {e}[/yellow]")
@@ -438,19 +532,20 @@ def get_relevant_docs(vectordb, query, k=3):
 def get_knowledge_status():
     """Возвращает статистику базы знаний"""
     import json
-    from config import METADATA_FILE, KNOWLEDGE_DIR
+
+    from config import KNOWLEDGE_DIR, METADATA_FILE
 
     files_on_disk = []
     if os.path.exists(KNOWLEDGE_DIR):
         for f in os.listdir(KNOWLEDGE_DIR):
-            if f.endswith(('.txt', '.md', '.pdf')):
+            if f.endswith((".txt", ".md", ".pdf")):
                 files_on_disk.append(f)
 
     files_in_db = []
     total_chunks = 0
 
     if os.path.exists(METADATA_FILE):
-        with open(METADATA_FILE, 'r') as f:
+        with open(METADATA_FILE, "r") as f:
             data = json.load(f)
             files_in_db = list(data.get("files", {}).keys())
             total_chunks = data.get("total_chunks", 0)
@@ -459,5 +554,5 @@ def get_knowledge_status():
         "files_on_disk": len(files_on_disk),
         "files_in_db": len(files_in_db),
         "total_chunks": total_chunks,
-        "list": files_in_db
+        "list": files_in_db,
     }

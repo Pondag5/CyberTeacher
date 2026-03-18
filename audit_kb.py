@@ -16,44 +16,265 @@ KB_DIR = Path("knowledge_base")
 # Топики из курсов (основные темы для обучения)
 COURSE_TOPICS = {
     # Web Basics
-    "SQL Injection": ["sql injection", "sqli", "sqlmap", "database injection", "mysql injection", "postgresql injection", "oracle injection"],
-    "XSS": ["xss", "cross site scripting", "xsstrike", "beef", "dom xss", "reflected xss", "stored xss", "dom-based xss"],
-    "CSRF": ["csrf", "cross site request forgery", "xsrf", "request forgery", "double submit"],
-
+    "SQL Injection": [
+        "sql injection",
+        "sqli",
+        "sqlmap",
+        "database injection",
+        "mysql injection",
+        "postgresql injection",
+        "oracle injection",
+    ],
+    "XSS": [
+        "xss",
+        "cross site scripting",
+        "xsstrike",
+        "beef",
+        "dom xss",
+        "reflected xss",
+        "stored xss",
+        "dom-based xss",
+    ],
+    "CSRF": [
+        "csrf",
+        "cross site request forgery",
+        "xsrf",
+        "request forgery",
+        "double submit",
+    ],
     # Web Advanced
-    "JWT": ["jwt", "json web token", "jwt attacks", "jwt vulnerability", "token bypass", "none algorithm", "jwt none"],
-    "IDOR": ["idor", "insecure direct object reference", "direct object reference", "object reference", "insecure direct object"],
-    "NoSQL Injection": ["nosql injection", "nosql", "mongodb injection", "mongodb", "couchdb injection"],
-
+    "JWT": [
+        "jwt",
+        "json web token",
+        "jwt attacks",
+        "jwt vulnerability",
+        "token bypass",
+        "none algorithm",
+        "jwt none",
+    ],
+    "IDOR": [
+        "idor",
+        "insecure direct object reference",
+        "direct object reference",
+        "object reference",
+        "insecure direct object",
+    ],
+    "NoSQL Injection": [
+        "nosql injection",
+        "nosql",
+        "mongodb injection",
+        "mongodb",
+        "couchdb injection",
+    ],
     # Network
-    "Сканирование": ["nmap", "scanning", "port scan", "service detection", "vulnerability scan", "enumeration", "network discovery"],
-    "SMB": ["smb", "smbclient", "psexec", "eternalblue", "ms17-010", "smb exploitation", "windows file sharing"],
-    "FTP/SSH": ["ftp", "ftp brute", "ssh", "ssh brute", "brute force", "hydra", "medusa", "password cracking", "telnet"],
-
+    "Сканирование": [
+        "nmap",
+        "scanning",
+        "port scan",
+        "service detection",
+        "vulnerability scan",
+        "enumeration",
+        "network discovery",
+    ],
+    "SMB": [
+        "smb",
+        "smbclient",
+        "psexec",
+        "eternalblue",
+        "ms17-010",
+        "smb exploitation",
+        "windows file sharing",
+    ],
+    "FTP/SSH": [
+        "ftp",
+        "ftp brute",
+        "ssh",
+        "ssh brute",
+        "brute force",
+        "hydra",
+        "medusa",
+        "password cracking",
+        "telnet",
+    ],
     # API
-    "REST API": ["rest api", "graphql", "api security", "api vulnerability", "endpoint security", "soap", "restful"],
-    "Authentication bypass": ["auth bypass", "authentication bypass", "bypass authentication", "login bypass", "session hijacking"],
-
+    "REST API": [
+        "rest api",
+        "graphql",
+        "api security",
+        "api vulnerability",
+        "endpoint security",
+        "soap",
+        "restful",
+    ],
+    "Authentication bypass": [
+        "auth bypass",
+        "authentication bypass",
+        "bypass authentication",
+        "login bypass",
+        "session hijacking",
+    ],
     # Privilege Escalation
-    "Privilege Escalation": ["privilege escalation", "privesc", "sudo", "setuid", "capabilities", "root", "windows privilege escalation", "linux privesc"],
-
+    "Privilege Escalation": [
+        "privilege escalation",
+        "privesc",
+        "sudo",
+        "setuid",
+        "capabilities",
+        "root",
+        "windows privilege escalation",
+        "linux privesc",
+    ],
     # General
-    "Social Engineering": ["social engineering", "phishing", "spear phishing", "vishing", "pretexting", "tailgating", "whaling"],
-    "Cryptography": ["cryptography", "encryption", "aes", "rsa", "crypto", "tls", "ssl", "certificate", "public key", "private key"],
-    "Steganography": ["steganography", "steghide", "zsteg", "hidden data", "covert channel", "lsb steganography", "image steganography"],
-    "Malware Analysis": ["malware analysis", "reverse engineering", "static analysis", "dynamic analysis", "sandbox", "virus", "trojan", "ransomware"],
-    "Forensics": ["forensics", "digital forensics", "incident response", "dfir", "memory forensics", "disk forensics", "log analysis"],
-    "Cloud Security": ["cloud security", "aws", "azure", "gcp", "google cloud", "s3 bucket", "cloud misconfiguration", "iac security"],
-    "Container Security": ["docker security", "kubernetes security", "container escape", "cve docker", "container hardening"],
-    "Mobile Security": ["mobile security", "android security", "ios security", "apk", "ipa", "mobile app security", "ios pentesting"],
-    "IoT Security": ["iot security", "embedded", "firmware", "router security", "smart device", "iot pentesting", "embedded security"],
-    "Blockchain": ["blockchain", "smart contract", "ethereum", "solidity", "web3", "defi", "cryptocurrency security"],
-    "Reverse Engineering": ["reverse engineering", "ida", "ghidra", "disassembly", "decompilation", "x64dbg", "radare2"],
-    "Blue Team": ["blue team", "defense", "siem", "soc", "detection", "monitoring", "incident response", "threat hunting"],
-    "Red Team": ["red team", "adversary", "attack simulation", "ttp", "mitre att&ck", "apt simulation", "penetration testing"],
-    "OSINT": ["osint", "open source intelligence", "shodan", "censys", "theharvester", "maltego", "osint framework"],
-    "Wireless Security": ["wireless", "wifi", "wpa2", "wep", "aircrack", "kismet", "evil twin", "rogue access point", "rf security"],
-    "Exploit Development": ["exploit development", "fuzzing", "buffer overflow", "rop", "shellcode", "exploit writing", "vulnerability research"],
+    "Social Engineering": [
+        "social engineering",
+        "phishing",
+        "spear phishing",
+        "vishing",
+        "pretexting",
+        "tailgating",
+        "whaling",
+    ],
+    "Cryptography": [
+        "cryptography",
+        "encryption",
+        "aes",
+        "rsa",
+        "crypto",
+        "tls",
+        "ssl",
+        "certificate",
+        "public key",
+        "private key",
+    ],
+    "Steganography": [
+        "steganography",
+        "steghide",
+        "zsteg",
+        "hidden data",
+        "covert channel",
+        "lsb steganography",
+        "image steganography",
+    ],
+    "Malware Analysis": [
+        "malware analysis",
+        "reverse engineering",
+        "static analysis",
+        "dynamic analysis",
+        "sandbox",
+        "virus",
+        "trojan",
+        "ransomware",
+    ],
+    "Forensics": [
+        "forensics",
+        "digital forensics",
+        "incident response",
+        "dfir",
+        "memory forensics",
+        "disk forensics",
+        "log analysis",
+    ],
+    "Cloud Security": [
+        "cloud security",
+        "aws",
+        "azure",
+        "gcp",
+        "google cloud",
+        "s3 bucket",
+        "cloud misconfiguration",
+        "iac security",
+    ],
+    "Container Security": [
+        "docker security",
+        "kubernetes security",
+        "container escape",
+        "cve docker",
+        "container hardening",
+    ],
+    "Mobile Security": [
+        "mobile security",
+        "android security",
+        "ios security",
+        "apk",
+        "ipa",
+        "mobile app security",
+        "ios pentesting",
+    ],
+    "IoT Security": [
+        "iot security",
+        "embedded",
+        "firmware",
+        "router security",
+        "smart device",
+        "iot pentesting",
+        "embedded security",
+    ],
+    "Blockchain": [
+        "blockchain",
+        "smart contract",
+        "ethereum",
+        "solidity",
+        "web3",
+        "defi",
+        "cryptocurrency security",
+    ],
+    "Reverse Engineering": [
+        "reverse engineering",
+        "ida",
+        "ghidra",
+        "disassembly",
+        "decompilation",
+        "x64dbg",
+        "radare2",
+    ],
+    "Blue Team": [
+        "blue team",
+        "defense",
+        "siem",
+        "soc",
+        "detection",
+        "monitoring",
+        "incident response",
+        "threat hunting",
+    ],
+    "Red Team": [
+        "red team",
+        "adversary",
+        "attack simulation",
+        "ttp",
+        "mitre att&ck",
+        "apt simulation",
+        "penetration testing",
+    ],
+    "OSINT": [
+        "osint",
+        "open source intelligence",
+        "shodan",
+        "censys",
+        "theharvester",
+        "maltego",
+        "osint framework",
+    ],
+    "Wireless Security": [
+        "wireless",
+        "wifi",
+        "wpa2",
+        "wep",
+        "aircrack",
+        "kismet",
+        "evil twin",
+        "rogue access point",
+        "rf security",
+    ],
+    "Exploit Development": [
+        "exploit development",
+        "fuzzing",
+        "buffer overflow",
+        "rop",
+        "shellcode",
+        "exploit writing",
+        "vulnerability research",
+    ],
 }
 
 # Сопоставление тематических ключевых слов с конкретными курсами/лабами
@@ -79,11 +300,15 @@ for topic, keywords in COURSE_TOPICS.items():
         TOPIC_KEYWORDS[kw.lower()] = topic
 
 
-def get_pdf_files() -> List[Path]:
+def get_pdf_files() -> list[Path]:
     """Получить все PDF файлы из knowledge_base"""
     pdfs = list(KB_DIR.glob("*.pdf"))
     # Исключаем служебные файлы
-    pdfs = [p for p in pdfs if p.name not in ["news", "news_cache.json"] and not p.name.startswith(".")]
+    pdfs = [
+        p
+        for p in pdfs
+        if p.name not in ["news", "news_cache.json"] and not p.name.startswith(".")
+    ]
     return pdfs
 
 
@@ -92,11 +317,11 @@ def extract_text_from_filename(filename: str) -> str:
     # Убираем расширение
     name = Path(filename).stem.lower()
     # Заменяем небуквы на пробелы
-    name = re.sub(r'[^a-z0-9а-яё]', ' ', name)
+    name = re.sub(r"[^a-z0-9а-яё]", " ", name)
     return name
 
 
-def determine_topics(text: str) -> Set[str]:
+def determine_topics(text: str) -> set[str]:
     """Определить, к каким темам относится текст"""
     text_lower = text.lower()
     found = set()
@@ -106,11 +331,11 @@ def determine_topics(text: str) -> Set[str]:
     return found
 
 
-def analyze_coverage() -> Tuple[Dict[str, List[str]], Dict[str, int]]:
+def analyze_coverage() -> tuple[dict[str, list[str]], dict[str, int]]:
     """Анализ покрытия тем"""
     pdfs = get_pdf_files()
-    coverage: Dict[str, List[str]] = {topic: [] for topic in COURSE_TOPICS.keys()}
-    topic_counts: Dict[str, int] = {topic: 0 for topic in COURSE_TOPICS.keys()}
+    coverage: dict[str, list[str]] = {topic: [] for topic in COURSE_TOPICS}
+    topic_counts: dict[str, int] = dict.fromkeys(COURSE_TOPICS.keys(), 0)
 
     for pdf in pdfs:
         text = extract_text_from_filename(pdf.name)
@@ -122,7 +347,7 @@ def analyze_coverage() -> Tuple[Dict[str, List[str]], Dict[str, int]]:
     return coverage, topic_counts
 
 
-def audit_file_sizes() -> Tuple[List, List, List]:
+def audit_file_sizes() -> tuple[list, list, list]:
     """Проверка размеров файлов (старая функциональность)"""
     pdfs = get_pdf_files()
     good = []
@@ -208,93 +433,93 @@ def generate_report():
         "CSRF": [
             "OWASP CSRF Prevention Cheat Sheet (https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)",
             "Web Application Security: A Beginner's Guide (часть про CSRF)",
-            "The Web Application Hacker's Handbook (глава о CSRF)"
+            "The Web Application Hacker's Handbook (глава о CSRF)",
         ],
         "JWT": [
             "JSON Web Token (JWT) RFC 7519 (бесплатно)",
             "OWASP JWT Cheat Sheet (https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_Cheat_Sheet_for_Java.html)",
-            "Hacker's Guide to JWT Attacks (online article, PortSwigger)"
+            "Hacker's Guide to JWT Attacks (online article, PortSwigger)",
         ],
         "NoSQL Injection": [
             "NoSQL Injection Attacks and Defense (бесплатные главы)",
             "MongoDB Security Best Practices (официальная документация)",
-            "OWASP NoSQL Injection Prevention (cheatsheet)"
+            "OWASP NoSQL Injection Prevention (cheatsheet)",
         ],
         "REST API": [
             "OWASP API Security Top 10 (https://owasp.org/www-project-api-security/)",
             "REST API Security: From Design to Deployment (бесплатные ресурсы)",
-            "Hacking REST APIs (PortSwigger Academy, online)"
+            "Hacking REST APIs (PortSwigger Academy, online)",
         ],
         "Authentication bypass": [
             "The Web Application Hacker's Handbook (глава об аутентификации)",
             "OWASP Authentication Cheat Sheet",
-            "Common Authentication Flaws (PortSwigger, Web Security Academy)"
+            "Common Authentication Flaws (PortSwigger, Web Security Academy)",
         ],
         "SMB exploitation": [
             "SMB (Server Message Block) Protocol Security (Microsoft Docs)",
             "Metasploit Guide: SMB attacks (официальный guide)",
-            "Hacking Windows with SMB (Null Byte guide, WonderHowTo)"
+            "Hacking Windows with SMB (Null Byte guide, WonderHowTo)",
         ],
         "FTP/SSH": [
             "FTP Security Best Practices (RFC, OWASP)",
             "SSH, The Secure Shell: The Definitive Guide (бесплатные главы)",
-            "Brute Force Attacks: Techniques and Prevention (SANS)"
+            "Brute Force Attacks: Techniques and Prevention (SANS)",
         ],
         "Cloud Security": [
             "AWS Security Best Practices (бесплатно от AWS, Security Pillar Well-Architected)",
             "Azure Security Documentation (Microsoft Docs)",
-            "Cloud Security Alliance (CSA) Guidance (бесплатно)"
+            "Cloud Security Alliance (CSA) Guidance (бесплатно)",
         ],
         "Container Security": [
             "Docker Security Cheatsheet (OWASP)",
             "Kubernetes Security (K8S) Official Docs (Kubernetes.io)",
-            "Container Security: From Docker to Kubernetes (free resources)"
+            "Container Security: From Docker to Kubernetes (free resources)",
         ],
         "Mobile Security": [
             "OWASP Mobile Security Testing Guide (MSTG)",
             "Android Security Fundamentals (Google Developer Documentation)",
-            "iOS Security Guide (Apple Platform Security)"
+            "iOS Security Guide (Apple Platform Security)",
         ],
         "IoT Security": [
             "OWASP IoT Security Project (Top 10 IoT)",
             "IoT Security Foundation Guidelines",
-            "Hacking IoT Devices: A Practical Guide (online tutorials)"
+            "Hacking IoT Devices: A Practical Guide (online tutorials)",
         ],
         "Blockchain": [
             "Smart Contract Security Best Practices (Consensys)",
             "Ethereum Smart Contract Security (documentation)",
-            "Blockchain Security: A Practical Guide (free resources)"
+            "Blockchain Security: A Practical Guide (free resources)",
         ],
         "Reverse Engineering": [
             "Reverse Engineering for Beginners (демо-версия, доступна частично)",
             "Practical Reverse Engineering (ogmentioned, части)",
-            "Ghidra Official Documentation and Tutorials"
+            "Ghidra Official Documentation and Tutorials",
         ],
         "Blue Team": [
             "Blue Team Handbook (SOC)",
             "Incident Response and Computer Forensics (贯穿)",
-            "Defensive Security Handbook (SANS)"
+            "Defensive Security Handbook (SANS)",
         ],
         "Red Team": [
             "Red Team Field Manual (RTFM)",
             "MITRE ATT&CK Framework Documentation (бесплатно)",
-            "Adversary Emulation Guide (MITRE, lol)"
+            "Adversary Emulation Guide (MITRE, lol)",
         ],
         "Steganography": [
             "Steganography Techniques and Applications (IEEE papers)",
             "Practical Steganography (online tutorials, CTF resources)",
-            "CTF Steganography Guide (странная книга)"
+            "CTF Steganography Guide (странная книга)",
         ],
         "Exploit Development": [
             "Shellcoder's Handbook (free chapters available)",
             "Exploit Development for Beginners (tutorial series online)",
-            "Fuzzing: Brute Force Vulnerability Discovery (book excerpts)"
+            "Fuzzing: Brute Force Vulnerability Discovery (book excerpts)",
         ],
         "Privilege Escalation (Windows)": [
             "Windows Privilege Escalation Guide (SANS)",
             "Awesome Windows Privilege Escalation (GitHub repo)",
-            "Privilege Escalation in Windows (online course)"
-        ]
+            "Privilege Escalation in Windows (online course)",
+        ],
     }
 
     # Добавляем рекомендации для недостающих тем
@@ -340,4 +565,3 @@ def generate_report():
 
 if __name__ == "__main__":
     generate_report()
-

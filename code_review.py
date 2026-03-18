@@ -4,37 +4,40 @@
 
 import json
 import re
-import tempfile
 import subprocess
+import tempfile
 
 from config import LLM
 from ui import console
 
+
 def run_bandit_scan(code: str):
     """Запуск Bandit для статического анализа"""
     try:
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
             f.write(code)
             temp_path = f.name
-        
+
         result = subprocess.run(
-            ['bandit', '-f', 'json', '-r', temp_path],
-            capture_output=True, text=True
+            ["bandit", "-f", "json", "-r", temp_path], capture_output=True, text=True
         )
-        
+
         if result.stdout:
             return json.loads(result.stdout)
     except FileNotFoundError:
-        console.print("[yellow]⚠️ Bandit не установлен. Пропускаю статический анализ.[/yellow]")
+        console.print(
+            "[yellow]⚠️ Bandit не установлен. Пропускаю статический анализ.[/yellow]"
+        )
     except Exception as e:
         console.print(f"[red]Ошибка Bandit: {e}[/red]")
     return None
 
+
 def code_review_function(code: str, language: str = "python"):
     """Анализ кода: Bandit + LLM + Исправления"""
-    
+
     scan_results = ""
-    
+
     if language == "python":
         bandit_report = run_bandit_scan(code)
         if bandit_report and bandit_report.get("results"):
@@ -58,7 +61,7 @@ def code_review_function(code: str, language: str = "python"):
     "fixed_code": "Исправленный вариант кода здесь (строка)"
 }
 """
-    
+
     # Добавили требование fixed_code
     prompt = (
         f"Проанализируй код на уязвимости.\n\n"
@@ -75,7 +78,7 @@ def code_review_function(code: str, language: str = "python"):
 
     try:
         response = LLM.invoke(prompt)
-        json_match = re.search(r'\{[\s\S]*\}', response)
+        json_match = re.search(r"\{[\s\S]*\}", response)
         if json_match:
             return json.loads(json_match.group())
     except Exception as e:

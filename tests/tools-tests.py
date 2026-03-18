@@ -1,5 +1,7 @@
 import unittest
+
 from tools import decode_text  # ✅ Исправлен импорт - абсолютный вместо относительного
+
 
 class TestTools(unittest.TestCase):
     def test_decode_base64(self):
@@ -35,7 +37,10 @@ class TestTools(unittest.TestCase):
         format_type = "binary"
         success, decoded_text = decode_text(data, format_type)
         self.assertTrue(success)
-        self.assertEqual(decoded_text, "\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01")
+        self.assertEqual(
+            decoded_text, "\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01"
+        )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -1,50 +1,58 @@
 # handlers/core.py
 import json
-import os
 import logging
+import os
 from collections import OrderedDict, deque
 from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
+
 from state import get_state
+from ui import Mode, show_help, show_help_detail, show_menu
+
+from .achievements import handle_achievements
+from .flags import handle_flag_check
+from .misc import (
+    _ask_confirm,
+    check_open_answer,
+    clear_chat_db,
+    extract_json_block,
+    handle_adaptive,
+    handle_add_book,
+    handle_course,
+    handle_history,
+    handle_model,
+    handle_provider,
+    handle_repeat,
+    handle_risk,
+    handle_set_api_key,
+    handle_story_mode,
+    handle_terminal_log,
+    handle_version,
+    handle_writeup,
+)
+from .news import get_last_news, handle_security_news
 
 # ----------------------------------------------------------------------
 # Импорты модулей handlers
 # ----------------------------------------------------------------------
-from .practice import handle_practice, handle_container_check
-from .sandbox import handle_sandbox
-from .quiz import handle_quiz_action, handle_task_action, handle_quiz_generation, handle_code_review
-from .flags import handle_flag_check
-from .achievements import handle_achievements
-from .threats import handle_threats, handle_groups, handle_threat_summary
-from .news import handle_security_news, get_last_news
-from .summary import handle_summary
-from .writeup_auto import handle_auto_writeup
-from .misc import (
-    _ask_confirm,
-    clear_chat_db,
-    extract_json_block,
-    check_open_answer,
-    handle_story_mode,
-    handle_risk,
-    handle_course,
-    handle_terminal_log,
-    handle_history,
-    handle_version,
-    handle_writeup,
-    handle_add_book,
-    handle_provider,
-    handle_model,
-    handle_set_api_key,
-    handle_adaptive,
-    handle_repeat,
+from .practice import handle_container_check, handle_practice
+from .quiz import (
+    handle_code_review,
+    handle_quiz_action,
+    handle_quiz_generation,
+    handle_task_action,
 )
+from .sandbox import handle_sandbox
 from .social import handle_social
-from ui import Mode, show_help, show_menu, show_help_detail
+from .summary import handle_summary
+from .threats import handle_groups, handle_threat_summary, handle_threats
+from .writeup_auto import handle_auto_writeup
 
 console = Console()
 logger = logging.getLogger(__name__)
+
 
 # ----------------------------------------------------------------------
 # RESPONSE CACHE
@@ -65,13 +73,17 @@ class ResponseCache:
                 with open(cache_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 self.cache = OrderedDict(data.get("cache", {}))
-                self.access_order = deque(data.get("access_order", []), maxlen=self.capacity)
+                self.access_order = deque(
+                    data.get("access_order", []), maxlen=self.capacity
+                )
                 self.hit_count = data.get("hit_count", 0)
                 self.access_count = data.get("access_count", 0)
                 if len(self.cache) > self.capacity:
-                    for key in list(self.access_order)[:-self.capacity]:
+                    for key in list(self.access_order)[: -self.capacity]:
                         self.cache.pop(key, None)
-                    self.access_order = deque(list(self.access_order)[-self.capacity:], maxlen=self.capacity)
+                    self.access_order = deque(
+                        list(self.access_order)[-self.capacity :], maxlen=self.capacity
+                    )
         except Exception as e:
             logger.error(f"[ResponseCache] load error: {e}")
 
@@ -89,7 +101,7 @@ class ResponseCache:
         except Exception as e:
             logger.error(f"[ResponseCache] save error: {e}")
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Any | None:
         self.access_count += 1
         if key not in self.cache:
             return None
@@ -115,7 +127,7 @@ class ResponseCache:
         self.hit_count = 0
         self.access_count = 0
 
-    def stats(self) -> Dict:
+    def stats(self) -> dict:
         return {
             "size": len(self.cache),
             "capacity": self.capacity,
@@ -123,7 +135,9 @@ class ResponseCache:
             "access_count": self.access_count,
         }
 
+
 _response_cache = ResponseCache()
+
 
 def clear_response_cache():
     _response_cache.clear()
@@ -132,42 +146,54 @@ def clear_response_cache():
     except Exception:
         pass
 
+
 def show_cache_stats():
     stats = _response_cache.stats()
     console.print(f"[bold cyan]📊 Статистика кэша ответов:[/bold cyan]")
     console.print(f"  Размер: {stats['size']} / {stats['capacity']}")
     if stats["access_count"] > 0:
         hit_rate = (stats["hit_count"] / stats["access_count"]) * 100
-        console.print(f"  Hit rate: {stats['hit_count']}/{stats['access_count']} ({hit_rate:.1f}%)")
+        console.print(
+            f"  Hit rate: {stats['hit_count']}/{stats['access_count']} ({hit_rate:.1f}%)"
+        )
     console.print(f"  Команды: /clearcache - очистить, /cache stats - показать")
+
 
 # ----------------------------------------------------------------------
 # ПОМОГОТЕЛЬНЫЕ ФУНКЦИИ
 # ----------------------------------------------------------------------
 def show_help():
     from ui import show_help as ui_help
+
     ui_help()
+
 
 def show_menu():
     from ui import show_menu as ui_menu
+
     ui_menu()
+
 
 def _ask_confirm(message: str) -> bool:
     try:
         from rich.prompt import Confirm
+
         return Confirm.ask(message)
     except Exception:
         resp = input(f"{message} (yn): ").strip().lower()
         return resp in ("y", "yes", "true", "1")
 
+
 def clear_chat_db(conn: Any) -> None:
     try:
         from memory import clear_chat as db_clear_chat
+
         db_clear_chat(conn)
     except Exception:
         pass
 
-def extract_json_block(text: str) -> Optional[str]:
+
+def extract_json_block(text: str) -> str | None:
     if not text:
         return None
     stack = []
@@ -185,11 +211,12 @@ def extract_json_block(text: str) -> Optional[str]:
                     return text[start:end]
     return None
 
+
 def check_open_answer(
     question: str,
     user_ans: str,
-    key_points: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    key_points: list[str] | None = None,
+) -> dict[str, Any]:
     score = 0
     feedback = "Спасибо за ответ."
     if user_ans and len(user_ans.strip()) > 0:
@@ -208,9 +235,11 @@ def check_open_answer(
             feedback = "Частично на ключевых моментах."
     return {"score": score, "feedback": feedback}
 
+
 def handle_stats(conn):
     """Показать статистику пользователя."""
     from memory import get_stats
+
     stats = get_stats(conn)
     console.print(f"[bold cyan]📈 Статистика:[/bold cyan]")
     console.print(f"  Сообщений: {stats.get('messages', 0)}")
@@ -221,6 +250,7 @@ def handle_stats(conn):
     console.print(f"  Кэш ответов: {_response_cache.stats()['size']} записей")
     return True, None, None, True
 
+
 # ----------------------------------------------------------------------
 # COMMAND DISPATCHERS
 # ----------------------------------------------------------------------
@@ -228,11 +258,14 @@ def handle_commands(
     action: str,
     conn: Any,
     llm: Any,
-) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+) -> tuple[bool, Any | None, Any | None, bool]:
     """Главный диспетчер. Все команды (включая numeric menu) передаются в handle_extended_commands."""
     return handle_extended_commands(action, llm, conn)
 
-def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+
+def handle_extended_commands(
+    action: str, llm: Any, conn: Any
+) -> tuple[bool, Any | None, Any | None, bool]:
     """Обработка всех команд. Если команда неизвестна — блокируем передачу в LLM."""
     state = get_state()
 
@@ -271,10 +304,11 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Op
 
     if action == "kb_status":
         from knowledge import get_knowledge_status
+
         status = get_knowledge_status()
-        text = f"""[bold]📂 Файлов на диске:[/bold] {status.get('files_on_disk', '?')}
-[bold]💾 Файлов в базе:[/bold] {status.get('files_in_db', '?')}
-[bold]🧠 Всего чанков:[/bold] {status.get('total_chunks', '?')}
+        text = f"""[bold]📂 Файлов на диске:[/bold] {status.get("files_on_disk", "?")}
+[bold]💾 Файлов в базе:[/bold] {status.get("files_in_db", "?")}
+[bold]🧠 Всего чанков:[/bold] {status.get("total_chunks", "?")}
 [bold]Список файлов:[/bold]"""
         files = status.get("list", [])
         if files:
@@ -289,6 +323,7 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Op
 
     if action == "check_kb":
         from knowledge import get_knowledge_status
+
         status = get_knowledge_status()
         console.print(Panel(str(status), title="🧪 Аудит базы", border_style="cyan"))
         return True, None, None, True
@@ -383,11 +418,11 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Op
     # ----- Social engineering trainer -----
     if action == "social" or action.startswith("social "):
         return handle_social(action)
-    
+
     # ----- Sandbox -----
     if action.startswith("sandbox"):
         return handle_sandbox(action)
-    
+
     # ----- Risk level -----
     if action == "risk":
         return handle_risk(action)
@@ -412,6 +447,8 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> Tuple[bool, Op
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")
-    console.print("[yellow]Используй цифровое меню (0-44) или команды со /. Не трать время — я не библиотечный червь.[/yellow]")
+    console.print(
+        "[yellow]Используй цифровое меню (0-44) или команды со /. Не трать время — я не библиотечный червь.[/yellow]"
+    )
     console.print("[dim]Подсказка: введи /help или 9 для справки.[/dim]")
     return True, None, None, True

@@ -3,11 +3,15 @@ from typing import Any, Optional, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
+
 from state import get_state
 
 console = Console()
 
-def handle_security_news(action: str, LLM: Any) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+
+def handle_security_news(
+    action: str, LLM: Any
+) -> tuple[bool, Any | None, Any | None, bool]:
     """Обработка команды /news"""
     console.print("[cyan]Загружаю новости...[/cyan]")
     try:
@@ -20,7 +24,7 @@ def handle_security_news(action: str, LLM: Any) -> Tuple[bool, Optional[Any], Op
             return True, None, None, True
 
         # Формируем для LLM
-        news_for_llm = "\n".join([f"- {n.get('title','')}" for n in news[:5]])
+        news_for_llm = "\n".join([f"- {n.get('title', '')}" for n in news[:5]])
 
         # Если LLM доступен - обрабатываем
         llm_obj = LLM() if callable(LLM) else LLM
@@ -46,13 +50,15 @@ def handle_security_news(action: str, LLM: Any) -> Tuple[bool, Optional[Any], Op
         newly_earned = get_state().check_achievements()
         if newly_earned:
             for ach in newly_earned:
-                console.print(f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points',0)} XP[/bold magenta]")
+                console.print(
+                    f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points', 0)} XP[/bold magenta]"
+                )
         console.print(Panel(news_text[:800], title="НОВОСТИ"))
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
 
 
-def get_last_news() -> Optional[str]:
+def get_last_news() -> str | None:
     """Получить последние новости для промта"""
     return get_state().last_news

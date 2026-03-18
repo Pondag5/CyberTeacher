@@ -40,6 +40,7 @@ class TestCache(unittest.TestCase):
     def test_ollama_cache(self):
         # Skipped: OllamaClient deprecated; CachedLLM tests needed
         import unittest
+
         raise unittest.SkipTest("Ollama client test skipped")
 
 

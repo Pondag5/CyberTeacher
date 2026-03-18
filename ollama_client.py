@@ -8,7 +8,8 @@ import logging
 import os
 import subprocess
 import tempfile
-from typing import Any, Generator, List
+from collections.abc import Generator
+from typing import Any, List
 
 logger = logging.getLogger(__name__)
 

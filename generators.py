@@ -1,26 +1,29 @@
-from ui import Prompt, console, print_panel
-from pedagogy import MermaidGenerator
-from config import LazyLoader
-from knowledge import get_relevant_docs
-import random
 import json
+import random
 import re
 from datetime import datetime
 from typing import Any
+
+from config import LazyLoader
+from knowledge import get_relevant_docs
+from pedagogy import MermaidGenerator
+from ui import Prompt, console, print_panel
+
 
 def get_llm():
     """Получить LLM через lazy loader"""
     return LazyLoader.get_llm()
 
+
 def extract_json_block(message: Any) -> dict:
     """Извлечь JSON из текста или AIMessage"""
     # Поддержка как строк, так и AIMessage объектов
-    if hasattr(message, 'content'):
+    if hasattr(message, "content"):
         text = str(message.content)
     else:
         text = str(message)
-    
-    match = re.search(r'\{.*\}', text, re.DOTALL)
+
+    match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         try:
             return json.loads(match.group())
@@ -28,7 +31,19 @@ def extract_json_block(message: Any) -> dict:
             return {}
     return {}
 
-ALLOWED_TOPICS = ["sql", "xss", "network", "crypto", "linux", "web", "reverse", "osint", "pwn"]
+
+ALLOWED_TOPICS = [
+    "sql",
+    "xss",
+    "network",
+    "crypto",
+    "linux",
+    "web",
+    "reverse",
+    "osint",
+    "pwn",
+]
+
 
 class Task:
     def __init__(self, id, question, answer, hint, category, difficulty):
@@ -39,6 +54,7 @@ class Task:
         self.category = category
         self.difficulty = difficulty
 
+
 def generate_task(vectordb=None, category=None):
     """Генерация практической задачи"""
     categories = {
@@ -46,15 +62,24 @@ def generate_task(vectordb=None, category=None):
         "web": "Веб-безопасность (Web Security)",
         "crypto": "Криптография (Cryptography)",
         "osint": "OSINT",
-        "reverse": "Reverse Engineering"
+        "reverse": "Reverse Engineering",
     }
 
     if category is None:
         category = random.choice(list(categories.keys()))
 
     topic_name = categories.get(category, category)
-    relevant_docs = get_relevant_docs(vectordb, f"{topic_name} практическая задача", k=3) if vectordb else []
-    docs_context = "\n\n📖 Контекст:\n" + "\n".join([f"- {d.page_content[:500]}..." for d in relevant_docs]) if relevant_docs else ""
+    relevant_docs = (
+        get_relevant_docs(vectordb, f"{topic_name} практическая задача", k=3)
+        if vectordb
+        else []
+    )
+    docs_context = (
+        "\n\n📖 Контекст:\n"
+        + "\n".join([f"- {d.page_content[:500]}..." for d in relevant_docs])
+        if relevant_docs
+        else ""
+    )
 
     prompt = f"""Создай практическую задачу по кибербезопасности.
 Тема: {topic_name}
@@ -87,16 +112,17 @@ def generate_task(vectordb=None, category=None):
                 answer=json_block.get("answer", ""),
                 hint=json_block.get("hint", ""),
                 category=json_block.get("category", category),
-                difficulty=json_block.get("difficulty", "medium")
+                difficulty=json_block.get("difficulty", "medium"),
             )
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
 
     return None
 
+
 def generate_quiz(vectordb=None, topic=None, count=5):
     """Генерация квиза с фильтрацией тем.
-    
+
     Returns:
         dict: {"topic": <topic>, "questions": [...]}
     """
@@ -107,7 +133,11 @@ def generate_quiz(vectordb=None, topic=None, count=5):
         console.print(f"[dim]Выбрана тема: {topic}[dim]")
 
     relevant_docs = get_relevant_docs(vectordb, topic, k=3)
-    docs_context = "\n\n📖 Контекст:\n" + "\n".join([d.page_content[:300] for d in relevant_docs]) if relevant_docs else ""
+    docs_context = (
+        "\n\n📖 Контекст:\n" + "\n".join([d.page_content[:300] for d in relevant_docs])
+        if relevant_docs
+        else ""
+    )
 
     prompt = f"""Ты — эксперт по кибербезопасности. Создай квиз из {count} вопросов.
 Тема строго: {topic}.
@@ -141,9 +171,9 @@ def generate_quiz(vectordb=None, topic=None, count=5):
 
     return {"topic": topic, "questions": []}
 
+
 def generate_mermaid(vectordb):
     """Генерация Mermaid схемы"""
-    from ui import Prompt
 
     console.print("[cyan]🗺️ Генерация схемы[cyan]")
     topic = Prompt.ask("О чём?", default="аутентификация")
@@ -160,7 +190,7 @@ JSON:
     "steps": ["Шаг 1"]
 }}
 
-Контекст: {' '.join([d.page_content[:200] for d in relevant_docs]) if relevant_docs else '-'}
+Контекст: {" ".join([d.page_content[:200] for d in relevant_docs]) if relevant_docs else "-"}
 
 Только JSON."""  # экранирование фигурных скобок в f-строке
     try:
@@ -174,8 +204,7 @@ JSON:
 
             if diagram_type == "mindmap":
                 diagram = MermaidGenerator.generate_concept_map(
-                    data.get("root", topic),
-                    data.get("nodes", [])
+                    data.get("root", topic), data.get("nodes", [])
                 )
             else:
                 diagram = MermaidGenerator.generate_flowchart(
@@ -185,17 +214,22 @@ JSON:
             print_panel(
                 f"[bold]{topic}[bold]\n\n{diagram}",
                 title="🗺️ MEREAD",
-                border_style="cyan"
+                border_style="cyan",
             )
             console.print("\n💡 https:mermaid.live")
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[red]")
 
+
 def generate_open_quiz(vectordb, topic=None):
     """Генерация вопросов со свободным ответом"""
     topic = topic or "кибербезопасность"
     relevant_docs = get_relevant_docs(vectordb, topic, k=3)
-    docs_context = "\n".join([d.page_content[:300] for d in relevant_docs]) if relevant_docs else ""
+    docs_context = (
+        "\n".join([d.page_content[:300] for d in relevant_docs])
+        if relevant_docs
+        else ""
+    )
 
     prompt = f"""Ты — эксперт по кибербезопасности. Сгенерируй вопрос со свободным ответом на тему {topic}.
 
@@ -222,6 +256,7 @@ def generate_open_quiz(vectordb, topic=None):
 
     return None
 
+
 def check_open_answer(question, user_answer, key_points):
     """Проверка ответа через LLM на соответствие ключевым моментам"""
     prompt = f"""Ты — экзаменатор.
@@ -243,6 +278,6 @@ def check_open_answer(question, user_answer, key_points):
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
             return json_block
-    except Exception as e:
+    except Exception:
         pass
     return {"score": 0, "feedback": "Не удалось проверить ответ."}

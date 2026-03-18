@@ -3,14 +3,23 @@ import os
 from typing import Any, Dict, Optional, Tuple
 
 from rich.console import Console
+
 from state import get_state
 
 console = Console()
 
-def handle_practice(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+
+def handle_practice(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     """Обработка команд /practice и /lab"""
     try:
-        from practice import list_labs, start_lab, stop_lab, get_all_running_labs, HTB_MACHINES, get_htb_recommendation
+        from practice import (
+            HTB_MACHINES,
+            get_all_running_labs,
+            get_htb_recommendation,
+            list_labs,
+            start_lab,
+            stop_lab,
+        )
 
         parts = action.split()
 
@@ -19,7 +28,9 @@ def handle_practice(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
             console.print(list_labs())
             return True, None, None, True
 
-        elif parts[0] in ["lab", "practice"] and len(parts) >= 3 and parts[1] == "start":
+        elif (
+            parts[0] in ["lab", "practice"] and len(parts) >= 3 and parts[1] == "start"
+        ):
             lab_name = parts[2]
             # Отмечаем запуск лаборатории в state (достижение)
             get_state().start_lab()
@@ -29,7 +40,9 @@ def handle_practice(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
             newly_earned = get_state().check_achievements()
             if newly_earned:
                 for ach in newly_earned:
-                    console.print(f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points',0)} XP[/bold magenta]")
+                    console.print(
+                        f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points', 0)} XP[/bold magenta]"
+                    )
             return True, None, None, True
 
         elif parts[0] in ["lab", "practice"] and len(parts) >= 3 and parts[1] == "stop":
@@ -38,7 +51,9 @@ def handle_practice(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
             console.print(result)
             return True, None, None, True
 
-        elif parts[0] in ["lab", "practice"] and len(parts) >= 2 and parts[1] == "status":
+        elif (
+            parts[0] in ["lab", "practice"] and len(parts) >= 2 and parts[1] == "status"
+        ):
             running = get_all_running_labs()
             if running:
                 console.print("[bold cyan]🟢 Запущенные лаборатории:[/bold cyan]\n")
@@ -65,11 +80,14 @@ def handle_practice(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
         import traceback
+
         traceback.print_exc()
         return True, None, None, True
 
 
-def handle_container_check(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+def handle_container_check(
+    action: str,
+) -> tuple[bool, Any | None, Any | None, bool]:
     """Проверка статуса контейнеров"""
     try:
         from practice import get_all_running_labs
