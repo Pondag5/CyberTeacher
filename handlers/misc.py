@@ -659,10 +659,3 @@ def handle_repeat(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
         traceback.print_exc()
         return True, None, None, True
-
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
-        import traceback
-
-        traceback.print_exc()
-        return True, None, None, True

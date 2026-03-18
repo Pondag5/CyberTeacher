@@ -6,6 +6,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
+import time
 
 
 @dataclass
@@ -59,13 +60,13 @@ class AppState:
     stealth_ops: int = 0  # Стелс-операции (задания с низким уровнем риска)
     threat_exposures: int = 0  # Изучение угроз (анализ сводок, новости)
 
-    # === Магазин (C-14) ===
-    owned_themes: list[str] = field(default_factory=list)
-    current_theme: str = "default"
-    unlocked_topics: list[str] = field(default_factory=list)
-    hint_credits: int = 0
-    xp_boost_multiplier: float = 1.0
-    xp_boost_expiry: float = 0.0  # timestamp, 0 = no boost
+    # Метрики (Q-04)
+    llm_call_count: int = 0
+    llm_total_time: float = 0.0
+    llm_total_tokens: int = 0
+    cache_hits: int = 0
+    cache_misses: int = 0
+    start_time: float = field(default_factory=time.time)
 
     # Активное задание (для story/ctf)
     active_assignment: dict[str, Any] | None = None
@@ -549,6 +550,17 @@ class AppState:
             "xp_boost_multiplier": self.xp_boost_multiplier,
             "xp_boost_expiry": self.xp_boost_expiry,
         }
+        # Add metric fields (Q-04)
+        state_dict.update(
+            {
+                "llm_call_count": self.llm_call_count,
+                "llm_total_time": self.llm_total_time,
+                "llm_total_tokens": self.llm_total_tokens,
+                "cache_hits": self.cache_hits,
+                "cache_misses": self.cache_misses,
+                "start_time": self.start_time,
+            }
+        )
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(state_dict, f, ensure_ascii=False, indent=2)
