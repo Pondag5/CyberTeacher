@@ -54,3 +54,7 @@ show_error_codes = true
 module = "tests.*"
 disallow_untyped_defs = false
 check_untyped_defs = false
+
+[tool.coverage.run]
+source = ["state", "handlers", "knowledge", "memory", "config", "ui", "question_generation", "quiz_generator", "pedagogy", "story_mode", "news_fetcher"]
+omit = ["tests/*"]

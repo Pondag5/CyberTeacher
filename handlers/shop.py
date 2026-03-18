@@ -65,7 +65,8 @@ def handle_shop(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
 
     # Проверка, если это тема — уже ли владеет?
     if item["type"] == "theme":
-        if item_id in state.owned_themes:
+        theme_value = item.get("value")
+        if theme_value and theme_value in state.owned_themes:
             console.print(f"[yellow]Вы уже владеете тему '{item['name']}'[/yellow]")
             return True, None, None, True
     # Для topic_unlock можно проверять, уже ли разблокирован

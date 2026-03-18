@@ -19,8 +19,8 @@ class AppState:
     # Новости
     last_news: str | None = None
 
-    # Статистика
-    points: int = 0
+    # Статистика (float для поддержки XP multipliers)
+    points: float = 0.0
 
     # Режим
     current_mode: str = "teacher"
@@ -355,15 +355,14 @@ class AppState:
 
     def get_xp_multiplier(self) -> float:
         """Возвращает текущий множитель XP с учетом активного буста."""
-        if self.xp_boost_expiry > 0:
-            import time
+        import time
 
-            if time.time() < self.xp_boost_expiry:
-                return self.xp_boost_multiplier
-            else:
-                # Бонус истек, сбрасываем
-                self.xp_boost_multiplier = 1.0
-                self.xp_boost_expiry = 0.0
+        now = time.time()
+        if self.xp_boost_expiry > 0 and now < self.xp_boost_expiry:
+            return self.xp_boost_multiplier
+        # Бонус истек или не установлен — сбрасываем
+        self.xp_boost_multiplier = 1.0
+        self.xp_boost_expiry = 0.0
         return 1.0
 
     def apply_item_effect(self, item: dict) -> None:
