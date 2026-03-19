@@ -1,0 +1,127 @@
+"""Тесты для обработчиков квизов и заданий (handlers/quiz.py)"""
+
+import unittest
+from unittest.mock import patch, MagicMock
+
+from handlers.quiz import handle_quiz_action, handle_task_action
+from state import get_state
+
+
+class TestHandleQuizAction(unittest.TestCase):
+    """Тесты для handle_quiz_action"""
+
+    def setUp(self):
+        self.state = get_state()
+        self.state.weak_topics = []
+        self.state.review_schedule = {}
+        self.state.current_course = None
+        self.state.current_topic = 0
+
+    # 5 декораторов -> 5 args после self
+    @patch("knowledge.get_current_vectordb", return_value=MagicMock())
+    @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
+    @patch("handlers.quiz.generate_quiz")
+    @patch("handlers.quiz.console.input", return_value="1")
+    @patch("handlers.quiz.console.print")
+    def test_handle_quiz_action_success(
+        self, mock_print, mock_input, mock_generate, mock_gen_avail, mock_vectordb
+    ):
+        mock_generate.return_value = {
+            "question": "What is SQLi?",
+            "options": ["A", "B", "C", "D"],
+            "correct_answer": 0,
+            "explanation": "SQL injection explanation",
+        }
+        action_taken, response, data, should_exit = handle_quiz_action()
+        self.assertTrue(action_taken)
+        self.assertIsNotNone(data)
+        self.assertEqual(data["correct"], True)
+        self.assertIn("topic", data)
+        mock_generate.assert_called_once()
+
+    # 3 декоратора -> 3 args после self
+    @patch("handlers.quiz.GENERATORS_AVAILABLE", False)
+    @patch("handlers.quiz.console.print")
+    def test_handle_quiz_action_no_generator(self, mock_print, mock_gen_avail):
+        action_taken, response, data, should_exit = handle_quiz_action()
+        self.assertTrue(action_taken)
+        self.assertIsNone(response)
+        self.assertEqual(should_exit, True)
+
+    # 4 декоратора -> 4 args после self
+    @patch("knowledge.get_current_vectordb", return_value=MagicMock())
+    @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
+    @patch("handlers.quiz.generate_quiz", return_value=None)
+    @patch("handlers.quiz.console.print")
+    def test_handle_quiz_action_generation_fails(
+        self, mock_print, mock_generate, mock_gen_avail, mock_vectordb
+    ):
+        action_taken, response, data, should_exit = handle_quiz_action()
+        self.assertTrue(action_taken)
+        self.assertIsNone(response)
+        self.assertEqual(should_exit, True)
+
+    # 5 декораторов -> 5 args
+    @patch("knowledge.get_current_vectordb", return_value=MagicMock())
+    @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
+    @patch("handlers.quiz.generate_quiz")
+    @patch("handlers.quiz.console.input", side_effect=[" invalid ", "2"])
+    @patch("handlers.quiz.console.print")
+    def test_handle_quiz_action_invalid_input_then_valid(
+        self, mock_print, mock_input, mock_generate, mock_gen_avail, mock_vectordb
+    ):
+        mock_generate.return_value = {
+            "question": "Test?",
+            "options": ["A", "B"],
+            "correct_answer": 1,
+            "explanation": "exp",
+        }
+        action_taken, response, data, should_exit = handle_quiz_action()
+        self.assertTrue(action_taken)
+        self.assertEqual(data["correct"], True)
+        self.assertEqual(mock_input.call_count, 2)
+
+
+class TestHandleTaskAction(unittest.TestCase):
+    """Тесты для handle_task_action"""
+
+    def setUp(self):
+        self.state = get_state()
+        self.state.weak_topics = []
+
+    # 5 декораторов -> 5 args
+    @patch("knowledge.get_current_vectordb", return_value=MagicMock())
+    @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
+    @patch("handlers.quiz.generate_task")
+    @patch("handlers.quiz.console.input", return_value="FLAG{test}")
+    @patch("handlers.quiz.console.print")
+    def test_handle_task_action_success(
+        self, mock_print, mock_input, mock_generate, mock_gen_avail, mock_vectordb
+    ):
+        mock_generate.return_value = {
+            "title": "Test Task",
+            "description": "Do something",
+            "steps": ["step1"],
+            "hints": ["hint1"],
+            "expected_flag": "FLAG{test}",
+            "points": 100,
+        }
+        action_taken, response, data, should_exit = handle_task_action()
+        self.assertTrue(action_taken)
+        self.assertIsNotNone(data)
+        self.assertEqual(data["result"], "correct")
+        self.assertEqual(data["points_earned"], 100)
+        mock_generate.assert_called_once()
+
+    # 3 декоратора -> 3 args
+    @patch("handlers.quiz.GENERATORS_AVAILABLE", False)
+    @patch("handlers.quiz.console.print")
+    def test_handle_task_action_no_generator(self, mock_print, mock_gen_avail):
+        action_taken, response, data, should_exit = handle_task_action()
+        self.assertTrue(action_taken)
+        self.assertIsNone(response)
+        self.assertEqual(should_exit, True)
+
+
+if __name__ == "__main__":
+    unittest.main()
