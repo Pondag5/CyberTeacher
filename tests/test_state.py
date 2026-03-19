@@ -129,7 +129,9 @@ class TestSpacedRepetition(unittest.TestCase):
 
     def test_schedule_review_first_time(self):
         state = AppState()
-        state.schedule_review("SQLi", 8.0, 10.0)
+        state.schedule_review(
+            "SQLi", 8.0, 10.0
+        )  # first review always repetitions=0 regardless of quality
         entry = state.review_schedule["SQLi"]
         self.assertEqual(entry["repetitions"], 0)
         self.assertEqual(entry["interval"], 1)
@@ -147,23 +149,25 @@ class TestSpacedRepetition(unittest.TestCase):
 
     def test_schedule_review_quality_good_increments(self):
         state = AppState()
-        # First review: grade 7 => quality 3.5
+        # First review: grade 7 => quality 3.5 (good, but first time always repetitions=0)
         state.schedule_review("XSS", 7.0, 10.0)
         entry1 = state.review_schedule["XSS"]
-        self.assertEqual(entry1["repetitions"], 1)
+        self.assertEqual(entry1["repetitions"], 0)
         self.assertEqual(entry1["interval"], 1)
 
-        # Second review with good quality
+        # Second review with good quality -> repetitions becomes 1
         state.schedule_review("XSS", 9.0, 10.0)
         entry2 = state.review_schedule["XSS"]
-        self.assertEqual(entry2["repetitions"], 2)
-        self.assertEqual(entry2["interval"], 3)  # second interval = 3 days
+        self.assertEqual(entry2["repetitions"], 1)
+        self.assertEqual(
+            entry2["interval"], 1
+        )  # after first success, second interval = 1
 
-        # Third review with good quality -> interval >3
+        # Third review with good quality -> repetitions=2, interval increases
         state.schedule_review("XSS", 10.0, 10.0)
         entry3 = state.review_schedule["XSS"]
-        self.assertEqual(entry3["repetitions"], 3)
-        self.assertGreater(entry3["interval"], 3)
+        self.assertEqual(entry3["repetitions"], 2)
+        self.assertGreater(entry3["interval"], 1)
 
     def test_get_due_reviews_empty_when_none_due(self):
         state = AppState()

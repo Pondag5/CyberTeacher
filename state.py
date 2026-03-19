@@ -77,6 +77,14 @@ class AppState:
         default_factory=list
     )  # [{"topic": "SQLi", "success_rate": 45.0, "attempts": 3, "total_score": 135, "max_score": 300}]
 
+    # Магазин (C-14)
+    owned_themes: list[str] = field(default_factory=list)
+    current_theme: str = "default"
+    unlocked_topics: list[str] = field(default_factory=list)
+    hint_credits: int = 0
+    xp_boost_multiplier: float = 1.0
+    xp_boost_expiry: float = 0.0  # timestamp
+
     # Расписание интервальных повторений (Spaced Repetition)
     # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
     review_schedule: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -422,6 +430,23 @@ class AppState:
         self.messages_sent += 1
         # Не проверяем достижения для каждого сообщения (слишком часто)
 
+    # === Алиасы для обратной совместимости с тестами ===
+    def increment_labs_started(self):
+        """Alias for start_lab (for test compatibility)"""
+        self.start_lab()
+
+    def increment_messages_sent(self):
+        """Alias for send_message (for test compatibility)"""
+        self.send_message()
+
+    def increment_news_checked(self):
+        """Alias for check_news (for test compatibility)"""
+        self.check_news()
+
+    def increment_quizzes_taken(self):
+        """Alias for take_quiz (for test compatibility)"""
+        self.take_quiz()
+
     # === НОВЫЕ СЧЁТЧИКИ ДЛЯ РАСШИРЕННЫХ ДОСТИЖЕНИЙ (C-13) ===
 
     def increment_social_success(self):
@@ -549,6 +574,21 @@ class AppState:
             "cache_hits": self.cache_hits,
             "cache_misses": self.cache_misses,
             "start_time": self.start_time,
+            # Магазин (C-14)
+            "owned_themes": self.owned_themes if hasattr(self, "owned_themes") else [],
+            "current_theme": self.current_theme
+            if hasattr(self, "current_theme")
+            else "default",
+            "unlocked_topics": self.unlocked_topics
+            if hasattr(self, "unlocked_topics")
+            else [],
+            "hint_credits": self.hint_credits if hasattr(self, "hint_credits") else 0,
+            "xp_boost_multiplier": self.xp_boost_multiplier
+            if hasattr(self, "xp_boost_multiplier")
+            else 1.0,
+            "xp_boost_expiry": self.xp_boost_expiry
+            if hasattr(self, "xp_boost_expiry")
+            else 0.0,
         }
         # Add metric fields (Q-04)
         state_dict.update(
@@ -612,6 +652,13 @@ class AppState:
                 self.hint_credits = data.get("hint_credits", 0)
                 self.xp_boost_multiplier = data.get("xp_boost_multiplier", 1.0)
                 self.xp_boost_expiry = data.get("xp_boost_expiry", 0.0)
+                # Метрики (Q-04)
+                self.llm_call_count = data.get("llm_call_count", 0)
+                self.llm_total_time = data.get("llm_total_time", 0.0)
+                self.llm_total_tokens = data.get("llm_total_tokens", 0)
+                self.cache_hits = data.get("cache_hits", 0)
+                self.cache_misses = data.get("cache_misses", 0)
+                self.start_time = data.get("start_time", time.time())
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")
