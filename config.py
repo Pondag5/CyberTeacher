@@ -282,3 +282,8 @@ NUMERIC_MENU = {
     # Выход (0)
     "0": "exit",  # Выход
 }
+
+
+def get_llm():
+    """Получить экземпляр LLM (ленивая загрузка)."""
+    return LazyLoader.get_llm()
