@@ -2,7 +2,7 @@
 """Тесты для /social command (C-02)"""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from handlers.social import SCENARIOS, handle_social
 
@@ -28,11 +28,8 @@ class TestSocialCommand(unittest.TestCase):
         with patch("handlers.social.console") as mock_console:
             # Имитируем отсутствие LLM
             with patch("handlers.social.LazyLoader.get_llm", return_value=None):
-                # handle_social с несуществующим сценарием
                 result = handle_social("/social invalid")
-                # Должен вернуть (True, None, None, True)
                 self.assertEqual(result, (True, None, None, True))
-                # Проверяем, что был вывод списка доступных
                 printed = " ".join(
                     str(call) for call in mock_console.print.call_args_list
                 )
@@ -44,15 +41,14 @@ class TestSocialCommand(unittest.TestCase):
             result = handle_social("/social phishing")
             self.assertIsInstance(result, tuple)
             self.assertEqual(len(result), 4)
-            self.assertEqual(result[0], True)  # should_continue
-            self.assertIsNone(result[1])  # response
-            self.assertIsNone(result[2])  # extra_data
-            self.assertEqual(result[3], True)  # is_json
+            self.assertEqual(result[0], True)
+            self.assertIsNone(result[1])
+            self.assertIsNone(result[2])
+            self.assertEqual(result[3], True)
 
     def test_scenario_defaults_to_phishing(self):
         """Если не указан сценарий - используется phishing"""
         with patch("handlers.social.LazyLoader.get_llm", return_value=None):
-            # Вызов без параметра
             result = handle_social("social")
             self.assertEqual(result, (True, None, None, True))
 
