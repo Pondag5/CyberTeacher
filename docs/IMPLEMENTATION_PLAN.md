@@ -22,7 +22,7 @@
 
 | ID | Задача | Описание | Источник | Статус |
 |----|--------|----------|----------|--------|
-| Q-01 | Unit tests >70% coverage | Покрыть основные модули (state, handlers, knowledge). | H-11 | ✅ Done (344 tests passing, coverage 73%) |
+| Q-01 | Unit tests >70% coverage | Покрыть основные модули (state, handlers, knowledge). | H-11 | ✅ Done (359 tests passing, coverage 73%) |
 | Q-02 | CI/CD GitHub Actions | Автотесты, ruff, mypy на каждый PR/commit. | H-12 | ✅ Done |
 | Q-03 | Ruff + mypy линтинг | Единый стандарт кода, типы. | A-06 | ✅ Done |
 | Q-04 | Metrics & health checks | Логирование времени ответа, токенов, hit rate кэша. Эндпоинт /health. | H-18 | Not started |
@@ -233,7 +233,7 @@
 Сначала укрепим инфраструктуру и качество кода для стабильной разработки:
 
 1. **Q-03**: Ruff + mypy линтинг (быстро, буквально час)
-2. **Q-01**: Unit tests >70% coverage (фокус на state, handlers, knowledge) ✅ Done (73%)
+2. **Q-01**: Unit tests >70% coverage (фокус на state, handlers, knowledge) ✅ Done (359 tests passing, coverage 73%)
 3. **Q-02**: CI/CD GitHub Actions (автотесты + линтинг на каждый PR)
 4. **Q-04**: Metrics & health checks (логирование времени ответа, токенов, hit rate кэша)
 5. **Q-05**: Rate limiting (10 реков/мин)
