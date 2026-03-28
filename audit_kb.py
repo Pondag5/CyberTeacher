@@ -8,7 +8,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+
 
 # Директории
 KB_DIR = Path("knowledge_base")

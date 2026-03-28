@@ -1,7 +1,7 @@
 # handlers/writeup_auto.py
 import os
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 from rich.console import Console
 from rich.panel import Panel

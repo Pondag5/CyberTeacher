@@ -1,0 +1,26 @@
+Name                       Stmts   Miss  Cover
+----------------------------------------------
+handlers\__init__.py          10      0   100%
+handlers\achievements.py      65     32    51%
+handlers\core.py             296    185    38%
+handlers\flags.py             64     56    12%
+handlers\misc.py             414    313    24%
+handlers\news.py              36     29    19%
+handlers\practice.py          63     56    11%
+handlers\quiz.py             224     43    81%
+handlers\sandbox.py           74     51    31%
+handlers\shop.py              66      8    88%
+handlers\social.py            69     43    38%
+handlers\summary.py           59     22    63%
+handlers\threats.py          161     17    89%
+handlers\writeup_auto.py      69     61    12%
+knowledge.py                 270    182    33%
+news_fetcher.py               55     24    56%
+pedagogy.py                   93     56    40%
+question_generation.py        35     13    63%
+quiz_generator.py             61     10    84%
+state.py                     348     45    87%
+story_mode.py                 82     44    46%
+ui.py                         48     24    50%
+----------------------------------------------
+TOTAL                       2662   1314    51%

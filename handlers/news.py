@@ -1,5 +1,5 @@
 # handlers/news.py
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 from rich.console import Console
 from rich.panel import Panel

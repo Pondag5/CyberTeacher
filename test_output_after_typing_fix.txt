@@ -1,0 +1,455 @@
+C:\Python314\Lib\site-packages\langchain_core\_api\deprecation.py:25: UserWarning: Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater.
+  from pydantic.v1.fields import FieldInfo as FieldInfoV1
+.................����������! ��� ������ ��� (��� ���� � ����������� >=70%)
+.���������� ��������: ������ ����
+�����: 70%. ���� � ����������� ���� ������ ����������� ��� ����������.
+
+  � sql: 50.0% (�������: 1)
+  � xss: 60.0% (�������: 1)
+
+��������� ���� ��� ������: sql
+��������� /quiz ����� ������������� ��� ����
+............s.2026-03-28 19:28:59,390 - INFO - \U0001f510 �������� ������ LLM (ollama)...
+M:\Cyber_Teacher\Cyber_Teacher\config.py:108: LangChainDeprecationWarning: The class `ChatOllama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the `langchain-ollama package and should be used instead. To use it run `pip install -U `langchain-ollama` and import as `from `langchain_ollama import ChatOllama``.
+  cls._llm = ChatOllama(
+2026-03-28 19:28:59,487 - INFO - \U0001f510 LLM ��������� (ollama).
+......F............E2026-03-28 19:29:03,561 - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2026-03-28 19:29:04,016 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:04,053 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:04,194 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:04,229 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:04,368 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:04,403 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:04,558 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:04,593 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/README.md "HTTP/1.1 200 OK"
+2026-03-28 19:29:04,732 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:04,767 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:04,907 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:04,943 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/sentence_bert_config.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:05,087 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+2026-03-28 19:29:05,229 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:05,266 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+������ �������� LLM: HTTPConnectionPool(host='localhost', port=11434): Max retries exceeded with url: /api/chat (Caused by NewConnectionError("HTTPConnection(host='localhost', port=11434): Failed to establish a new connection: [WinError 10061] ����������� �� �����������, �.�. �������� ��������� ������ ������ �� �����������"))
+
+[SETUP] Setting up test environment...
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|##########| 103/103 [00:00<00:00, 7676.55it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+2026-03-28 19:29:05,546 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:05,581 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:05,719 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:05,755 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:05,900 - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-03-28 19:29:06,044 - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-03-28 19:29:06,259 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:06,295 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:06,458 - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+2026-03-28 19:29:06,498 - INFO - Loading faiss with AVX2 support.
+<frozen importlib._bootstrap>:491: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+<frozen importlib._bootstrap>:491: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+<frozen importlib._bootstrap>:491: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
+2026-03-28 19:29:06,519 - INFO - Successfully loaded faiss with AVX2 support.
+2026-03-28 19:29:06,525 - INFO - \U0001f510 �������� ������ ���������...
+2026-03-28 19:29:06,525 - INFO - \U0001f510 ������������ ����������: cpu
+2026-03-28 19:29:06,675 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:06,816 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:06,851 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/config.json "HTTP/1.1 200 OK"
+[INFO] Creating FAISS index...
+[SUCCESS] Index created with 10 documents
+[INFO] Loading reranker model...
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]Loading weights: 100%|##########| 105/105 [00:00<00:00, 7482.96it/s]
+[1mBertForSequenceClassification LOAD REPORT[0m from: cross-encoder/ms-marco-MiniLM-L-6-v2
+Key                          | Status     |  | 
+-----------------------------+------------+--+-
+bert.embeddings.position_ids | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+2026-03-28 19:29:07,037 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:07,178 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:07,213 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/config.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:07,357 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:07,497 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:07,532 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-03-28 19:29:07,675 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L-6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:07,816 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-03-28 19:29:07,958 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L-6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:08,103 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-03-28 19:29:08,306 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:08,444 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:08,480 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/README.md "HTTP/1.1 200 OK"
+2026-03-28 19:29:08,624 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L-6-v2 "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 19:29:08,779 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+2026-03-28 19:29:08,780 - INFO - \U0001f510 �������� ��������.
+Building prefix dict from the default dictionary ...
+2026-03-28 19:29:08,816 - DEBUG - Building prefix dict from the default dictionary ...
+Loading model from cache C:\Users\ADMINI~1\AppData\Local\Temp\jieba.cache
+2026-03-28 19:29:08,816 - DEBUG - Loading model from cache C:\Users\ADMINI~1\AppData\Local\Temp\jieba.cache
+Loading model cost 0.596 seconds.
+2026-03-28 19:29:09,412 - DEBUG - Loading model cost 0.596 seconds.
+Prefix dict has been built successfully.
+2026-03-28 19:29:09,412 - DEBUG - Prefix dict has been built successfully.
+[SUCCESS] Reranker loaded
+
+[QUERY] Test query: 'attacks and vulnerabilities'
+
+[INFO] Initial documents (before reranking):
+1. Vulnerability assessment helps identify weaknesses in securi...
+2. Penetration testing (pentest) simulates attacks to find secu...
+3. Cybersecurity is the practice of protecting systems and netw...
+4. Firewall controls incoming and outgoing network traffic base...
+5. Zero-day vulnerabilities are unknown to vendors and have no ...
+6. SOC (Security Operations Center) is a team that monitors thr...
+7. Data encryption transforms information into an unreadable fo...
+8. Phishing attacks use deceptive emails to steal credentials....
+9. Intrusion Detection System (IDS) monitors network traffic fo...
+10. Multi-factor authentication requires multiple proofs of iden...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 32.81it/s]
+.
+[INFO] Reranked documents (after reranking):
+1. Zero-day vulnerabilities are unknown to vendors and have no ...
+   Source: doc10, Topic: zeroday
+
+2. Vulnerability assessment helps identify weaknesses in securi...
+   Source: doc7, Topic: vulnerability
+
+3. Cybersecurity is the practice of protecting systems and netw...
+   Source: doc1, Topic: security
+
+4. Phishing attacks use deceptive emails to steal credentials....
+   Source: doc5, Topic: phishing
+
+5. Penetration testing (pentest) simulates attacks to find secu...
+   Source: doc9, Topic: pentest
+
+
+[QUERY] Test query: 'How to protect network from attacks?'
+[INFO] Requesting k=5 documents
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 44.17it/s]
+.
+[RESULT] Received 5 documents
+
+[QUERY] Test query: 'Phishing attacks and protection against them'
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 44.71it/s]
+.
+[RESULT] Returned documents:
+1. Phishing attacks use deceptive emails to steal credentials....
+   Relevance to phishing: True
+
+2. Cybersecurity is the practice of protecting systems and networks from digital attacks....
+   Relevance to phishing: False
+
+3. Penetration testing (pentest) simulates attacks to find security holes....
+   Relevance to phishing: False
+
+4. SOC (Security Operations Center) is a team that monitors threats and incidents....
+   Relevance to phishing: False
+
+5. Vulnerability assessment helps identify weaknesses in security systems....
+   Relevance to phishing: False
+
+
+[QUERY] Test query: 'Protection from fraud and attacks'
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 46.28it/s]
+........................................................................................E...E...................................................................Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\knowledge.py", line 405, in get_relevant_docs
+    bm25 = BM25Okapi(tokenized_docs)
+  File "C:\Python314\Lib\site-packages\rank_bm25.py", line 83, in __init__
+    super().__init__(corpus, tokenizer)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rank_bm25.py", line 27, in __init__
+    nd = self._initialize(corpus)
+  File "C:\Python314\Lib\site-packages\rank_bm25.py", line 52, in _initialize
+    self.avgdl = num_doc / self.corpus_size
+                 ~~~~~~~~^~~~~~~~~~~~~~~~~~
+ZeroDivisionError: division by zero
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\knowledge.py", line 436, in get_relevant_docs
+    console.print(f"[yellow]\u26a0\ufe0f BM25 �� ��������: {e}[/yellow]")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 1697, in print
+    with self:
+         ^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 870, in __exit__
+    self._exit_buffer()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 826, in _exit_buffer
+    self._check_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2042, in _check_buffer
+    self._write_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2078, in _write_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 441, in write_styled
+    self.write_text(text)
+    ~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 402, in write_text
+    self.write(text)
+    ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\handlers\writeup_auto.py", line 42, in handle_auto_writeup
+    docs = get_relevant_docs(vectordb, topic, k=RERANK_TOP_K)
+  File "M:\Cyber_Teacher\Cyber_Teacher\knowledge.py", line 456, in get_relevant_docs
+    console.print(f"[yellow]\u26a0\ufe0f ������ ��� ������ ����������: {e}[/yellow]")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 1697, in print
+    with self:
+         ^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 870, in __exit__
+    self._exit_buffer()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 826, in _exit_buffer
+    self._check_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2042, in _check_buffer
+    self._write_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2078, in _write_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 441, in write_styled
+    self.write_text(text)
+    ~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 402, in write_text
+    self.write(text)
+    ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>
+..
+[RESULT] Documents after reranking:
+1. Cybersecurity is the practice of protecting systems and networks from digital at...
+   Metadata: {'source': 'doc1', 'topic': 'security'}
+
+2. Phishing attacks use deceptive emails to steal credentials....
+   Metadata: {'source': 'doc5', 'topic': 'phishing'}
+
+3. Data encryption transforms information into an unreadable format to protect conf...
+   Metadata: {'source': 'doc3', 'topic': 'encryption'}
+
+4. Penetration testing (pentest) simulates attacks to find security holes....
+   Metadata: {'source': 'doc9', 'topic': 'pentest'}
+
+5. SOC (Security Operations Center) is a team that monitors threats and incidents....
+   Metadata: {'source': 'doc8', 'topic': 'soc'}
+
+> Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\handlers\writeup_auto.py", line 123, in handle_auto_writeup
+    save = input("> ").strip().lower()
+           ~~~~~^^^^^^
+EOFError: EOF when reading a line
+...................E.2026-03-28 19:29:09,764 - WARNING - No JSON block in LLM response for assignment
+..2026-03-28 19:29:09,765 - WARNING - No JSON block in LLM response for quiz
+.2026-03-28 19:29:09,765 - ERROR - Error generating quiz: LLM unavailable
+...............s.ss.............................┌──────────────────────── Social Engineering Trainer ─────────────────────────┐
+│ Фишинг                                                                      │
+│ Цель: Убедить жертву перейти по ссылке и ввести логин/пароль от             │
+│ корпоративного аккаунта.                                                    │
+│ Вы — атакующий. Пишите сообщения, чтобы убедить жертву. /exit для выхода.   │
+└─────────────────────────────────────────────────────────────────────────────┘
+[X] LLM недоступна. Проверьте настройки провайдера.
+..┌─────────────────────── Social Engineering Trainer ────────────────────────┐
+│ Претекстинг                                                               │
+│ Цель: Получить пароль или конфиденциальную информацию под видом проверки. │
+│ Вы — атакующий. Пишите сообщения, чтобы убедить жертву. /exit для выхода. │
+└───────────────────────────────────────────────────────────────────────────┘
+[X] LLM недоступна. Проверьте настройки провайдера.
+..┌──────────────────────── Social Engineering Trainer ─────────────────────────┐
+│ Фишинг                                                                      │
+│ Цель: Убедить жертву перейти по ссылке и ввести логин/пароль от             │
+│ корпоративного аккаунта.                                                    │
+│ Вы — атакующий. Пишите сообщения, чтобы убедить жертву. /exit для выхода.   │
+└─────────────────────────────────────────────────────────────────────────────┘
+[X] LLM недоступна. Проверьте настройки провайдера.
+......................................................Генерация конспекта по теме: Test
+База знаний не доступна
+.Генерация конспекта по теме: NonExistentTopic
+Не найдено документов по этой теме
+Добавьте PDF в knowledge_base/
+.Генерация конспекта по теме: SQL injection
+Генерация конспекта...
+
+Конспект сгенерирован:
+
+┌────────────────────────── Конспект: SQL injection ──────────────────────────┐
+│ ## Summary of SQLi                                                          │
+│ Definition: ...                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Сохранить конспект в файл? (y/n)
+..........
+======================================================================
+ERROR: test_show_cache_stats (test_core_helpers.TestResponseCache.test_show_cache_stats)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "M:\Cyber_Teacher\Cyber_Teacher\tests\test_core_helpers.py", line 115, in test_show_cache_stats
+    show_cache_stats()
+    ~~~~~~~~~~~~~~~~^^
+  File "M:\Cyber_Teacher\Cyber_Teacher\handlers\core.py", line 151, in show_cache_stats
+    console.print(f"[bold cyan]\U0001f4ca ���������� ���� �������:[/bold cyan]")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 1697, in print
+    with self:
+         ^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 870, in __exit__
+    self._exit_buffer()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 826, in _exit_buffer
+    self._check_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2042, in _check_buffer
+    self._write_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2078, in _write_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 441, in write_styled
+    self.write_text(text)
+    ~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 402, in write_text
+    self.write(text)
+    ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f4ca' in position 0: character maps to <undefined>
+
+======================================================================
+ERROR: test_handle_repeat_with_due (test_handlers_misc.TestMiscFunctions.test_handle_repeat_with_due)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\unittest\mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "C:\Python314\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Python314\Lib\unittest\mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "C:\Python314\Lib\contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "C:\Python314\Lib\unittest\mock.py", line 1503, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\unittest\mock.py", line 1473, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'handlers.misc' from 'M:\\Cyber_Teacher\\Cyber_Teacher\\handlers\\misc.py'> does not have the attribute 'generate_quiz'
+
+======================================================================
+ERROR: test_handle_story_mode_list (test_handlers_misc.TestMiscFunctions.test_handle_story_mode_list)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\unittest\mock.py", line 1429, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "C:\Python314\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Python314\Lib\unittest\mock.py", line 1411, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "C:\Python314\Lib\contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "C:\Python314\Lib\unittest\mock.py", line 1503, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\unittest\mock.py", line 1473, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'handlers.misc' from 'M:\\Cyber_Teacher\\Cyber_Teacher\\handlers\\misc.py'> does not have the attribute 'get_story_list'
+
+======================================================================
+ERROR: test_unknown_command_action_taken (test_numeric_menu_fix.TestNumericMenuFix.test_unknown_command_action_taken)
+��������, ��� ����������� ������� ���������� (True, None, None, True) -> action_taken=True.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\tests\test_numeric_menu_fix.py", line 36, in test_unknown_command_action_taken
+    result = handle_commands("unknown_test_command_xyz", conn, llm)
+  File "M:\Cyber_Teacher\Cyber_Teacher\handlers\core.py", line 262, in handle_commands
+    return handle_extended_commands(action, llm, conn)
+  File "M:\Cyber_Teacher\Cyber_Teacher\handlers\core.py", line 448, in handle_extended_commands
+    console.print("[bold red]����������� ������� ��� ����.[/bold red]")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 1697, in print
+    with self:
+         ^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 870, in __exit__
+    self._exit_buffer()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 826, in _exit_buffer
+    self._check_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2042, in _check_buffer
+    self._write_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2078, in _write_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 441, in write_styled
+    self.write_text(text)
+    ~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 402, in write_text
+    self.write(text)
+    ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f4ca' in position 0: character maps to <undefined>
+
+======================================================================
+FAIL: test_key_points_all_match (test_core_helpers.TestCheckOpenAnswer.test_key_points_all_match)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\tests\test_core_helpers.py", line 71, in test_key_points_all_match
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        result["score"], 10
+        ^^^^^^^^^^^^^^^^^^^
+    )  # 6+2=8? Actually max(10, 6+2=8) -> 10? base is 6 unless contains correct then 9. No correct keyword, so base6+2=8; but if we also contain correct? Not.
+    ^
+AssertionError: 8 != 10
+
+----------------------------------------------------------------------
+Ran 359 tests in 12.302s
+
+FAILED (failures=1, errors=4, skipped=4)

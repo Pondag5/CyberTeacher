@@ -6,6 +6,7 @@
 """
 
 import unittest
+from unittest.mock import patch
 
 from config import NUMERIC_MENU
 from handlers.core import handle_commands
@@ -19,7 +20,8 @@ class TestNumericMenuFix(unittest.TestCase):
             self.assertIn(digit, NUMERIC_MENU, f"Отсутствует маппинг для цифры {digit}")
         # Если нет пропущенных, тест проходит
 
-    def test_unknown_command_action_taken(self):
+    @patch("handlers.core.console.print")
+    def test_unknown_command_action_taken(self, mock_print):
         """Проверка, что неизвестная команда возвращает (True, None, None, True) -> action_taken=True."""
 
         # Mock объектов

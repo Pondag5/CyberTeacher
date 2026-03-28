@@ -1,6 +1,6 @@
 # handlers/misc.py (дополнительные функции, которые не warranted отдельного файла)
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from rich.console import Console
 from rich.panel import Panel

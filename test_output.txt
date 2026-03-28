@@ -1,0 +1,322 @@
+C:\Python314\Lib\site-packages\langchain_core\_api\deprecation.py:25: UserWarning: Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater.
+  from pydantic.v1.fields import FieldInfo as FieldInfoV1
+.................Поздравляю! Нет слабых тем (все темы с успешностью >=70%)
+.Адаптивное обучение: слабые темы
+Порог: 70%. Темы с успешностью ниже порога приоритетны для повторения.
+
+  • sql: 50.0% (попыток: 1)
+  • xss: 60.0% (попыток: 1)
+
+Следующая тема для фокуса: sql
+Запустите /quiz чтобы потренировать эту тему
+............s.2026-03-28 16:58:16,977 - INFO - \U0001f510 Загрузка модели LLM (ollama)...
+M:\Cyber_Teacher\Cyber_Teacher\config.py:108: LangChainDeprecationWarning: The class `ChatOllama` was deprecated in LangChain 0.3.1 and will be removed in 1.0.0. An updated version of the class exists in the `langchain-ollama package and should be used instead. To use it run `pip install -U `langchain-ollama` and import as `from `langchain_ollama import ChatOllama``.
+  cls._llm = ChatOllama(
+2026-03-28 16:58:17,131 - INFO - \U0001f510 LLM загружена (ollama).
+....2026-03-28 16:58:21,182 - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2026-03-28 16:58:21,736 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:21,774 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:21,917 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:21,955 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:22,101 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config_sentence_transformers.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:22,140 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config_sentence_transformers.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:22,288 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:22,326 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/README.md "HTTP/1.1 200 OK"
+2026-03-28 16:58:22,481 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/modules.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:22,520 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/modules.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:22,664 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/sentence_bert_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:22,702 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/sentence_bert_config.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:22,854 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/adapter_config.json "HTTP/1.1 404 Not Found"
+2026-03-28 16:58:23,002 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:23,040 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+Ошибка проверки LLM: HTTPConnectionPool(host='localhost', port=11434): Max retries exceeded with url: /api/chat (Caused by NewConnectionError("HTTPConnection(host='localhost', port=11434): Failed to establish a new connection: [WinError 10061] Подключение не установлено, т.к. конечный компьютер отверг запрос на подключение"))
+
+[SETUP] Setting up test environment...
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|##########| 103/103 [00:00<00:00, 6167.65it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+2026-03-28 16:58:23,303 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:23,343 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/config.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:23,487 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:23,525 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:23,675 - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-03-28 16:58:23,827 - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-03-28 16:58:24,059 - INFO - HTTP Request: HEAD https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/1_Pooling/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:24,097 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/sentence-transformers/all-MiniLM-L6-v2/c9745ed1d9f207416be6d2e6f8de32d1f16199bf/1_Pooling%2Fconfig.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:24,243 - INFO - HTTP Request: GET https://huggingface.co/api/models/sentence-transformers/all-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+2026-03-28 16:58:24,295 - INFO - Loading faiss with AVX2 support.
+<frozen importlib._bootstrap>:491: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+<frozen importlib._bootstrap>:491: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+<frozen importlib._bootstrap>:491: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
+2026-03-28 16:58:24,324 - INFO - Successfully loaded faiss with AVX2 support.
+2026-03-28 16:58:24,334 - INFO - \U0001f510 Загрузка модели реранкера...
+2026-03-28 16:58:24,334 - INFO - \U0001f510 Используется устройство: cpu
+2026-03-28 16:58:24,478 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:24,623 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:24,660 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/config.json "HTTP/1.1 200 OK"
+[INFO] Creating FAISS index...
+[SUCCESS] Index created with 10 documents
+[INFO] Loading reranker model...
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]Loading weights: 100%|##########| 105/105 [00:00<00:00, 6267.19it/s]
+[1mBertForSequenceClassification LOAD REPORT[0m from: cross-encoder/ms-marco-MiniLM-L-6-v2
+Key                          | Status     |  | 
+-----------------------------+------------+--+-
+bert.embeddings.position_ids | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+2026-03-28 16:58:24,861 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:25,004 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:25,043 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/config.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:25,196 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:25,344 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:25,381 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-03-28 16:58:25,529 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L-6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:25,676 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L6-v2/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-03-28 16:58:25,821 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L-6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:25,975 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L6-v2/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-03-28 16:58:26,200 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:26,348 - INFO - HTTP Request: HEAD https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:26,386 - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/cross-encoder/ms-marco-MiniLM-L6-v2/c5ee24cb16019beea0893ab7796b1df96625c6b8/README.md "HTTP/1.1 200 OK"
+2026-03-28 16:58:26,531 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L-6-v2 "HTTP/1.1 307 Temporary Redirect"
+2026-03-28 16:58:26,677 - INFO - HTTP Request: GET https://huggingface.co/api/models/cross-encoder/ms-marco-MiniLM-L6-v2 "HTTP/1.1 200 OK"
+2026-03-28 16:58:26,679 - INFO - \U0001f510 Реранкер загружен.
+Building prefix dict from the default dictionary ...
+2026-03-28 16:58:26,729 - DEBUG - Building prefix dict from the default dictionary ...
+Loading model from cache C:\Users\ADMINI~1\AppData\Local\Temp\jieba.cache
+2026-03-28 16:58:26,730 - DEBUG - Loading model from cache C:\Users\ADMINI~1\AppData\Local\Temp\jieba.cache
+Loading model cost 0.738 seconds.
+2026-03-28 16:58:27,468 - DEBUG - Loading model cost 0.738 seconds.
+Prefix dict has been built successfully.
+2026-03-28 16:58:27,468 - DEBUG - Prefix dict has been built successfully.
+[SUCCESS] Reranker loaded
+
+[QUERY] Test query: 'attacks and vulnerabilities'
+
+[INFO] Initial documents (before reranking):
+1. Vulnerability assessment helps identify weaknesses in securi...
+2. Penetration testing (pentest) simulates attacks to find secu...
+3. Cybersecurity is the practice of protecting systems and netw...
+4. Firewall controls incoming and outgoing network traffic base...
+5. Zero-day vulnerabilities are unknown to vendors and have no ...
+6. SOC (Security Operations Center) is a team that monitors thr...
+7. Data encryption transforms information into an unreadable fo...
+8. Phishing attacks use deceptive emails to steal credentials....
+9. Intrusion Detection System (IDS) monitors network traffic fo...
+10. Multi-factor authentication requires multiple proofs of iden...
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 28.56it/s]
+.
+[INFO] Reranked documents (after reranking):
+1. Zero-day vulnerabilities are unknown to vendors and have no ...
+   Source: doc10, Topic: zeroday
+
+2. Vulnerability assessment helps identify weaknesses in securi...
+   Source: doc7, Topic: vulnerability
+
+3. Cybersecurity is the practice of protecting systems and netw...
+   Source: doc1, Topic: security
+
+4. Phishing attacks use deceptive emails to steal credentials....
+   Source: doc5, Topic: phishing
+
+5. Penetration testing (pentest) simulates attacks to find secu...
+   Source: doc9, Topic: pentest
+
+
+[QUERY] Test query: 'How to protect network from attacks?'
+[INFO] Requesting k=5 documents
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 33.49it/s]
+.
+[RESULT] Received 5 documents
+
+[QUERY] Test query: 'Phishing attacks and protection against them'
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 34.96it/s]
+.
+[RESULT] Returned documents:
+1. Phishing attacks use deceptive emails to steal credentials....
+   Relevance to phishing: True
+
+2. Cybersecurity is the practice of protecting systems and networks from digital attacks....
+   Relevance to phishing: False
+
+3. Penetration testing (pentest) simulates attacks to find security holes....
+   Relevance to phishing: False
+
+4. SOC (Security Operations Center) is a team that monitors threats and incidents....
+   Relevance to phishing: False
+
+5. Vulnerability assessment helps identify weaknesses in security systems....
+   Relevance to phishing: False
+
+
+[QUERY] Test query: 'Protection from fraud and attacks'
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|##########| 1/1 [00:00<00:00, 36.10it/s]
+..................................................................................................Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\knowledge.py", line 405, in get_relevant_docs
+    bm25 = BM25Okapi(tokenized_docs)
+  File "C:\Python314\Lib\site-packages\rank_bm25.py", line 83, in __init__
+    super().__init__(corpus, tokenizer)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rank_bm25.py", line 27, in __init__
+    nd = self._initialize(corpus)
+  File "C:\Python314\Lib\site-packages\rank_bm25.py", line 52, in _initialize
+    self.avgdl = num_doc / self.corpus_size
+                 ~~~~~~~~^~~~~~~~~~~~~~~~~~
+ZeroDivisionError: division by zero
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\knowledge.py", line 436, in get_relevant_docs
+    console.print(f"[yellow]\u26a0\ufe0f BM25 не сработал: {e}[/yellow]")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 1697, in print
+    with self:
+         ^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 870, in __exit__
+    self._exit_buffer()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 826, in _exit_buffer
+    self._check_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2042, in _check_buffer
+    self._write_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2078, in _write_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 441, in write_styled
+    self.write_text(text)
+    ~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 402, in write_text
+    self.write(text)
+    ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\handlers\writeup_auto.py", line 42, in handle_auto_writeup
+    docs = get_relevant_docs(vectordb, topic, k=RERANK_TOP_K)
+  File "M:\Cyber_Teacher\Cyber_Teacher\knowledge.py", line 456, in get_relevant_docs
+    console.print(f"[yellow]\u26a0\ufe0f Ошибка при поиске документов: {e}[/yellow]")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 1697, in print
+    with self:
+         ^^^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 870, in __exit__
+    self._exit_buffer()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 826, in _exit_buffer
+    self._check_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2042, in _check_buffer
+    self._write_buffer()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\rich\console.py", line 2078, in _write_buffer
+    legacy_windows_render(buffer, LegacyWindowsTerm(self.file))
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_windows_renderer.py", line 17, in legacy_windows_render
+    term.write_styled(text, style)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 441, in write_styled
+    self.write_text(text)
+    ~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\site-packages\rich\_win32_console.py", line 402, in write_text
+    self.write(text)
+    ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\encodings\cp1251.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>
+..
+[RESULT] Documents after reranking:
+1. Cybersecurity is the practice of protecting systems and networks from digital at...
+   Metadata: {'source': 'doc1', 'topic': 'security'}
+
+2. Phishing attacks use deceptive emails to steal credentials....
+   Metadata: {'source': 'doc5', 'topic': 'phishing'}
+
+3. Data encryption transforms information into an unreadable format to protect conf...
+   Metadata: {'source': 'doc3', 'topic': 'encryption'}
+
+4. Penetration testing (pentest) simulates attacks to find security holes....
+   Metadata: {'source': 'doc9', 'topic': 'pentest'}
+
+5. SOC (Security Operations Center) is a team that monitors threats and incidents....
+   Metadata: {'source': 'doc8', 'topic': 'soc'}
+
+> Traceback (most recent call last):
+  File "M:\Cyber_Teacher\Cyber_Teacher\handlers\writeup_auto.py", line 123, in handle_auto_writeup
+    save = input("> ").strip().lower()
+           ~~~~~^^^^^^
+EOFError: EOF when reading a line
+...................База данных: Создана таблица прогресса.
+База данных: Создана таблица прогресса.
+База данных: Создана таблица прогресса.
+База данных: Создана таблица прогресса.
+База данных: Создана таблица прогресса.
+База данных: Создана таблица прогресса.
+База данных: Создана таблица прогресса.
+База данных: Создана таблица прогресса.
+База данных: Создана таблица прогресса.
+База данных: Создана таблица прогресса.
+Неизвестная команда или ввод.
+Используй цифровое меню (0-44) или команды со /. Не трать время — я не 
+библиотечный червь.
+Подсказка: введи /help или 9 для справки.
+..2026-03-28 16:58:27,752 - WARNING - No JSON block in LLM response for assignment
+..2026-03-28 16:58:27,753 - WARNING - No JSON block in LLM response for quiz
+.2026-03-28 16:58:27,754 - ERROR - Error generating quiz: LLM unavailable
+...............s.ss.............................в”Њв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ Social Engineering Trainer в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”ђ
+в”‚ Р¤РёС€РёРЅРі                                                                      в”‚
+в”‚ Р¦РµР»СЊ: РЈР±РµРґРёС‚СЊ Р¶РµСЂС‚РІСѓ РїРµСЂРµР№С‚Рё РїРѕ СЃСЃС‹Р»РєРµ Рё РІРІРµСЃС‚Рё Р»РѕРіРёРЅ/РїР°СЂРѕР»СЊ РѕС‚             в”‚
+в”‚ РєРѕСЂРїРѕСЂР°С‚РёРІРЅРѕРіРѕ Р°РєРєР°СѓРЅС‚Р°.                                                    в”‚
+в”‚ Р’С‹ вЂ” Р°С‚Р°РєСѓСЋС‰РёР№. РџРёС€РёС‚Рµ СЃРѕРѕР±С‰РµРЅРёСЏ, С‡С‚РѕР±С‹ СѓР±РµРґРёС‚СЊ Р¶РµСЂС‚РІСѓ. /exit РґР»СЏ РІС‹С…РѕРґР°.   в”‚
+в””в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”
+[X] LLM РЅРµРґРѕСЃС‚СѓРїРЅР°. РџСЂРѕРІРµСЂСЊС‚Рµ РЅР°СЃС‚СЂРѕР№РєРё РїСЂРѕРІР°Р№РґРµСЂР°.
+..в”Њв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ Social Engineering Trainer в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”ђ
+в”‚ РџСЂРµС‚РµРєСЃС‚РёРЅРі                                                               в”‚
+в”‚ Р¦РµР»СЊ: РџРѕР»СѓС‡РёС‚СЊ РїР°СЂРѕР»СЊ РёР»Рё РєРѕРЅС„РёРґРµРЅС†РёР°Р»СЊРЅСѓСЋ РёРЅС„РѕСЂРјР°С†РёСЋ РїРѕРґ РІРёРґРѕРј РїСЂРѕРІРµСЂРєРё. в”‚
+в”‚ Р’С‹ вЂ” Р°С‚Р°РєСѓСЋС‰РёР№. РџРёС€РёС‚Рµ СЃРѕРѕР±С‰РµРЅРёСЏ, С‡С‚РѕР±С‹ СѓР±РµРґРёС‚СЊ Р¶РµСЂС‚РІСѓ. /exit РґР»СЏ РІС‹С…РѕРґР°. в”‚
+в””в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”
+[X] LLM РЅРµРґРѕСЃС‚СѓРїРЅР°. РџСЂРѕРІРµСЂСЊС‚Рµ РЅР°СЃС‚СЂРѕР№РєРё РїСЂРѕРІР°Р№РґРµСЂР°.
+..в”Њв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ Social Engineering Trainer в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”ђ
+в”‚ Р¤РёС€РёРЅРі                                                                      в”‚
+в”‚ Р¦РµР»СЊ: РЈР±РµРґРёС‚СЊ Р¶РµСЂС‚РІСѓ РїРµСЂРµР№С‚Рё РїРѕ СЃСЃС‹Р»РєРµ Рё РІРІРµСЃС‚Рё Р»РѕРіРёРЅ/РїР°СЂРѕР»СЊ РѕС‚             в”‚
+в”‚ РєРѕСЂРїРѕСЂР°С‚РёРІРЅРѕРіРѕ Р°РєРєР°СѓРЅС‚Р°.                                                    в”‚
+в”‚ Р’С‹ вЂ” Р°С‚Р°РєСѓСЋС‰РёР№. РџРёС€РёС‚Рµ СЃРѕРѕР±С‰РµРЅРёСЏ, С‡С‚РѕР±С‹ СѓР±РµРґРёС‚СЊ Р¶РµСЂС‚РІСѓ. /exit РґР»СЏ РІС‹С…РѕРґР°.   в”‚
+в””в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”
+[X] LLM РЅРµРґРѕСЃС‚СѓРїРЅР°. РџСЂРѕРІРµСЂСЊС‚Рµ РЅР°СЃС‚СЂРѕР№РєРё РїСЂРѕРІР°Р№РґРµСЂР°.
+......................................................Р“РµРЅРµСЂР°С†РёСЏ РєРѕРЅСЃРїРµРєС‚Р° РїРѕ С‚РµРјРµ: Test
+Р‘Р°Р·Р° Р·РЅР°РЅРёР№ РЅРµ РґРѕСЃС‚СѓРїРЅР°
+.Р“РµРЅРµСЂР°С†РёСЏ РєРѕРЅСЃРїРµРєС‚Р° РїРѕ С‚РµРјРµ: NonExistentTopic
+РќРµ РЅР°Р№РґРµРЅРѕ РґРѕРєСѓРјРµРЅС‚РѕРІ РїРѕ СЌС‚РѕР№ С‚РµРјРµ
+Р”РѕР±Р°РІСЊС‚Рµ PDF РІ knowledge_base/
+.Р“РµРЅРµСЂР°С†РёСЏ РєРѕРЅСЃРїРµРєС‚Р° РїРѕ С‚РµРјРµ: SQL injection
+Р“РµРЅРµСЂР°С†РёСЏ РєРѕРЅСЃРїРµРєС‚Р°...
+
+РљРѕРЅСЃРїРµРєС‚ СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅ:
+
+в”Њв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ РљРѕРЅСЃРїРµРєС‚: SQL injection в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”ђ
+в”‚ ## Summary of SQLi                                                          в”‚
+в”‚ Definition: ...                                                             в”‚
+в””в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”
+
+РЎРѕС…СЂР°РЅРёС‚СЊ РєРѕРЅСЃРїРµРєС‚ РІ С„Р°Р№Р»? (y/n)
+..........
+----------------------------------------------------------------------
+Ran 281 tests in 12.869s
+
+OK (skipped=4)

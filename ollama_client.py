@@ -9,7 +9,7 @@ import os
 import subprocess
 import tempfile
 from collections.abc import Generator
-from typing import Any, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

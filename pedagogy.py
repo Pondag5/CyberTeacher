@@ -10,7 +10,7 @@ import random
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List
+
 
 TEACHER_PROMPTS_PATH = os.path.join(
     os.path.dirname(__file__), "config", "teacher_prompts.json"

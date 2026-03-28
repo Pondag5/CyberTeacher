@@ -6,7 +6,7 @@ import os
 import shutil
 import tempfile
 import unittest
-from typing import List
+
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document

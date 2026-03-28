@@ -1,7 +1,7 @@
 # handlers/quiz.py
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from rich.console import Console
 
@@ -65,7 +65,7 @@ def handle_quiz_action() -> tuple[bool, Any | None, Any | None, bool]:
             "[yellow]Напишите ответ на каждый вопрос. Введите /skip чтобы пропустить, /exit для выхода.[/yellow]\n"
         )
 
-        scores = []  # List of (score, max_score) for each question
+        scores = []  # list of (score, max_score) for each question
         responses = []  # Detailed responses for writeup
         total_score = 0
         max_total = 0

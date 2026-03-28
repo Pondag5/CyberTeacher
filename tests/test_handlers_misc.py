@@ -351,7 +351,7 @@ class TestMiscFunctions(unittest.TestCase):
 
     @patch("handlers.misc.get_state")
     @patch("handlers.misc.console.print")
-    @patch("handlers.misc.get_story_list", return_value="Test story list")
+    @patch("story_mode.get_story_list", return_value="Test story list")
     def test_handle_story_mode_list(
         self, mock_get_story_list, mock_print, mock_get_state
     ):
@@ -391,8 +391,8 @@ class TestMiscFunctions(unittest.TestCase):
 
     @patch("handlers.misc.get_state")
     @patch("handlers.misc.console.print")
-    @patch("handlers.misc.get_current_vectordb")
-    @patch("handlers.misc.generate_quiz")
+    @patch("knowledge.get_current_vectordb")
+    @patch("generators.generate_quiz")
     def test_handle_repeat_with_due(
         self, mock_generate_quiz, mock_get_vectordb, mock_print, mock_get_state
     ):
@@ -403,6 +403,7 @@ class TestMiscFunctions(unittest.TestCase):
         mock_state.get_due_reviews.return_value = [
             {"topic": "test_topic", "interval": 1, "repetitions": 1}
         ]
+        mock_get_state.return_value = mock_state
         mock_get_vectordb.return_value = MagicMock()
         mock_generate_quiz.return_value = {
             "questions": [

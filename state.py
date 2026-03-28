@@ -5,7 +5,7 @@
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 import time
 
 
@@ -134,7 +134,7 @@ class AppState:
         """Получить список тем с успешностью ниже threshold%.
 
         Returns:
-            List[Dict] с полями topic, success_rate, attempts, отсортированный по возрастанию success_rate
+            list[dict] с полями topic, success_rate, attempts, отсортированный по возрастанию success_rate
         """
         weak = [t for t in self.weak_topics if t["success_rate"] < threshold]
         return sorted(weak, key=lambda x: x["success_rate"])
@@ -216,7 +216,7 @@ class AppState:
         """Получить список тем, готовых к повторению (next_review <= сейчас).
 
         Returns:
-            List[Dict] с полями: topic, interval, repetitions, отсортированный по дате
+            list[dict] с полями: topic, interval, repetitions, отсортированный по дате
         """
         import time
 

@@ -7,7 +7,7 @@ import random
 import shutil
 import subprocess
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Optional
 
 # Проверка доступности Docker при импорте
 DOCKER_AVAILABLE = shutil.which("docker") is not None

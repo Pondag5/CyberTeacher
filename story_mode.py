@@ -5,7 +5,7 @@ Story-mode - Игровое обучение кибербезопасности
 
 import random
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 from rich.console import Console
 from state import get_state

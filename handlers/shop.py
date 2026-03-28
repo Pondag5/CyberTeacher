@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Магазин достижений и улучшений (C-14)"""
 
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 from state import get_state
@@ -24,7 +24,7 @@ def load_shop_items() -> list[dict]:
         return []
 
 
-def handle_shop(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bool]:
+def handle_shop(action: str) -> tuple[bool, Optional[Any], Optional[Any], bool]:
     """Обработка команды /shop [item_id]
 
     Без аргументов — показать список товаров.

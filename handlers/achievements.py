@@ -1,7 +1,7 @@
 # handlers/achievements.py
 import json
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from rich.console import Console
 
@@ -10,9 +10,7 @@ from state import get_state
 console = Console()
 
 
-def handle_achievements(
-    *args, **kwargs
-) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_achievements(*args, **kwargs) -> tuple[bool, Any | None, Any | None, bool]:
     """Управление достижениями: list, earn <id> (test mode), help"""
     try:
         action = args[0] if args else "achievements"

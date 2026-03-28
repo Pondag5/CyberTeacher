@@ -68,10 +68,7 @@ class TestCheckOpenAnswer(unittest.TestCase):
 
     def test_key_points_all_match(self):
         result = check_open_answer("q", "A B C", ["A", "B", "C"])
-        self.assertEqual(
-            result["score"], 10
-        )  # 6+2=8? Actually max(10, 6+2=8) -> 10? base is 6 unless contains correct then 9. No correct keyword, so base6+2=8; but if we also contain correct? Not.
-        # Actually key_points half match adds 2 min(10, score+2). Starting from 6 yields 8.
+        # base score 6, +2 for half match -> 8
         self.assertEqual(result["score"], 8)
 
     def test_empty_answer(self):
@@ -102,7 +99,8 @@ class TestResponseCache(unittest.TestCase):
         mock_cache._save.assert_called_once()
 
     @patch("handlers.core._response_cache")
-    def test_show_cache_stats(self, mock_cache):
+    @patch("handlers.core.console.print")
+    def test_show_cache_stats(self, mock_print, mock_cache):
         from handlers.core import show_cache_stats
 
         mock_cache.stats.return_value = {

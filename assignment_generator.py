@@ -5,7 +5,7 @@
 
 import random
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from config import LazyLoader
 from knowledge import get_relevant_docs
@@ -76,7 +76,7 @@ class AssignmentGenerator:
             context_docs: Документы из knowledge base для контекста
 
         Returns:
-            Dict с заданием: title, description, flags, hints, solution, resources
+            dict с заданием: title, description, flags, hints, solution, resources
         """
         self._init_llm()
 

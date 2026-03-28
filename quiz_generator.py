@@ -5,7 +5,7 @@
 import json
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from config import get_llm
 from state import get_state
@@ -29,7 +29,7 @@ def extract_json_block(text: str) -> Optional[str]:
 
 def generate_quiz_question(
     topic: str, difficulty: str = "medium"
-) -> Optional[Dict[str, Any]]:
+) -> Optional[dict[str, Any]]:
     """
     Сгенерировать вопрос квиза по теме с помощью LLM.
     Возвращает dict с полями: question, options (list), correct_answer (int), explanation.
@@ -69,7 +69,7 @@ def generate_quiz_question(
 
 def generate_assignment(
     topic: str, difficulty: str = "medium"
-) -> Optional[Dict[str, Any]]:
+) -> Optional[dict[str, Any]]:
     """
     Сгенерировать практическое задание (assignment) по теме.
     Возвращает dict: title, description, steps (list), hints (list), expected_flag (str), points (int).

@@ -10,7 +10,7 @@ import os
 import shutil
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
-from typing import Any, List
+from typing import Any
 
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_community.vectorstores import FAISS
@@ -50,7 +50,7 @@ def get_current_vectordb():
 
 
 def set_current_vectordb(v):
-    """Set the current vector database."""
+    """set the current vector database."""
     global _current_vectordb
     _current_vectordb = v
 
