@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Комплексные тесты для state.py (AppState)"""
 
 import os

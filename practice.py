@@ -7,7 +7,7 @@ import random
 import shutil
 import subprocess
 from dataclasses import dataclass
-from typing import Optional
+from typing import ClassVar, Optional
 
 # Проверка доступности Docker при импорте
 DOCKER_AVAILABLE = shutil.which("docker") is not None
@@ -186,11 +186,11 @@ DOCKER_LABS = {
 }
 
 
-def run_docker_cmd(args: list[str]) -> tuple:
+def run_docker_cmd(args: list[str]) -> tuple[int, str, str]:
     """Выполнить docker команду"""
     try:
         result = subprocess.run(
-            ["docker"] + args, capture_output=True, text=True, timeout=30
+            ["docker", *args], capture_output=True, text=True, timeout=30, check=False
         )
         return result.returncode, result.stdout, result.stderr
     except Exception as e:
@@ -227,7 +227,7 @@ def exec_in_container(name: str, command: str) -> str:
         return "❌ Команда содержит запрещённые символы"
 
     # Запускаем без shell - прямой exec
-    code, stdout, stderr = run_docker_cmd(["exec", name] + shlex.split(command))
+    code, stdout, stderr = run_docker_cmd(["exec", name, *shlex.split(command)])
     if code == 0:
         return stdout if stdout else "Команда выполнена (нет вывода)"
     return f"Ошибка: {stderr}"
@@ -236,14 +236,14 @@ def exec_in_container(name: str, command: str) -> str:
 def get_all_running_labs() -> dict[str, dict]:
     """Получить статус всех запущенных лаб"""
     result = {}
-    for lab_key in DOCKER_LABS:
+    for lab_key, lab in DOCKER_LABS.items():
         web_name = f"{lab_key}-web"
         status = get_container_status(web_name)
         if status["running"]:
             result[lab_key] = {
-                "name": DOCKER_LABS[lab_key]["name"],
+                "name": lab["name"],
                 "status": status["status"],
-                "ports": DOCKER_LABS[lab_key].get("ports", {}),
+                "ports": lab.get("ports", {}),
             }
     return result
 
@@ -300,10 +300,17 @@ def start_lab(lab_name: str) -> str:
             env_args.extend(["-e", f"{k}={v}"])
 
     run_docker_cmd(
-        ["run", "-d", "--name", web_name, "--network", net_name]
-        + port_args
-        + env_args
-        + [lab["image"]]
+        [
+            "run",
+            "-d",
+            "--name",
+            web_name,
+            "--network",
+            net_name,
+            *port_args,
+            *env_args,
+            lab["image"],
+        ]
     )
 
     return f"""
@@ -312,7 +319,7 @@ def start_lab(lab_name: str) -> str:
 📖 {lab["desc"]}
 
 🔗 Доступ:
-""" + "\n".join([f"   http://localhost:{p}" for p in lab["ports"].keys()])
+""" + "\n".join([f"   http://localhost:{p}" for p in lab["ports"]])
 
 
 def stop_lab(lab_name: str) -> str:
@@ -365,7 +372,7 @@ def list_labs() -> str:
         for key, lab in categories[cat]:
             status = get_container_status(f"{key}-web")
             emoji = "🟢" if status["running"] else "⚪"
-            ports = ", ".join([f":{p}" for p in lab["ports"].keys()])
+            ports = ", ".join([f":{p}" for p in lab["ports"]])
             tags_str = " ".join([f"[{t}]" for t in lab.get("tags", [])])
             result += f"{emoji} {lab['name']} {tags_str}\n"
             result += f"  Ports: {ports}\n"
@@ -396,7 +403,7 @@ class PracticeHub:
     """Хаб практических заданий"""
 
     # Встроенные мини-лабы
-    MINI_LABS = [
+    MINI_LABS: ClassVar[list[Challenge]] = [
         Challenge(
             id="lab1",
             name="SQL Injection Lab",
@@ -454,7 +461,7 @@ class PracticeHub:
     ]
 
     # Категории по сложности
-    DIFFICULTY_MAP = {
+    DIFFICULTY_MAP: ClassVar[dict[str, str]] = {
         "easy": "★☆☆☆☆",
         "medium": "★★☆☆☆",
         "hard": "★★★☆☆",
@@ -462,7 +469,7 @@ class PracticeHub:
     }
 
     @classmethod
-    def get_lab(cls, lab_id: str = None) -> Challenge:
+    def get_lab(cls, lab_id: str | None = None) -> Challenge:
         if lab_id:
             for lab in cls.MINI_LABS:
                 if lab.id == lab_id:
@@ -475,7 +482,7 @@ class PracticeHub:
 
     @classmethod
     def get_all_categories(cls) -> list[str]:
-        return list(set(c.category for c in cls.MINI_LABS))
+        return list({c.category for c in cls.MINI_LABS})
 
     @classmethod
     def generate_writeup_template(cls, lab: Challenge) -> str:
@@ -506,14 +513,14 @@ class PracticeHub:
 """
 
 
-def start_practice(category: str = None, difficulty: str = None) -> str:
+def start_practice(category: str | None = None, difficulty: str | None = None) -> str:
     """Начать практику"""
     labs = PracticeHub.MINI_LABS
 
     if category:
-        labs = [l for l in labs if l.category == category]
+        labs = [lab for lab in labs if lab.category == category]
     if difficulty:
-        labs = [l for l in labs if l.difficulty == difficulty]
+        labs = [lab for lab in labs if lab.difficulty == difficulty]
 
     if not labs:
         labs = PracticeHub.MINI_LABS

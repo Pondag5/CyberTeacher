@@ -43,7 +43,7 @@ class TestMemory(unittest.TestCase):
         self.assertTrue(expected.issubset(tables))
 
     def test_save_and_get_chat_history(self):
-        from memory import save_message, get_chat_history
+        from memory import get_chat_history, save_message
 
         save_message(self.conn, "user", "Привет", "teacher")
         save_message(self.conn, "assistant", "Ответ", "teacher")
@@ -55,7 +55,7 @@ class TestMemory(unittest.TestCase):
         self.assertEqual(history[1]["mode"], "teacher")
 
     def test_clear_chat(self):
-        from memory import save_message, clear_chat
+        from memory import clear_chat, save_message
 
         save_message(self.conn, "user", "Текст", "teacher")
         save_message(self.conn, "assistant", "Ответ", "teacher")
@@ -66,7 +66,7 @@ class TestMemory(unittest.TestCase):
         self.assertEqual(count, 0)
 
     def test_update_and_get_stats(self):
-        from memory import update_stats, get_stats
+        from memory import get_stats, update_stats
 
         # При increment quizzes/tasks к points тоже добавляется указанное значение (1)
         update_stats(self.conn, 10, "points")  # +10 points
@@ -97,7 +97,7 @@ class TestMemory(unittest.TestCase):
         self.assertEqual(row, (1, 2))
 
     def test_get_weak_topics_filters_below_60(self):
-        from memory import update_topic_progress, get_weak_topics
+        from memory import get_weak_topics, update_topic_progress
 
         # Создаём тему с 33% успехом (1 из 3)
         for _ in range(2):

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from rich.console import Console
+
 from state import get_state
 
 console = Console()
@@ -371,9 +372,8 @@ def get_player() -> StoryPlayer:
     return player
 
 
-def start_story_mode(episode_id: int = None) -> str:
+def start_story_mode(episode_id: int | None = None) -> str:
     """Начать эпизод"""
-    global player
 
     if episode_id:
         ep = next(
@@ -417,7 +417,6 @@ def start_story_mode(episode_id: int = None) -> str:
 
 def submit_flag(flag: str) -> str:
     """Проверить флаг"""
-    global player
 
     # Ищем флаг в эпизодах
     for ep in STORY_EPISODES:
@@ -449,7 +448,6 @@ def submit_flag(flag: str) -> str:
 
 def get_story_list() -> str:
     """Список всех эпизодов"""
-    global player
 
     lines = ["🎮 ДОСТУПНЫЕ ЭПИЗОДЫ:\n"]
 
@@ -467,12 +465,11 @@ def get_story_list() -> str:
 
 def get_achievements_list() -> str:
     """Список достижений"""
-    global player
 
     lines = ["🏆 ДОСТИЖЕНИЯ:\n"]
 
     for key, ach in ACHIEVEMENTS.items():
-        unlocked = key in [a for a in player.completed_episodes] or (
+        unlocked = key in list(player.completed_episodes) or (
             key == "first_blood" and len(player.completed_episodes) >= 1
         )
         status = "✅" if unlocked else "🔒"

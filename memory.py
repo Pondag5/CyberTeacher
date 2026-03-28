@@ -218,7 +218,9 @@ def get_cached_response(conn, query_hash: str):
     return None
 
 
-def cache_response(conn, query_hash: str, response: str, ttl_seconds: int = None):
+def cache_response(
+    conn, query_hash: str, response: str, ttl_seconds: int | None = None
+):
     """Сохранить ответ в кэш с TTL"""
     c = conn.cursor()
     created_at = datetime.now().isoformat()

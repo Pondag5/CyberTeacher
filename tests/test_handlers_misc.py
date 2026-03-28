@@ -1,9 +1,9 @@
 """Unit tests for handlers/misc.py"""
 
-import unittest
-from unittest.mock import MagicMock, patch, mock_open
 import os
 import sys
+import unittest
+from unittest.mock import MagicMock, mock_open, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -143,8 +143,9 @@ class TestMiscFunctions(unittest.TestCase):
     @patch("handlers.misc.get_state")
     @patch("handlers.misc.console.print")
     def test_handle_writeup_shows_template(self, mock_print, mock_get_state):
-        from handlers.misc import handle_writeup
         from rich.panel import Panel
+
+        from handlers.misc import handle_writeup
 
         result = handle_writeup()
         self.assertEqual(result, (True, None, None, True))

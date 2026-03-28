@@ -2,6 +2,7 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
+
 from rich.panel import Panel
 
 

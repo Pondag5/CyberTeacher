@@ -4,8 +4,8 @@
 """
 
 import random
-from datetime import datetime
-from typing import Any, Optional
+from datetime import datetime, UTC
+from typing import Any, ClassVar, Optional
 
 from config import LazyLoader
 from knowledge import get_relevant_docs
@@ -14,7 +14,7 @@ from knowledge import get_relevant_docs
 class AssignmentGenerator:
     """Генератор практических заданий по кибербезопасности"""
 
-    ASSIGNMENT_TYPES = {
+    ASSIGNMENT_TYPES: ClassVar[dict[str, Any]] = {
         "ctf": {
             "name": "CTF-задача",
             "templates": [
@@ -64,7 +64,7 @@ class AssignmentGenerator:
         topic: str,
         difficulty: str = "intermediate",
         assignment_type: str = "ctf",
-        context_docs: list | None = None,
+        context_docs: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Генерирует задание на основе темы и контекста.
@@ -110,11 +110,11 @@ class AssignmentGenerator:
             # Добавляем метаданные
             assignment.update(
                 {
-                    "id": f"{assignment_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    "id": f"{assignment_type}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}",
                     "topic": topic,
                     "difficulty": difficulty,
                     "type": assignment_type,
-                    "created": datetime.now().isoformat(),
+                    "created": datetime.now(UTC).isoformat(),
                     "time_estimate": self._estimate_time(difficulty),
                     "points": self._calculate_points(difficulty),
                 }
@@ -171,7 +171,7 @@ class AssignmentGenerator:
 Будь креативным, но реалистичным. Задание должно быть выполнимо и обучающим.
 """
 
-    def _parse_response(self, response: str, assignment_type: str) -> dict[str, Any]:
+    def _parse_response(self, response: str, _assignment_type: str) -> dict[str, Any]:
         """Парсит ответ LLM в结构化 задание"""
         import json
         import re
@@ -195,7 +195,7 @@ class AssignmentGenerator:
         }
 
     def _create_fallback_assignment(
-        self, topic: str, difficulty: str, assignment_type: str, template: str
+        self, topic: str, difficulty: str, _assignment_type: str, _template: str
     ) -> dict[str, Any]:
         """Создаёт простое задание без LLM (fallback)"""
         templates = {
@@ -217,11 +217,11 @@ class AssignmentGenerator:
         base = templates.get(assignment_type, templates["ctf"]).copy()
         base.update(
             {
-                "id": f"{assignment_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                "id": f"{assignment_type}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}",
                 "topic": topic,
                 "difficulty": difficulty,
                 "type": assignment_type,
-                "created": datetime.now().isoformat(),
+                "created": datetime.now(UTC).isoformat(),
                 "time_estimate": self._estimate_time(difficulty),
                 "points": self._calculate_points(difficulty),
             }

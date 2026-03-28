@@ -9,7 +9,6 @@ import os
 import re
 from pathlib import Path
 
-
 # Директории
 KB_DIR = Path("knowledge_base")
 

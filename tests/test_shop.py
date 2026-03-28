@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 """Тесты для системы магазина (C-14)"""
 
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
-from state import AppState
 from handlers import shop as shop_handler
+from state import AppState
 
 
 class TestShopHandler(unittest.TestCase):

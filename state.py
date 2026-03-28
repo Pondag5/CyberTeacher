@@ -4,9 +4,9 @@
 
 import logging
 import os
+import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
-import time
 
 
 @dataclass

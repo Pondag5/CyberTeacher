@@ -1,8 +1,8 @@
 """Unit tests for handlers/quiz.py"""
 
-import unittest
-from unittest.mock import MagicMock, patch, call
 import time
+import unittest
+from unittest.mock import MagicMock, call, patch
 
 
 class MockState:

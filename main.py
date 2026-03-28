@@ -15,6 +15,7 @@ from utils.console_encoding import setup_utf8_console
 setup_utf8_console()
 
 import atexit
+import contextlib
 import hashlib
 import logging
 
@@ -266,7 +267,7 @@ def load_teacher_prompt() -> str:
         try:
             with open(PROMPT_FILE, "r", encoding="utf-8") as f:
                 persona = f.read()
-        except:
+        except Exception:
             persona = "Ты - хакер-ветеран из 90-х, учитель кибербезопасности."
     else:
         persona = "Ты - хакер-ветеран из 90-х, учитель кибербезопасности."
@@ -280,7 +281,7 @@ def load_teacher_prompt() -> str:
                 stories = data.get("stories", [])
                 if stories:
                     story = random.choice(stories)
-        except:
+        except Exception:
             pass
 
     if story:
@@ -410,18 +411,14 @@ def main():
             continue
 
         # Отмечаем отправку сообщения в state (для статистики)
-        try:
+        with contextlib.suppress(Exception):
             get_state().send_message()
-        except Exception:
-            pass
 
         # Автозапись ввода в терминал
-        try:
+        with contextlib.suppress(Exception):
             from terminal_log import log_command
 
             log_command(user_input, is_input=True)
-        except Exception:  # ✅ Более-specific исключение
-            pass
 
         # Нормализуем ввод: если цифра -> команда, иначе убираем /
         if user_input.isdigit() and user_input in NUMERIC_MENU:

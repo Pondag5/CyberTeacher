@@ -1,9 +1,9 @@
 """Unit tests for handlers/flags.py"""
 
-import unittest
-from unittest.mock import MagicMock, patch, mock_open
 import json
 import os
+import unittest
+from unittest.mock import MagicMock, mock_open, patch
 
 
 class MockState:

@@ -5,7 +5,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, UTC
 
 import requests
 from bs4 import BeautifulSoup
@@ -32,13 +32,13 @@ def fetch_news(force=False):
         try:
             with open(NEWS_CACHE, "r") as f:
                 cache = json.load(f)
-        except:
+        except Exception:
             pass
 
     # Проверить кэш (1 час)
     if not force and cache.get("last"):
-        last_time = datetime.fromisoformat(cache["last"])
-        if (datetime.now() - last_time).seconds < 3600:
+        last_time = datetime.fromisoformat(cache["last"]).replace(tzinfo=UTC)
+        if (datetime.now(UTC) - last_time).seconds < 3600:
             return cache["news"]
 
     news = []
@@ -68,7 +68,7 @@ def fetch_news(force=False):
             pass
 
     cache["news"] = news[:10]
-    cache["last"] = datetime.now().isoformat()
+    cache["last"] = datetime.now(UTC).isoformat()
 
     os.makedirs(NEWS_DIR, exist_ok=True)
     with open(NEWS_CACHE, "w") as f:

@@ -2,7 +2,8 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
-from story_mode import get_level, StoryPlayer, get_story_list
+
+from story_mode import StoryPlayer, get_level, get_story_list
 
 
 class TestGetLevel(unittest.TestCase):

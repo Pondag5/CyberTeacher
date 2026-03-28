@@ -10,7 +10,7 @@ console = Console()
 
 
 def handle_security_news(
-    action: str, LLM: Any
+    action: str, llm: Any
 ) -> tuple[bool, Any | None, Any | None, bool]:
     """Обработка команды /news"""
     console.print("[cyan]Загружаю новости...[/cyan]")
@@ -27,7 +27,7 @@ def handle_security_news(
         news_for_llm = "\n".join([f"- {n.get('title', '')}" for n in news[:5]])
 
         # Если LLM доступен - обрабатываем
-        llm_obj = LLM() if callable(LLM) else LLM
+        llm_obj = llm() if callable(llm) else llm
         if llm_obj:
             console.print("[cyan]Обрабатываю новости...[/cyan]")
             prompt = f"""Кратко переведи на русский и опиши каждую новость в 1-2 предложениях:
@@ -39,7 +39,7 @@ def handle_security_news(
             try:
                 processed = llm_obj.invoke(prompt)  # type: ignore
                 news_text = processed
-            except:
+            except Exception:
                 news_text = news_for_llm
         else:
             news_text = news_for_llm

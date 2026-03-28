@@ -23,7 +23,7 @@ def handle_practice(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
         parts = action.split()
 
-        if action == "practice" or action == "lab":
+        if action in {"practice", "lab"}:
             # Показать список доступных лаб
             console.print(list_labs())
             return True, None, None, True

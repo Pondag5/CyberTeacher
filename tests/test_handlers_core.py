@@ -1,7 +1,7 @@
 """Тесты для диспетчера команд в handlers/core.py"""
 
 import unittest
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import ANY, MagicMock, patch
 
 from handlers.core import handle_extended_commands
 

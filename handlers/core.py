@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from collections import OrderedDict, deque
+import contextlib
 from typing import Any, Optional
 
 from rich.console import Console
@@ -45,10 +46,10 @@ from .quiz import (
     handle_task_action,
 )
 from .sandbox import handle_sandbox
+from .shop import handle_shop
 from .social import handle_social
 from .summary import handle_summary
 from .threats import handle_groups, handle_threat_summary, handle_threats
-from .shop import handle_shop
 from .writeup_auto import handle_auto_writeup
 
 console = Console()
@@ -140,10 +141,8 @@ _response_cache = ResponseCache()
 
 def clear_response_cache():
     _response_cache.clear()
-    try:
+    with contextlib.suppress(Exception):
         _response_cache._save()
-    except Exception:
-        pass
 
 
 def show_cache_stats():
@@ -429,7 +428,7 @@ def handle_extended_commands(
         return handle_risk(action)
 
     # ----- Adaptive learning -----
-    if action == "adaptive" or action == "weaknesses":
+    if action in {"adaptive", "weaknesses"}:
         return handle_adaptive(action)
 
     # ----- Spaced Repetition -----

@@ -1,17 +1,17 @@
 """Unit tests for helper functions in handlers/core.py"""
 
-import unittest
-from unittest.mock import patch, MagicMock, mock_open
-import os
 import json
+import os
+import unittest
+from unittest.mock import MagicMock, mock_open, patch
 
 from handlers.core import (
-    extract_json_block,
-    check_open_answer,
     ResponseCache,
+    check_open_answer,
     clear_response_cache,
-    show_cache_stats,
+    extract_json_block,
     handle_stats,
+    show_cache_stats,
 )
 
 

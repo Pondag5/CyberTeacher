@@ -1,11 +1,11 @@
 import json
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from quiz_generator import (
-    generate_quiz_question,
-    generate_assignment,
     extract_json_block,
+    generate_assignment,
+    generate_quiz_question,
 )
 
 

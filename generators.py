@@ -1,7 +1,7 @@
 import json
 import random
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from config import LazyLoader
@@ -46,8 +46,16 @@ ALLOWED_TOPICS = [
 
 
 class Task:
-    def __init__(self, id, question, answer, hint, category, difficulty):
-        self.id = id
+    def __init__(
+        self,
+        task_id: int,
+        question: str,
+        answer: str,
+        hint: str,
+        category: str,
+        difficulty: str,
+    ):
+        self.id = task_id
         self.question = question
         self.answer = answer
         self.hint = hint
@@ -107,7 +115,7 @@ def generate_task(vectordb=None, category=None):
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
             return Task(
-                id=int(datetime.now().timestamp()),
+                id=int(datetime.now(timezone.utc).timestamp()),
                 question=json_block.get("question", ""),
                 answer=json_block.get("answer", ""),
                 hint=json_block.get("hint", ""),

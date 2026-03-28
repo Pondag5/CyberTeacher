@@ -1,9 +1,9 @@
 """Тесты для модуля knowledge (RAG с reranking и BM25)"""
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from knowledge import get_relevant_docs, get_knowledge_status
+from knowledge import get_knowledge_status, get_relevant_docs
 
 
 class TestGetRelevantDocs(unittest.TestCase):

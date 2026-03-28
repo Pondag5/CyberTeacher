@@ -87,7 +87,7 @@ def handle_story_mode(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         state = get_state()
         parts = action.split()
 
-        if action == "story" or action == "episode" or action == "quest":
+        if action in {"story", "episode", "quest"}:
             # Показать список эпизодов
             console.print(get_story_list())
             return True, None, None, True
@@ -413,6 +413,7 @@ def handle_model(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 def handle_set_api_key(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     """Установка API ключа для провайдера"""
     import os
+
     import config
 
     if not action or action == "set-api-key":

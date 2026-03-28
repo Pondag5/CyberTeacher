@@ -8,9 +8,9 @@
 
 # ── Константы & утилиты ────────────────────────────────────────
 from .achievements import handle_achievements
-from .core import (
+from .core import (  # основной диспетчер
     handle_commands,
-)  # основной диспетчер
+)
 from .flags import handle_flag_check
 from .misc import (
     handle_add_book,
@@ -31,8 +31,8 @@ from .quiz import (
     handle_quiz_generation,
     handle_task_action,
 )
-from .threats import handle_groups, handle_threat_summary, handle_threats
 from .shop import handle_shop
+from .threats import handle_groups, handle_threat_summary, handle_threats
 
 __all__ = [
     "get_last_news",

@@ -1,8 +1,8 @@
 """Unit tests for handlers/writeup_auto.py"""
 
-import unittest
-from unittest.mock import MagicMock, patch, mock_open
 import time
+import unittest
+from unittest.mock import MagicMock, mock_open, patch
 
 
 class MockState:

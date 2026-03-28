@@ -13,7 +13,7 @@ from state import get_state
 logger = logging.getLogger(__name__)
 
 
-def extract_json_block(text: str) -> Optional[str]:
+def extract_json_block(text: str) -> str | None:
     """Извлечь JSON блок из текста (мерез ```json ... ```)."""
     match = re.search(
         r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL | re.IGNORECASE
@@ -29,7 +29,7 @@ def extract_json_block(text: str) -> Optional[str]:
 
 def generate_quiz_question(
     topic: str, difficulty: str = "medium"
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Сгенерировать вопрос квиза по теме с помощью LLM.
     Возвращает dict с полями: question, options (list), correct_answer (int), explanation.
@@ -69,7 +69,7 @@ def generate_quiz_question(
 
 def generate_assignment(
     topic: str, difficulty: str = "medium"
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Сгенерировать практическое задание (assignment) по теме.
     Возвращает dict: title, description, steps (list), hints (list), expected_flag (str), points (int).
@@ -104,11 +104,11 @@ def generate_assignment(
 
 
 # Алиасы для совместимости с handlers.quiz (принимают vectordb первый аргумент)
-def generate_quiz(vectordb, topic: str = None, difficulty: str = "medium"):
+def generate_quiz(vectordb, topic: str | None = None, difficulty: str = "medium"):
     """Compatibility wrapper for generate_quiz_question."""
     return generate_quiz_question(topic or "general", difficulty)
 
 
-def generate_task(vectordb, category: str = None, difficulty: str = "medium"):
+def generate_task(vectordb, category: str | None = None, difficulty: str = "medium"):
     """Compatibility wrapper for generate_assignment."""
     return generate_assignment(category or "general", difficulty)
