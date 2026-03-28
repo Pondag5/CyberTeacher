@@ -6,6 +6,9 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# Import memory module to patch its DB_FILE dynamically
+import memory as _memory_mod
+
 
 class TestMemory(unittest.TestCase):
     """Тесты для модуля memory с изолированной БД на каждый тест"""
@@ -15,6 +18,10 @@ class TestMemory(unittest.TestCase):
 
         self._original_db_file = config.DB_FILE
         config.DB_FILE = ":memory:"
+        # Patch memory module to use the same in-memory DB
+        self._original_memory_db_file = _memory_mod.DB_FILE
+        _memory_mod.DB_FILE = config.DB_FILE
+
         from memory import init_db
 
         self.conn = init_db()
@@ -24,6 +31,7 @@ class TestMemory(unittest.TestCase):
         import config
 
         config.DB_FILE = self._original_db_file
+        _memory_mod.DB_FILE = self._original_memory_db_file
 
     def test_init_db_creates_tables(self):
         from memory import init_db  # уже вызван в setUp, но проверим наличие таблиц

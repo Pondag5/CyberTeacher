@@ -62,7 +62,7 @@ class ResponseCache:
     def __init__(self, capacity: int = 100):
         self.cache = OrderedDict()
         self.capacity = capacity
-        self.access_order = deque(maxlen=capacity)
+        self.access_order = deque()
         self.hit_count = 0
         self.access_count = 0
         self._load()
@@ -74,9 +74,7 @@ class ResponseCache:
                 with open(cache_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 self.cache = OrderedDict(data.get("cache", {}))
-                self.access_order = deque(
-                    data.get("access_order", []), maxlen=self.capacity
-                )
+                self.access_order = deque(data.get("access_order", []))
                 self.hit_count = data.get("hit_count", 0)
                 self.access_count = data.get("access_count", 0)
                 if len(self.cache) > self.capacity:

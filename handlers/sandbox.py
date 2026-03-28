@@ -10,6 +10,7 @@ import uuid
 from typing import Any, Dict, Tuple
 
 from rich.console import Console
+from rich.panel import Panel
 
 from practice import run_docker_cmd
 

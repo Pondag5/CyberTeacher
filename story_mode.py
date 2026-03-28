@@ -7,6 +7,11 @@ import random
 from dataclasses import dataclass
 from typing import List, Optional
 
+from rich.console import Console
+from state import get_state
+
+console = Console()
+
 # === УРОВНИ ИГРОКА ===
 PLAYER_LEVELS = {
     0: "Script Kiddie",

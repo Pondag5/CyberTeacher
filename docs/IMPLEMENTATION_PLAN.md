@@ -1,6 +1,6 @@
 # CyberTeacher - Полный план реализации
 
-*Последнее обновление: 2026-03-19*
+*Последнее обновление: 2026-03-28*
 
 ---
 
@@ -22,7 +22,7 @@
 
 | ID | Задача | Описание | Источник | Статус |
 |----|--------|----------|----------|--------|
-| Q-01 | Unit tests >70% coverage | Покрыть основные модули (state, handlers, knowledge). | H-11 | In progress (176 tests passing, coverage ~43%) |
+| Q-01 | Unit tests >70% coverage | Покрыть основные модули (state, handlers, knowledge). | H-11 | ✅ Done (344 tests passing, coverage 73%) |
 | Q-02 | CI/CD GitHub Actions | Автотесты, ruff, mypy на каждый PR/commit. | H-12 | ✅ Done |
 | Q-03 | Ruff + mypy линтинг | Единый стандарт кода, типы. | A-06 | ✅ Done |
 | Q-04 | Metrics & health checks | Логирование времени ответа, токенов, hit rate кэша. Эндпоинт /health. | H-18 | Not started |
@@ -222,7 +222,7 @@
 - **High:** 18 (H-13..H-15 ✅; H-16..H-18 планы)
 - **Medium:** 34 (M-24..M-26 ✅; M-17 partially; M-01..M-23, M-27..M-34 планы)
 - **Low:** 18 (все планы)
-- **Done:** 38 (D-01..D-28, C-04, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13, C-14)
+- **Done:** 44 (D-01..D-34, C-04, C-06, C-07, C-08, C-09, C-10, C-11, C-12, C-13, C-14)
 - **Partially:** 1 (M-17)
 
 ---
@@ -233,7 +233,7 @@
 Сначала укрепим инфраструктуру и качество кода для стабильной разработки:
 
 1. **Q-03**: Ruff + mypy линтинг (быстро, буквально час)
-2. **Q-01**: Unit tests >70% coverage (фокус на state, handlers, knowledge)
+2. **Q-01**: Unit tests >70% coverage (фокус на state, handlers, knowledge) ✅ Done (73%)
 3. **Q-02**: CI/CD GitHub Actions (автотесты + линтинг на каждый PR)
 4. **Q-04**: Metrics & health checks (логирование времени ответа, токенов, hit rate кэша)
 5. **Q-05**: Rate limiting (10 реков/мин)

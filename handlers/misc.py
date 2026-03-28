@@ -413,6 +413,7 @@ def handle_model(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 def handle_set_api_key(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     """Установка API ключа для провайдера"""
     import os
+    import config
 
     if not action or action == "set-api-key":
         console.print("[cyan]Установка API ключа[/cyan]")
