@@ -1,0 +1,43 @@
+# Changelog
+
+All notable changes to CyberTeacher project.
+
+## [Unreleased] – 2026-03-28/29
+
+### Added (High Priority Features H-01..H-10)
+- **H-01** — ASCII network topology via `/network` command (Rich tree visualization)
+- **H-02** — RAM equipment system: `/tools` list, `/equip <tool>` to toggle tools with RAM costs (max 100)
+- **H-03** — Trace timer for labs: `time_limit_minutes` in DOCKER_LABS, deadline + hint display in main loop
+- **H-04** — Unified story campaign: sequential episodes, progress tracking, rewards
+- **H-05** — Missions editor: JSON-based custom scenarios (`/missions`, `/mission start`, `/mission submit`)
+- **H-06** — CVE lookup: `/cve <CVE-ID>` fetches from NVD API with 1h caching
+- **H-07** — GitHub/GitLab secret scanner: `/scan <repo_url> [branch]` clones and scans for hardcoded secrets
+- **H-08** — Metrics & health: `/health` shows uptime, LLM stats, cache hit rate, rate limiting usage
+- **H-09** — Web UI (Streamlit): `web_ui.py` dashboard with tabs for system, network, labs, CVE, missions
+- **H-10** — Documentation: full README update, ADRs (5), implementation plan
+
+### Added (Infrastructure & Quality Q-01..Q-08)
+- **Q-01** — Unit tests coverage >70% (359 tests passing, ~73% coverage)
+- **Q-02** — CI/CD (GitHub Actions) with tests, coverage, lint, typecheck
+- **Q-03** — Ruff + mypy integrated, lint fixes (deprecated typing, DTZ005, and more)
+- **Q-04** — LLM instrumentation (time, tokens), cache hits/misses, `/health` metrics
+- **Q-05** — Rate limiting: 10 requests per minute via sliding window in state
+- **Q-06** — Automatic backups at startup + `/backup` command (app_state.json, news_cache.json)
+- **Q-07** — Architecture Decision Records (5): LazyLoader, Hybrid RAG, LLM Caching, Singleton State, Rate Limiting
+- **Q-08** — Dependency vulnerability scanning in CI (`pip-audit`)
+
+### Improved
+- Type hints: PEP 604 unions (`str | None`) across codebase
+- Time handling: `datetime.now(UTC)` instead of naive datetime
+- Bare excepts replaced with `except Exception` or `contextlib.suppress`
+- Import sorting with `isort`
+- Subprocess calls explicitly `check=False`
+- Numerous lint warnings cleaned (RUF012, ARG004, PLW0603, PLR0913, E731, RUF034, B009, SIM117, RUF059, etc.)
+
+### Fixed
+- Test isolation issues for CI stability
+- Indentation in `state.py` after multiple edits
+- `get_cached_response` to properly increment cache hits/misses
+
+## [Previous] – 2026-03-17
+Initial public release (base functionality: CLI, LLM integration, RAG, Docker labs, story mode, etc.)
