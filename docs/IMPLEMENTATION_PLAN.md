@@ -99,44 +99,56 @@
 
 ## Medium (Средний приоритет)
 
-Полезные фичи для будущих релизов.
+Фокус на **индивидуальное использование**. Командные и учебные функции deferred.
 
 | ID | Задача | Описание | Источник | Статус |
 |----|--------|----------|----------|--------|
 | M-01 | Docker Compose | Запуск всего стека (бот, база, лаборатории) одной командой. | ЧЕКЛИСТ_2026-03-09.md:96 | Not started |
-| M-02 | Система команд (Red vs Blue) | Режим атакующего (Red) и защитника (Blue), возможно мультиплеер. | roadmap.md:418-420 | Not started |
 | M-03 | Модуль OSINT | Симуляция разведки: поиск в соцсетях, анализ метаданных, leaks. | roadmap.md:390-397 | Not started |
 | M-04 | Конструктор фишинговых писем | Создание писем, оценка убедительности LLM, симуляция отправки. | roadmap.md:399-401 | Not started |
 | M-05 | Исторический режим | Курс "Эволюция взлома" от 80-х до 2020-х с эмуляцией инструментов эпохи. | roadmap.md:403-412 | Not started |
 | M-06 | Тренажёр эксплойтов | Практика написания эксплойтов на C/Python, проверка в песочнице. | roadmap.md:414-416 | Not started |
 | M-07 | Shodan / Censys интеграция | Поиск устройств в интернете по параметрам через API. | roadmap.md:422-424 | Not started |
 | M-08 | Анализ вредоносов (песочница) | Загрузка файла, динамический анализ (Cuckoo-style), отчёт поведения. | roadmap.md:426-428 | Not started |
-| M-09 | Инфографика (Mermaid) | Генерация кода Mermaid для m.indmap и схем, отображение в Web UI. | roadmap.md:430-432 | Not started |
+| M-09 | Инфографика (Mermaid) | Генерация кода Mermaid для mindmap и схем, отображение в Web UI. | roadmap.md:430-432 | Not started |
 | M-10 | Интерактивные расследования | Кейсы типа "Her Story": логи, дампы, переписка — нужно найти улики. | roadmap.md:383-385 | Not started |
 | M-11 | Голосовой учитель (TTS/STT) | Распознавание речи (Vosk) и синтез (Coqui TTS/Silero). | roadmap.md:386-388 | Not started |
 | M-12 | Поддержка Jupyter Notebook | Шаблоны ноутбуков для практики, выполнение ячеек, проверка. | roadmap.md:310-312 | Not started |
-| M-13 | SCORM / LTI поддержка | Интеграция с LMS для учебных заведений. | roadmap.md:322-324 | Not started |
-| M-14 | Плагинная архитектура | API для сторонних модулей, загрузка плагинов из папки. | roadmap.md:326-329 | Not started |
-| M-15 | Курсы от экспертов | Приглашение практикующих специалистов для авторских курсов. | roadmap.md:334-337 | Not started |
 | M-16 | Видео / подкасты внутри | Встроенный плеер для YouTube, синхронизация с конспектом. | roadmap.md:338-341 | Not started |
 | M-17 | Новости с аналитикой | Учитель комментирует новости: "Эта атака напоминает Митника..." | roadmap.md:343-344 | ✅ Partially done (база есть, нужен анализ)
 | M-18 | Временная петля / альтернативные реальности | Ветвящиеся сюжеты в story_mode, разные концовки. | roadmap.md:350-352 | Not started |
 | M-19 | Учитель с эмоциями | Сентимент-анализ ответов ученика, изменение тона учителя (обида, радость). | roadmap.md:354-357 | Not started |
 | M-20 | Кроссплатформенная синхронизация | Firebase/custom бэкенд для синхронизации прогресса между ПК, вебом, мобильным. | roadmap.md:358-361 | Not started |
-| M-21 | Rate limiting | Deprecated: см. Q-05. | ЧЕКЛИСТ_2026-03-09.md:92 | Deprecated |
 | M-22 | Sumarization истории | Каждые 20 сообщений сворачивать в краткий вывод через LLM. | ЧЕКЛИСТ_2026-03-09.md:93 | Not started |
 | M-23 | Расширение QUIZ_TOPICS | Добавить cloud, mobile, iot, blockchain. | ЧЕКЛИСТ_2026-03-09.md:93 | Not started |
 | M-24 | Команда /help detail | Подробная справка по каждой команде с примерами. | ЧЕКЛИСТ_2026-03-09.md:90 | ✅ Done |
-| M-25 | Интеграция HackTheBox / TryHackMe | Парсинг API, импорт машин как миссий, синхронизация прогресса. | FUTURE_VISION.md:1 | Not started |
-| M-26 | Пошаговые разборы взлома (Exploit Walkthrough) | После прохождения лаборатории интерактивный разбор: уязвимый код, шаги эксплуатации, root cause, рекомендации. | FUTURE_VISION.md:8 | Not started |
-| M-27 | Приём Proof-of-Concept (PoC) | Замена флагов на скрипты-эксплойты, проверка в песочнице, автоматическая оценка. | FUTURE_VISION.md:15 | Not started |
-| M-28 | Multi-user и таблица лидеров | Регистрация/авторизация, командный режим, ranking по XP. | FUTURE_VISION.md:22 | Not started |
-| M-29 | Instructor Dashboard | Веб-панель для преподавателя: просмотр прогресса класса, создание заданий, экспорт статистики. | FUTURE_VISION.md:30 | Not started |
-| M-30 | Path-based Adaptive Learning | Обучающие треки (Web Security 101), ветвление на основе успехов, рекомендации. | FUTURE_VISION.md:37 | Not started |
-| M-31 | Real-time Hints & Co-pilot | Контекстные подсказки во время лабораторий (на основе ввода), лимит на подсказки. | FUTURE_VISION.md:45 | Not started |
-| M-32 | Bug Bounty Simulation | Симуляция bug bounty: написание отчётов, LLM-рецензирование, награды. | FUTURE_VISION.md:53 | Not started |
-| M-33 | Mobile Companion App | Progressive Web App для квизов и уведомлений, синхронизация. | FUTURE_VISION.md:61 | Not started |
-| M-34 | Advanced Analytics & AI Tutor | Графики прогресса, heatmap, AI-рекомендации, predictive modeling. | FUTURE_VISION.md:69 | Not started |
+
+### Приоритетные (высокий individual impact)
+
+| ID | Задача | Описание | Источник | Статус |
+|----|--------|----------|----------|--------|
+| M-25 | **HackTheBox / TryHackMe Integration** | Парсинг API, импорт машин как миссий, синхронизация прогресса. | FUTURE_VISION.md:1 | Not started |
+| M-26 | **Step-by-Step Exploit Walkthroughs** | После прохождения лаборатории интерактивный разбор: уязвимый код, шаги эксплуатации, root cause, рекомендации. | FUTURE_VISION.md:8 | Not started |
+| M-27 | **Exploit Submission (PoC verification)** | Замена флагов на скрипты-эксплойты, проверка в песочнице, автоматическая оценка. | FUTURE_VISION.md:15 | Not started |
+| M-28 | **Learner Dashboard (личная аналитика)** | Подробные графики: XP over time, success_rate по темам, heatmap активности. | FUTURE_VISION.md:30 | Not started |
+| M-29 | **Path-based Adaptive Learning Tracks** | Обучающие треки (Web Security 101), ветвление на основе успехов, рекомендации. | FUTURE_VISION.md:37 | Not started |
+| M-30 | **Real-time Hints & Co-pilot** | Контекстные подсказки во время лабораторий (на основе ввода), лимит на подсказки. | FUTURE_VISION.md:45 | Not started |
+| M-31 | **Bug Bounty Simulation** | Симуляция bug bounty: написание отчётов, LLM-рецензирование, награды. | FUTURE_VISION.md:53 | Not started |
+| M-32 | **Mobile Companion App (PWA)** | Приложение для квизов и уведомлений, синхронизация прогресса. | FUTURE_VISION.md:61 | Not started |
+| M-33 | **Advanced Analytics & AI Tutor** | Графики прогресса, AI-рекомендации, predictive modeling. | FUTURE_VISION.md:69 | Not started |
+| M-34 | **Voice Assistant (TTS/STT)** | Голосовой ввод/вывод для удобства практики. | FUTURE_VISION.md:76 | Not started |
+
+### Отложено / не для индивидуального использования
+
+| ID | Задача | Причина |
+|----|--------|---------|
+| M-02 | Red vs Blue мультиплеер | Требует multi-user инфраструктуры |
+| M-13 | SCORM / LTI | Интеграция с LMS (для учебных заведений) |
+| M-14 | Плагинная архитектура | Избыточна для одного пользователя |
+| M-15 | Курсы от экспертов | Будет через миссии/треки, а не отдельный контент |
+| M-21 | Rate limiting | Deprecated: см. Q-05 |
+| M-35 | Graceful degradation LLM | Уже сделано в Q-04 через кэш и fallback |
+
 | M-25 | Graceful degradation LLM | Если OpenRouter недоступен, показать "LLM временно недоступна" вместо падения. | ЧЕКЛИСТ_2026-03-09.md:96 | Done |
 | M-26 | Проверка длины ответа LLM | Лимит 2000 символов. | ЧЕКЛИСТ_2026-03-09.md:97 | Done |
 | M-27 | Улучшение новостного парсера | Заменить html.parser на lxml, добавить обработку ошибок. | review_notes.md:245 | Not started |
