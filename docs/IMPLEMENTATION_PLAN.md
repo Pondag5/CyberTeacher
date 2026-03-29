@@ -82,7 +82,7 @@
 | H-04 | Единая сюжетная кампания | Объединить 20 эпизодов в связанную историю с развитием. | fantasy-mao.md:37, roadmap.md:81-82 | ✅ Done (story_mode с последовательной разблокировкой) |
 | H-05 | Редактор миссий | Формат JSON для пользовательских сценариев, валидация, загрузка. | fantasy-mao.md:38, roadmap.md:86-88 | ✅ Done (/missions, /mission start, /mission submit) |
 | H-06 | Интеграция CVE | Команда /cve CVE-2024-1234: описание, эксплойты, рекомендации. Парсить NVD, Exploit-DB. | roadmap.md:291-294 | ✅ Done (/cve with NVD lookup) |
-| H-07 | GitHub / GitLab интеграция | Анализ кода по URL, поиск секретов в истории коммитов, генерация отчёта. | roadmap.md:296-300 | Not started |
+| H-07 | GitHub / GitLab интеграция | Анализ кода по URL, поиск секретов в истории коммитов, генерация отчёта. | roadmap.md:296-300 | ✅ Done (/scan <repo_url>) |
 | H-08 | Telegram / Discord бот | Запуск квизов в чате, уведомления, достижения. | roadmap.md:302-309 | Not started |
 | H-09 | Web UI (Streamlit/Gradio) | Визуализация сети, карта угроз, красивые схемы, загрузка файлов. | fantasy-mao.md:39, roadmap.md:92-95 | Not started |
 | H-10 | Документация (пир接头) | Полные docstrings, Architecture Decision Records, Руководство пользователя. | review_notes.md:6, 334-339 | Not started |
