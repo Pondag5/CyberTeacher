@@ -127,6 +127,16 @@
 | M-22 | Sumarization истории | Каждые 20 сообщений сворачивать в краткий вывод через LLM. | ЧЕКЛИСТ_2026-03-09.md:93 | Not started |
 | M-23 | Расширение QUIZ_TOPICS | Добавить cloud, mobile, iot, blockchain. | ЧЕКЛИСТ_2026-03-09.md:93 | Not started |
 | M-24 | Команда /help detail | Подробная справка по каждой команде с примерами. | ЧЕКЛИСТ_2026-03-09.md:90 | ✅ Done |
+| M-25 | Интеграция HackTheBox / TryHackMe | Парсинг API, импорт машин как миссий, синхронизация прогресса. | FUTURE_VISION.md:1 | Not started |
+| M-26 | Пошаговые разборы взлома (Exploit Walkthrough) | После прохождения лаборатории интерактивный разбор: уязвимый код, шаги эксплуатации, root cause, рекомендации. | FUTURE_VISION.md:8 | Not started |
+| M-27 | Приём Proof-of-Concept (PoC) | Замена флагов на скрипты-эксплойты, проверка в песочнице, автоматическая оценка. | FUTURE_VISION.md:15 | Not started |
+| M-28 | Multi-user и таблица лидеров | Регистрация/авторизация, командный режим, ranking по XP. | FUTURE_VISION.md:22 | Not started |
+| M-29 | Instructor Dashboard | Веб-панель для преподавателя: просмотр прогресса класса, создание заданий, экспорт статистики. | FUTURE_VISION.md:30 | Not started |
+| M-30 | Path-based Adaptive Learning | Обучающие треки (Web Security 101), ветвление на основе успехов, рекомендации. | FUTURE_VISION.md:37 | Not started |
+| M-31 | Real-time Hints & Co-pilot | Контекстные подсказки во время лабораторий (на основе ввода), лимит на подсказки. | FUTURE_VISION.md:45 | Not started |
+| M-32 | Bug Bounty Simulation | Симуляция bug bounty: написание отчётов, LLM-рецензирование, награды. | FUTURE_VISION.md:53 | Not started |
+| M-33 | Mobile Companion App | Progressive Web App для квизов и уведомлений, синхронизация. | FUTURE_VISION.md:61 | Not started |
+| M-34 | Advanced Analytics & AI Tutor | Графики прогресса, heatmap, AI-рекомендации, predictive modeling. | FUTURE_VISION.md:69 | Not started |
 | M-25 | Graceful degradation LLM | Если OpenRouter недоступен, показать "LLM временно недоступна" вместо падения. | ЧЕКЛИСТ_2026-03-09.md:96 | Done |
 | M-26 | Проверка длины ответа LLM | Лимит 2000 символов. | ЧЕКЛИСТ_2026-03-09.md:97 | Done |
 | M-27 | Улучшение новостного парсера | Заменить html.parser на lxml, добавить обработку ошибок. | review_notes.md:245 | Not started |
