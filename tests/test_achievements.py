@@ -21,7 +21,7 @@ class TestAchievements(unittest.TestCase):
     def test_missing_file(self, mock_print):
         # Патчим os.path.exists, чтобы вернуть False
         with patch("handlers.achievements.os.path.exists", return_value=False):
-            action_taken, response, extra, is_json = handle_achievements()
+            action_taken, response, _, _ = handle_achievements()
         self.assertTrue(action_taken)
         self.assertIsNone(response)
         self.assertTrue(mock_print.called)
@@ -49,9 +49,11 @@ class TestAchievements(unittest.TestCase):
             json.dump(data, f)
             tmp_path = f.name
         try:
-            with patch("handlers.achievements.os.path.exists", return_value=True):
-                with patch("builtins.open", mock_open(read_data=json.dumps(data))):
-                    action_taken, response, extra, is_json = handle_achievements()
+            with (
+                patch("handlers.achievements.os.path.exists", return_value=True),
+                patch("builtins.open", mock_open(read_data=json.dumps(data))),
+            ):
+                action_taken, response, _, _ = handle_achievements()
             self.assertTrue(action_taken)
             self.assertTrue(mock_print.called)
         finally:
@@ -80,9 +82,11 @@ class TestAchievements(unittest.TestCase):
             json.dump(data, f)
             tmp_path = f.name
         try:
-            with patch("handlers.achievements.os.path.exists", return_value=True):
-                with patch("builtins.open", mock_open(read_data=json.dumps(data))):
-                    handle_achievements()
+            with (
+                patch("handlers.achievements.os.path.exists", return_value=True),
+                patch("builtins.open", mock_open(read_data=json.dumps(data))),
+            ):
+                handle_achievements()
             # Ожидаем несколько вызовов print (таблица + возможны дополнительные сообщения)
             self.assertGreaterEqual(mock_print.call_count, 2)
         finally:

@@ -382,7 +382,7 @@ class TestHandlersQuiz(unittest.TestCase):
         result = quiz.handle_quiz_action()
 
         mock_generate_quiz.assert_called_once()
-        args, kwargs = mock_generate_quiz.call_args
+        _, kwargs = mock_generate_quiz.call_args
         self.assertEqual(kwargs.get("topic"), "weak_topic")
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)

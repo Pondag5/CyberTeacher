@@ -251,7 +251,7 @@ def get_all_running_labs() -> dict[str, dict]:
 def start_lab(lab_name: str) -> str:
     """Запустить лабораторию"""
     if lab_name not in DOCKER_LABS:
-        return f"❌ Лаборатория '{lab_name}' не найдена. Доступные: {', '.join(DOCKER_LABS.keys())}"
+        return f"❌ Лаборатория '{lab_name}' не найдена. Доступные: {', '.join(DOCKER_LABS)}"
 
     lab = DOCKER_LABS[lab_name]
     net_name = f"{lab_name}-net"
@@ -364,7 +364,7 @@ def list_labs() -> str:
         "api",
     ]
     sorted_cats = sorted(
-        categories.keys(), key=lambda x: cat_order.index(x) if x in cat_order else 99
+        categories, key=lambda x: cat_order.index(x) if x in cat_order else 99
     )
 
     for cat in sorted_cats:

@@ -1,5 +1,6 @@
 """Настройка кодировки консоли для Windows"""
 
+import contextlib
 import io
 import os
 import sys
@@ -14,15 +15,10 @@ def setup_utf8_console() -> None:
     if sys.platform != "win32":
         return
 
-    try:
-        # Меняем кодовую страницу консоли на UTF-8 (65001)
-        # >nul 2>&1 подавляет вывод команды
+    with contextlib.suppress(Exception):
         os.system("chcp 65001 >nul 2>&1")
-    except Exception:
-        pass
 
-    try:
-        # Переупаковываем stdout в UTF-8 с заменой недопустимых символов
+    with contextlib.suppress(Exception):
         if hasattr(sys.stdout, "buffer"):
             sys.stdout = io.TextIOWrapper(
                 sys.stdout.buffer,
@@ -33,6 +29,3 @@ def setup_utf8_console() -> None:
             sys.stderr = io.TextIOWrapper(
                 sys.stderr.buffer, encoding="utf-8", errors="replace"
             )
-    except Exception:
-        # Если не получилось — просто игнорируем
-        pass
