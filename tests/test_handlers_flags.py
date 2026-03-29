@@ -226,9 +226,11 @@ class TestHandlersFlags(unittest.TestCase):
 
         from handlers import flags
 
-        with patch("builtins.open", mock_open(read_data="{invalid")):
-            with patch("json.load", side_effect=json.JSONDecodeError("msg", "doc", 0)):
-                result = flags.handle_flag_check("FLAG{any}")
+        with (
+            patch("builtins.open", mock_open(read_data="{invalid}")),
+            patch("json.load", side_effect=json.JSONDecodeError("msg", "doc", 0)),
+        ):
+            result = flags.handle_flag_check("FLAG{any}")
 
         self.assertEqual(result, (True, None, None, True))
         self.assertTrue(

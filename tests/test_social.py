@@ -25,15 +25,14 @@ class TestSocialCommand(unittest.TestCase):
 
     def test_invalid_scenario_shows_list(self):
         """Неверный сценарий -> вывод списка доступных"""
-        with patch("handlers.social.console") as mock_console:
-            # Имитируем отсутствие LLM
-            with patch("handlers.social.LazyLoader.get_llm", return_value=None):
-                result = handle_social("/social invalid")
-                self.assertEqual(result, (True, None, None, True))
-                printed = " ".join(
-                    str(call) for call in mock_console.print.call_args_list
-                )
-                self.assertIn("Доступные", printed)
+        with (
+            patch("handlers.social.console") as mock_console,
+            patch("handlers.social.LazyLoader.get_llm", return_value=None),
+        ):
+            result = handle_social("/social invalid")
+            self.assertEqual(result, (True, None, None, True))
+            printed = " ".join(str(call) for call in mock_console.print.call_args_list)
+            self.assertIn("Доступные", printed)
 
     def test_success_structure(self):
         """handle_social возвращает правильную структуру tuple"""

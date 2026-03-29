@@ -39,7 +39,7 @@ class TestNumericMenuFix(unittest.TestCase):
 
         self.assertIsNotNone(result, "handle_commands вернул None вместо кортежа")
 
-        continue_loop, _, _, action_taken = result
+        _, _, _, action_taken = result
 
         self.assertTrue(
             action_taken, f"action_taken должен быть True, получили {action_taken}"

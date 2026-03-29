@@ -14,6 +14,7 @@ from ui import Mode, show_help, show_help_detail, show_menu
 
 from .achievements import handle_achievements
 from .flags import handle_flag_check
+from .health import handle_health
 from .misc import (
     _ask_confirm,
     check_open_answer,
@@ -34,7 +35,6 @@ from .misc import (
     handle_version,
     handle_writeup,
 )
-from .health import handle_health
 from .news import get_last_news, handle_security_news
 
 # ----------------------------------------------------------------------

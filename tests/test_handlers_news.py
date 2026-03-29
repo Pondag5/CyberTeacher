@@ -77,7 +77,9 @@ class TestHandlersNews(unittest.TestCase):
         # Create mock LLM instance and a callable that returns it
         mock_llm_instance = MagicMock()
         mock_llm_instance.invoke.return_value = "1. News A - Desc A\n2. News B - Desc B"
-        get_llm_callable = lambda: mock_llm_instance
+
+        def get_llm_callable():
+            return mock_llm_instance
 
         result = news.handle_security_news("", get_llm_callable)
 
@@ -101,7 +103,9 @@ class TestHandlersNews(unittest.TestCase):
 
         mock_llm_instance = MagicMock()
         mock_llm_instance.invoke.side_effect = Exception("LLM error")
-        get_llm_callable = lambda: mock_llm_instance
+
+        def get_llm_callable():
+            return mock_llm_instance
 
         result = news.handle_security_news("", get_llm_callable)
 

@@ -1,7 +1,7 @@
 import json
 import random
 import re
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from config import LazyLoader
@@ -46,7 +46,7 @@ ALLOWED_TOPICS = [
 
 
 class Task:
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         task_id: int,
         question: str,

@@ -190,7 +190,7 @@ def get_learning_context():
 
 
 def get_news_context():
-    global _news_cache
+    global _news_cache  # noqa: PLW0603
     if _news_cache is None:
         try:
             try:

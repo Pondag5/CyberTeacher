@@ -3,7 +3,7 @@
 """
 
 import os
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 
 TERMINAL_LOG_FILE = "./memory/terminal_log.txt"

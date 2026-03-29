@@ -300,6 +300,7 @@ class InstrumentedLLM:
 
     def invoke(self, prompt, **kwargs):
         from time import perf_counter
+
         from state import get_state
 
         start = perf_counter()
@@ -308,13 +309,15 @@ class InstrumentedLLM:
         tokens = None
         try:
             if hasattr(result, "usage_metadata"):
-                meta = getattr(result, "usage_metadata")
+                meta = result.usage_metadata
                 if isinstance(meta, dict):
                     tokens = meta.get("total_tokens")
                 else:
-                    tokens = getattr(meta, "total_tokens", None)
+                    tokens = (
+                        meta.total_tokens if hasattr(meta, "total_tokens") else None
+                    )
             elif hasattr(result, "response_metadata"):
-                meta = getattr(result, "response_metadata")
+                meta = result.response_metadata
                 if isinstance(meta, dict):
                     tokens = meta.get("token_usage", {}).get("total_tokens")
         except Exception:

@@ -53,7 +53,7 @@ class TestAchievements(unittest.TestCase):
                 patch("handlers.achievements.os.path.exists", return_value=True),
                 patch("builtins.open", mock_open(read_data=json.dumps(data))),
             ):
-                action_taken, response, _, _ = handle_achievements()
+                action_taken, _, _, _ = handle_achievements()
             self.assertTrue(action_taken)
             self.assertTrue(mock_print.called)
         finally:

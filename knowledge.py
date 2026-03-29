@@ -9,7 +9,7 @@ import json
 import os
 import shutil
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
@@ -51,7 +51,7 @@ def get_current_vectordb():
 
 def set_current_vectordb(v):
     """set the current vector database."""
-    global _current_vectordb
+    global _current_vectordb  # noqa: PLW0603
     _current_vectordb = v
 
 
@@ -235,7 +235,7 @@ def load_knowledge_base():
 
         if not all_chunks:
             console.print("[yellow]⚠️ No documents loaded[/yellow]")
-            return None if full_rebuild else None  # fallback not needed
+            return None  # fallback not needed
 
         chunk_task = progress.add_task("[green]Splitting complete", total=1)
         progress.console.print(f"[green]✓ Total chunks: {len(all_chunks)}")

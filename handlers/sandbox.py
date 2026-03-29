@@ -185,9 +185,7 @@ def handle_sandbox(action: str, **kwargs) -> tuple[bool, Any, Any, bool]:
         return True, None, None, True
 
     language = parts[0].lower()
-    code = (
-        parts[1] if len(parts) == 2 else parts[1]
-    )  # Если /sandbox python print или /sandbox python "print"
+    code = parts[1]  # initial assignment
     if len(parts) == 3:
         code = parts[2]
 

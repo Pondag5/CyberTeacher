@@ -10,6 +10,7 @@ import random
 import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import ClassVar
 
 TEACHER_PROMPTS_PATH = os.path.join(
     os.path.dirname(__file__), "config", "teacher_prompts.json"
@@ -30,7 +31,7 @@ _TEACHER_PROMPTS = None
 
 
 def get_teacher_prompts():
-    global _TEACHER_PROMPTS
+    global _TEACHER_PROMPTS  # noqa: PLW0603
     if _TEACHER_PROMPTS is None:
         _TEACHER_PROMPTS = load_teacher_prompts()
     return _TEACHER_PROMPTS
@@ -127,7 +128,7 @@ ASSESSMENT_TOPICS = {
 class TeacherPersona:
     @staticmethod
     def get_system_prompt(
-        include_socratic=False, include_thinking=False, style="hybrid"
+        _include_socratic=False, _include_thinking=False, style="hybrid"
     ) -> str:
         # Загружаем из JSON
         prompts = get_teacher_prompts()
@@ -144,7 +145,7 @@ class TeacherPersona:
 
 # === РАЗМЫШЛЕНИЯ ===
 class ThinkingVisualizer:
-    TEMPLATES = {
+    TEMPLATES: ClassVar[dict[str, list[str]]] = {
         "socratic": [
             "🧠 Хмм... {topic}... Давай подумаем вместе...",
             "🧠 Ооо, интересно! А что если посмотреть с другой стороны?",
@@ -175,7 +176,10 @@ class ThinkingVisualizer:
 
     @staticmethod
     def generate_thinking(
-        context: str, question: str, mode: str = "socratic", template_vars: dict = None
+        _context: str,
+        _question: str,
+        mode: str = "socratic",
+        template_vars: dict | None = None,
     ) -> str:
         template_vars = template_vars or {}
         templates = ThinkingVisualizer.TEMPLATES.get(
@@ -253,7 +257,7 @@ class MermaidGenerator:
         return f"```mermaid\nflowchart LR\n    start([Начало])\n{flow}\n    finish([Конец])\n```"
 
     @staticmethod
-    def generate_attack_chain(root, steps):
+    def generate_attack_chain(_root, steps):
         chain = "\n".join([f"    A{i + 1}[{s}] -->" for i, s in enumerate(steps[:-1])])
         # ИСПРАВЛЕНО: streads -> steps
         return f"```mermaid\nflowchart TD\n    Start[Цель] --> A1[{steps[0]}]\n{chain} A{len(steps)}[ФЛАГ]\n```"

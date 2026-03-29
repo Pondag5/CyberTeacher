@@ -237,7 +237,7 @@ class TestHandlersQuiz(unittest.TestCase):
     @patch("handlers.quiz.check_open_answer")
     @patch("builtins.input")
     @patch("handlers.quiz.console.print")
-    def test_handle_quiz_action_open_ended(
+    def test_handle_quiz_action_open_ended(  # noqa: PLR0913
         self,
         mock_print,
         mock_input,
