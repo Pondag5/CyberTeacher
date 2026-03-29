@@ -14,6 +14,7 @@ from ui import Mode, show_help, show_help_detail, show_menu
 
 from .achievements import handle_achievements
 from .flags import handle_flag_check
+from .cve import handle_cve
 from .health import handle_health
 from .missions import handle_missions
 from .network import handle_network
@@ -459,6 +460,8 @@ def handle_extended_commands(
         return handle_equip(action)
     if action == "missions" or action.startswith("mission "):
         return handle_missions(action)
+    if action.startswith("cve "):
+        return handle_cve(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")
