@@ -85,8 +85,9 @@ with tabs[0]:
 with tabs[1]:
     st.header("Визуализация сети (ASCII)")
     try:
-        from practice import DOCKER_LABS as DL
         import subprocess
+
+        from practice import DOCKER_LABS as DL
 
         lines = ["Host (CyberTeacher)"]
         for key, lab in DL.items():
@@ -104,6 +105,7 @@ with tabs[1]:
                     capture_output=True,
                     text=True,
                     timeout=2,
+                    check=False,
                 )
                 running = "Up" in res.stdout
                 if running:
@@ -141,11 +143,12 @@ with tabs[2]:
                             f"{key}-net",
                             *[f"-p{p}:{c}" for p, c in lab["ports"].items()],
                             lab["image"],
-                        ]
+                        ],
+                        check=False,
                     )
                     st.rerun()
                 if st.button(f"Остановить {key}", key=f"stop_{key}"):
-                    subprocess.run(["docker", "stop", container])
+                    subprocess.run(["docker", "stop", container], check=False)
                     st.rerun()
     except Exception as e:
         st.error(e)
@@ -154,7 +157,9 @@ with tabs[3]:
     st.header("Сканирование уязвимостей (CVE)")
     cve_id = st.text_input("CVE ID (например, CVE-2024-1234)").strip()
     if cve_id:
-        import requests, time as _time
+        import time as _time
+
+        import requests
 
         cached = st.session_state.get("cve_cache", {})
         if cve_id in cached and (_time.time() - cached[cve_id][0] < 3600):

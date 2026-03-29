@@ -13,13 +13,11 @@ from state import get_state
 from ui import Mode, show_help, show_help_detail, show_menu
 
 from .achievements import handle_achievements
-from .flags import handle_flag_check
-from .cve import handle_cve
 from .code_scan import handle_code_scan
+from .cve import handle_cve
+from .equipment import handle_equip, handle_tools
+from .flags import handle_flag_check
 from .health import handle_health
-from .missions import handle_missions
-from .network import handle_network
-from .equipment import handle_tools, handle_equip
 from .misc import (
     _ask_confirm,
     check_open_answer,
@@ -40,6 +38,8 @@ from .misc import (
     handle_version,
     handle_writeup,
 )
+from .missions import handle_missions
+from .network import handle_network
 from .news import get_last_news, handle_security_news
 
 # ----------------------------------------------------------------------

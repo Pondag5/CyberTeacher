@@ -4,7 +4,7 @@ from rich.console import Console
 from rich.table import Table
 
 from state import get_state
-from tools_ram import TOOL_RAM_COSTS, MAX_RAM
+from tools_ram import MAX_RAM, TOOL_RAM_COSTS
 
 console = Console()
 

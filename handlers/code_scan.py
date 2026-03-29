@@ -1,5 +1,6 @@
 """Code scan for secrets in GitHub/GitLab repositories"""
 
+import contextlib
 import os
 import re
 import shutil
@@ -106,9 +107,7 @@ def handle_code_scan(action: str) -> tuple[bool, Any | None, Any | None, bool]:
             console.print("[green]✅ Секреты не обнаружены[/green]")
     finally:
         # Cleanup
-        try:
+        with contextlib.suppress(Exception):
             shutil.rmtree(tmpdir)
-        except Exception:
-            pass
 
     return True, None, None, True

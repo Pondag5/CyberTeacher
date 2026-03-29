@@ -132,7 +132,7 @@ def handle_missions(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         return True, None, None, True
 
     cmd = parts[1] if len(parts) >= 2 else "list"
-    if cmd == "list" or cmd == "":
+    if cmd in {"list", ""}:
         _list_missions()
         return True, None, None, True
     elif cmd == "start" and len(parts) >= 3:
