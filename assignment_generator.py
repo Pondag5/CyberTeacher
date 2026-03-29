@@ -214,13 +214,13 @@ class AssignmentGenerator:
             }
         }
 
-        base = templates.get(assignment_type, templates["ctf"]).copy()
+        base = templates.get(_assignment_type, templates["ctf"]).copy()
         base.update(
             {
-                "id": f"{assignment_type}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}",
+                "id": f"{_assignment_type}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}",
                 "topic": topic,
                 "difficulty": difficulty,
-                "type": assignment_type,
+                "type": _assignment_type,
                 "created": datetime.now(UTC).isoformat(),
                 "time_estimate": self._estimate_time(difficulty),
                 "points": self._calculate_points(difficulty),

@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, UTC
 
 from config import DB_FILE
 from ui import console
@@ -19,7 +19,7 @@ def init_db():
 
     # 2. Таблица статистики
     c.execute("""CREATE TABLE IF NOT EXISTS stats
-                 (id INTEGER PRIMARY KEY, 
+                 (id INTEGER PRIMARY KEY,
                   points INTEGER DEFAULT 0,
                   quizzes_passed INTEGER DEFAULT 0,
                   tasks_solved INTEGER DEFAULT 0,
@@ -33,7 +33,7 @@ def init_db():
     if not table_exists:
         # Если таблицы нет — создаем новую
         c.execute("""CREATE TABLE progress
-                     (topic TEXT PRIMARY KEY, 
+                     (topic TEXT PRIMARY KEY,
                       correct INTEGER DEFAULT 0,
                       total INTEGER DEFAULT 0,
                       last_seen TEXT)""")
@@ -68,7 +68,7 @@ def init_db():
     if c.fetchone()[0] == 0:
         c.execute(
             "INSERT INTO stats (points, last_activity) VALUES (0, ?)",
-            (datetime.now().isoformat(),),
+            (datetime.now(UTC).isoformat(),),
         )
 
     conn.commit()
@@ -85,7 +85,7 @@ def save_message(conn, role: str, content: str, mode: str = "teacher"):
     c = conn.cursor()
     c.execute(
         "INSERT INTO messages (role, content, timestamp, mode) VALUES (?, ?, ?, ?)",
-        (role, sanitized_content, datetime.now().isoformat(), mode),
+        (role, sanitized_content, datetime.now(UTC).isoformat(), mode),
     )
     conn.commit()
 
@@ -113,7 +113,7 @@ def clear_chat(conn):
 def update_stats(conn, points: int, field: str = "points"):
     """Обновить статистику"""
     c = conn.cursor()
-    now = datetime.now().isoformat()
+    now = datetime.now(UTC).isoformat()
 
     # ✅ Безопасное обновление - все поля параметризованы
     quizzes_inc = 1 if field == "quizzes_passed" else 0
@@ -143,7 +143,7 @@ def update_topic_progress(conn, topic: str, is_correct: bool):
     c.execute("SELECT correct, total FROM progress WHERE topic = ?", (topic,))
     row = c.fetchone()
 
-    now = datetime.now().isoformat()
+    now = datetime.now(UTC).isoformat()
     correct_inc = 1 if is_correct else 0
 
     if row:
@@ -166,7 +166,7 @@ def get_weak_topics(conn, limit=3):
     c = conn.cursor()
     c.execute(
         """
-        SELECT topic, correct, total FROM progress 
+        SELECT topic, correct, total FROM progress
         WHERE total > 0 AND (CAST(correct AS FLOAT) / total) < 0.6
         ORDER BY (CAST(correct AS FLOAT) / total) ASC
         LIMIT ?
@@ -192,7 +192,7 @@ def get_weak_topics(conn, limit=3):
 def cleanup_expired_cache(conn):
     """Удалить просроченные записи кэша"""
     c = conn.cursor()
-    now = datetime.now().isoformat()
+    now = datetime.now(UTC).isoformat()
     c.execute(
         "DELETE FROM query_cache WHERE expires_at IS NOT NULL AND expires_at < ?",
         (now,),
@@ -210,7 +210,7 @@ def get_cached_response(conn, query_hash: str):
     row = c.fetchone()
     if row:
         response, expires_at = row
-        if expires_at is None or expires_at > datetime.now().isoformat():
+        if expires_at is None or expires_at > datetime.now(UTC).isoformat():
             return response
         # Просрочен — удаляем
         c.execute("DELETE FROM query_cache WHERE query_hash = ?", (query_hash,))
@@ -223,12 +223,12 @@ def cache_response(
 ):
     """Сохранить ответ в кэш с TTL"""
     c = conn.cursor()
-    created_at = datetime.now().isoformat()
+    created_at = datetime.now(UTC).isoformat()
     expires_at = None
     if ttl_seconds:
         from datetime import timedelta
 
-        expires = datetime.now() + timedelta(seconds=ttl_seconds)
+        expires = datetime.now(UTC) + timedelta(seconds=ttl_seconds)
         expires_at = expires.isoformat()
 
     c.execute(
@@ -248,7 +248,7 @@ def get_cache_stats(conn):
     total = c.fetchone()[0]
     c.execute(
         "SELECT count(*) FROM query_cache WHERE expires_at IS NULL OR expires_at > ?",
-        (datetime.now().isoformat(),),
+        (datetime.now(UTC).isoformat(),),
     )
     valid = c.fetchone()[0]
     return {"total": total, "valid": valid, "expired": total - valid}
