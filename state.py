@@ -68,6 +68,9 @@ class AppState:
     cache_misses: int = 0
     start_time: float = field(default_factory=time.time)
 
+    # Rate limiting (Q-05): 10 req/min
+    request_timestamps: list[float] = field(default_factory=list)
+
     # Активное задание (для story/ctf)
     active_assignment: dict[str, Any] | None = None
     collected_flags: list[str] = field(default_factory=list)
@@ -527,6 +530,20 @@ class AppState:
 
         return newly_earned
 
+    # === RATE LIMITING (Q-05) ===
+
+    def can_make_request(self, window_seconds: int = 60, max_requests: int = 10) -> bool:
+        """Check if a new request is allowed within the rate limit."""
+        now = time.time()
+        self.request_timestamps = [
+            ts for ts in self.request_timestamps if now - ts < window_seconds
+        ]
+        return len(self.request_timestamps) < max_requests
+
+    def record_request(self) -> None:
+        """Record that a request was made."""
+        self.request_timestamps.append(time.time())
+
     def save_to_file(self, path: str = "./memory/app_state.json"):
         """Сохранить состояние в файл"""
         import json
@@ -601,6 +618,8 @@ class AppState:
                 "start_time": self.start_time,
             }
         )
+        # Add rate limiting timestamps (Q-05)
+        state_dict["request_timestamps"] = self.request_timestamps
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(state_dict, f, ensure_ascii=False, indent=2)
@@ -659,6 +678,7 @@ class AppState:
                 self.cache_hits = data.get("cache_hits", 0)
                 self.cache_misses = data.get("cache_misses", 0)
                 self.start_time = data.get("start_time", time.time())
+                self.request_timestamps = data.get("request_timestamps", [])
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")

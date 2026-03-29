@@ -410,6 +410,13 @@ def main():
             console.print("[red]❌ Слишком длинный ввод (максимум 2000 символов)[/red]")
             continue
 
+        # Rate limiting (Q-05): максимум 10 запросов в минуту
+        state = get_state()
+        if not state.can_make_request():
+            console.print("[red]❌ Слишком много запросов. Подождите минуту.[/red]")
+            continue
+        state.record_request()
+
         # Отмечаем отправку сообщения в state (для статистики)
         with contextlib.suppress(Exception):
             get_state().send_message()
