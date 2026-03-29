@@ -24,7 +24,7 @@
 |----|--------|----------|----------|--------|
 | Q-01 | Unit tests >70% coverage | Покрыть основные модули (state, handlers, knowledge). | H-11 | ✅ Done (359 tests passing, coverage 73%) |
 | Q-02 | CI/CD GitHub Actions | Автотесты, ruff, mypy на каждый PR/commit. | H-12 | ✅ Done |
-| Q-03 | Ruff + mypy линтинг | Единый стандарт кода, типы. | A-06 | ✅ Done |
+| Q-03 | Ruff + mypy линтинг | Единый стандарт кода, типы. | A-06 | ✅ Done (включено в CI) |
 | Q-04 | Metrics & health checks | Логирование времени ответа, токенов, hit rate кэша. Эндпоинт /health. | H-18 | ✅ Done |
 | Q-05 | Rate limiting | Максимум 10 запросов в минуту к боту. | M-21 | ✅ Done |
 | Q-06 | Бэкапы state/БД | Автоматический бэкап memory/app_state.json, knowledge_base/news_cache.json. | — | ✅ Done |
