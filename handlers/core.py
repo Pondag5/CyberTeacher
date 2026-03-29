@@ -15,6 +15,7 @@ from ui import Mode, show_help, show_help_detail, show_menu
 from .achievements import handle_achievements
 from .flags import handle_flag_check
 from .health import handle_health
+from .missions import handle_missions
 from .network import handle_network
 from .equipment import handle_tools, handle_equip
 from .misc import (
@@ -456,6 +457,8 @@ def handle_extended_commands(
         return handle_tools(action)
     if action.startswith("equip "):
         return handle_equip(action)
+    if action == "missions" or action.startswith("mission "):
+        return handle_missions(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")

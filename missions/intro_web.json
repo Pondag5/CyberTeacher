@@ -1,0 +1,25 @@
+{
+  "id": "intro_web",
+  "title": "Знакомство с веб-уязвимостями",
+  "description": "Исследуйте DVWA, найдите SQLi и XSS, и получите флаги.",
+  "category": "web",
+  "difficulty": 1,
+  "steps": [
+    {
+      "order": 1,
+      "objective": "Найти SQL инъекцию в форме аутентификации",
+      "hint": "Попробуйте ввести ' OR '1'='1 в логин",
+      "flag": "FLAG{SQL_INJECTION_DVWA}",
+      "lab": "dvwa"
+    },
+    {
+      "order": 2,
+      "objective": "Эксплуатаровать XSS для кражи cookie",
+      "hint": "Введите <script>alert(1)</script> в поле комментария",
+      "flag": "FLAG{XSS_COOKIE_DVWA}",
+      "lab": "dvwa"
+    }
+  ],
+  "xp_reward": 150,
+  "time_limit_minutes": 30
+}

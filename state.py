@@ -97,6 +97,10 @@ class AppState:
     trace_deadline: float | None = None
     trace_hint: str | None = None
 
+    # Прогресс миссий (H-05)
+    missions_completed: list[str] = field(default_factory=list)
+    active_mission: str | None = None
+
     # Расписание интервальных повторений (Spaced Repetition)
     # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
     review_schedule: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -659,6 +663,8 @@ class AppState:
             "selected_tools": self.selected_tools,
             "trace_deadline": self.trace_deadline,
             "trace_hint": self.trace_hint,
+            "missions_completed": self.missions_completed,
+            "active_mission": self.active_mission,
         }
         # Add metric fields (Q-04)
         state_dict.update(
@@ -727,6 +733,8 @@ class AppState:
                 self.selected_tools = data.get("selected_tools", [])
                 self.trace_deadline = data.get("trace_deadline")
                 self.trace_hint = data.get("trace_hint")
+                self.missions_completed = data.get("missions_completed", [])
+                self.active_mission = data.get("active_mission")
                 # Метрики (Q-04)
                 self.llm_call_count = data.get("llm_call_count", 0)
                 self.llm_total_time = data.get("llm_total_time", 0.0)
