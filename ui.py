@@ -44,46 +44,52 @@ def show_menu():
   [red]  3[/red]  - CTF режим             [yellow] 4[/yellow] - Викторина (Quiz)
   [magenta]5[/magenta] - Анализ кода (Code Review)
 
-[bold cyan]📊 ИНФОРМАЦИЯ & СПРАВКА (6-14)[/bold cyan]
+[bold cyan]📊 ИНФОРМАЦИЯ & СПРАВКА (6-13)[/bold cyan]
   [cyan] 6[/cyan]  - Новости (News)         [bright_cyan] 7[/bright_cyan] - Достижения (Achievements)
   [bright_green] 8[/bright_green] - Статистика (Stats)  [bright_yellow] 9[/bright_yellow] - Справка (Help)
   [bright_magenta]10[/bright_magenta] - Подробная справка (/help detail)
   [cyan]11[/cyan]  - Гайд по VM (/guide)    [white]12[/white] - Версия (/version)
   [cyan]13[/cyan]  - Показать меню (/menu)
 
-[bold blue]🔧 ПРАКТИКА & КУРСЫ (15-19)[/bold blue]
-  [blue]14[/blue]  - Практика (Practice)     [blue]15[/blue] - Лаборатории (Lab status)
-  [blue]16[/blue]  - Курсы (Courses)        [blue]17[/blue] - Режим истории (Story)
-  [blue]18[/blue]  - Задание (Task)          [blue]19[/blue] - Генератор заданий (/genassignment)
+[bold blue]🔧 ПРАКТИКА & КУРСЫ (14-23)[/bold blue]
+  [blue]14[/blue]  - Практика (Practice)
+  [blue]15[/blue]  - HTB интеграция (/htb)
+  [blue]16[/blue]  - Walkthrough (разбор)
+  [blue]17[/blue]  - Exploit search (/exploit)
+  [blue]18[/blue]  - Лаборатории (/lab)
+  [blue]19[/blue]  - Курсы (Courses)
+  [blue]20[/blue]  - Режим истории (Story)
+  [blue]21[/blue]  - Задание (Task)
+  [blue]22[/blue]  - Генератор заданий (/genassignment)
+  [blue]23[/blue]  - Адаптивные темы (/adaptive)
 
-[bold magenta]⚙️ УПРАВЛЕНИЕ (20-29)[/bold magenta]
-  [magenta]20[/magenta] - Показать провайдера (/provider)
-  [magenta]21[/magenta] - Показать модель (/model)
-  [magenta]22[/magenta] - Лог терминала (/terminal)
-  [magenta]23[/magenta] - Статистика кэша (/cache stats)
-  [magenta]24[/magenta] - Очистить кэш (/clearcache)
-  [magenta]25[/magenta] - Проверить контейнеры (/check)
-  [magenta]26[/magenta] - История чата (/history)
-  [magenta]27[/magenta] - Шаблон writeup (/writeup)
-  [magenta]28[/magenta] - Добавить книгу (/add_book)
-   [magenta]29[/magenta] - Social engineering trainer (/social)
+[bold magenta]⚙️ УПРАВЛЕНИЕ (24-33)[/bold magenta]
+  [magenta]24[/magenta] - Показать провайдера (/provider)
+  [magenta]25[/magenta] - Показать модель (/model)
+  [magenta]26[/magenta] - Лог терминала (/terminal)
+  [magenta]27[/magenta] - Статистика кэша (/cache stats)
+  [magenta]28[/magenta] - Очистить кэш (/clearcache)
+  [magenta]29[/magenta] - Проверить контейнеры (/check)
+  [magenta]30[/magenta] - История чата (/history)
+  [magenta]31[/magenta] - Шаблон writeup (/writeup)
+  [magenta]32[/magenta] - Добавить книгу (/add_book)
+  [magenta]33[/magenta] - Social engineering trainer (/social)
 
-  [bold yellow]🔍 РАЗНОЕ (30-44)[/bold yellow]
-    [yellow]30[/yellow] - Проверить флаг (/flag) [нужен аргумент]
-    [yellow]31[/yellow] - Записать лог (/log <cmd>)
-    [yellow]32[/yellow] - Установить API ключ (/set-api-key)
-    [yellow]33[/yellow] - Умный тест (/smart_test)
-    [yellow]34[/yellow] - Чтение URL (/read_url)
-    [yellow]35[/yellow] - Угрозы (/threats)
-    [yellow]36[/yellow] - Группы APT (/groups)
-    [yellow]37[/yellow] - Сводка угроз (/threat summary)
-    [yellow]38[/yellow] - CVE информация (/cve)
-    [yellow]39[/yellow] - Search (/news search)
-    [yellow]40[/yellow] - Песочница (/sandbox <lang> <code>)
-    [yellow]41[/yellow] - Адаптивные слабые темы (/adaptive)
-    [yellow]42[/yellow] - Повторение (Spaced Repetition) (/repeat)
-    [yellow]43[/yellow] - Генерация конспекта (/summary <тема>)
-    [yellow]44[/yellow] - Авто-writeup (/auto_writeup)
+[bold yellow]🔍 РАЗНОЕ (34-47)[/bold yellow]
+  [yellow]34[/yellow] - Повторение (/repeat)
+  [yellow]35[/yellow] - Генерация конспекта (/summary <тема>)
+  [yellow]36[/yellow] - Авто-writeup (/auto_writeup)
+  [yellow]37[/yellow] - Проверить флаг (/flag) [нужен аргумент]
+  [yellow]38[/yellow] - Записать лог (/log <cmd>)
+  [yellow]39[/yellow] - Установить API ключ (/set-api-key)
+  [yellow]40[/yellow] - Умный тест (/smart_test)
+  [yellow]41[/yellow] - Чтение URL (/read_url)
+  [yellow]42[/yellow] - Угрозы (/threats)
+  [yellow]43[/yellow] - Группы APT (/groups)
+  [yellow]44[/yellow] - Сводка угроз (/threat summary)
+  [yellow]45[/yellow] - CVE информация (/cve)
+  [yellow]46[/yellow] - Search (/news search)
+  [yellow]47[/yellow] - Песочница (/sandbox <lang> <code>)
 
 [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -124,6 +130,9 @@ def show_help():
 
 [bold yellow]🔧 ПРАКТИКА:[/bold yellow]
   /practice    - Практика (CTF/HTB)
+  /htb         - Интеграция HackTheBox (машины, флаги)
+  /walkthrough - Пошаговый разбор эксплойта
+  /exploit     - Поиск эксплойтов по CVE
   /lab         - Docker лаборатории (21 шт.)
   /courses     - Учебные курсы (6 курсов)
   /next        - Следующая тема курса
@@ -254,8 +263,21 @@ def show_help_detail():
 [bold blue]🔧 ПРАКТИКА[/bold blue]
 
 [blue]/practice[/blue] — Практика (CTF/HTB)
-  Список практических заданий с фильтрацией по категориям (Web, Network, Crypto и др.).
-  Пример: /practice
+   Список практических заданий с фильтрацией по категориям (Web, Network, Crypto и др.).
+   Пример: /practice
+
+[blue]/htb[/blue] — Интеграция HackTheBox
+   Работа с HackTheBox: авторизация, просмотр машин, отправка флагов, получение walkthrough.
+   Примеры: /htb login, /htb machines, /htb submit, /htb walkthrough <id>
+   Команды: login, machines, machine <id>, walkthrough <id>, submit <id> <flag>, sync, status
+
+[blue]/walkthrough[/blue] — Пошаговый разбор эксплойта
+   Генерация детального пошагового гайда по эксплуатации уязвимости (SQLi, XSS, Buffer Overflow и т.д.).
+   Пример: /walkthrough SQL Injection
+
+[blue]/exploit[/blue] — Поиск эксплойтов
+   Поиск готовых эксплойтов для CVE. Поддерживает только CVE-ID.
+   Пример: /exploit CVE-2021-44228
 
 [blue]/lab[/blue] — Docker лаборатории
   Управление лабораториями: /lab start <name>, /lab stop <name>, /lab status, /lab list.

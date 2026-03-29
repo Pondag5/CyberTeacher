@@ -112,22 +112,6 @@ class TestHandlersPractice(unittest.TestCase):
 
     @patch("handlers.practice.get_state")
     @patch("handlers.practice.console.print")
-    @patch("practice.get_htb_recommendation")
-    def test_handle_practice_htb(self, mock_htb_rec, mock_print, mock_get_state):
-        """Test /htb shows recommendation"""
-        from handlers import practice
-
-        mock_state = MockState()
-        mock_get_state.return_value = mock_state
-        mock_htb_rec.return_value = "Try these HTB machines..."
-
-        result = practice.handle_practice("htb")
-
-        self.assertEqual(result, (True, None, None, True))
-        mock_print.assert_called_with("Try these HTB machines...")
-
-    @patch("handlers.practice.get_state")
-    @patch("handlers.practice.console.print")
     def test_handle_practice_usage(self, mock_print, mock_get_state):
         """Test /practice with invalid args shows usage"""
         from handlers import practice

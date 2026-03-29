@@ -167,11 +167,11 @@ class TestHandlersCore(unittest.TestCase):
         self.assertTrue(result[0])
         mock_practice.assert_called_once_with("lab start nginx")
 
-    @patch("handlers.core.handle_practice")
-    def test_command_htb(self, mock_practice, mock_print):
+    @patch("handlers.core.handle_htb")
+    def test_command_htb(self, mock_htb, mock_print):
         result = handle_extended_commands("htb", self.mock_llm, self.mock_conn)
         self.assertTrue(result[0])
-        mock_practice.assert_called_once_with("htb")
+        mock_htb.assert_called_once_with("htb")
 
     # --- Courses & story ---
     @patch("handlers.core.handle_course")

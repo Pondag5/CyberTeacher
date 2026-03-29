@@ -101,6 +101,13 @@ class AppState:
     missions_completed: list[str] = field(default_factory=list)
     active_mission: str | None = None
 
+    # HackTheBox интеграция (M-25)
+    htb_email: str | None = None
+    htb_password: str | None = None
+    htb_completed: list[int] = field(
+        default_factory=list
+    )  # список ID завершённых машин
+
     # Расписание интервальных повторений (Spaced Repetition)
     # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
     review_schedule: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -665,6 +672,14 @@ class AppState:
             "trace_hint": self.trace_hint,
             "missions_completed": self.missions_completed,
             "active_mission": self.active_mission,
+            # HackTheBox (M-25)
+            "htb_email": self.htb_email if hasattr(self, "htb_email") else None,
+            "htb_password": self.htb_password
+            if hasattr(self, "htb_password")
+            else None,
+            "htb_completed": self.htb_completed
+            if hasattr(self, "htb_completed")
+            else [],
         }
         # Add metric fields (Q-04)
         state_dict.update(
@@ -735,6 +750,10 @@ class AppState:
                 self.trace_hint = data.get("trace_hint")
                 self.missions_completed = data.get("missions_completed", [])
                 self.active_mission = data.get("active_mission")
+                # HackTheBox (M-25)
+                self.htb_email = data.get("htb_email")
+                self.htb_password = data.get("htb_password")
+                self.htb_completed = data.get("htb_completed", [])
                 # Метрики (Q-04)
                 self.llm_call_count = data.get("llm_call_count", 0)
                 self.llm_total_time = data.get("llm_total_time", 0.0)

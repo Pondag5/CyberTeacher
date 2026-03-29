@@ -46,6 +46,8 @@ from .news import get_last_news, handle_security_news
 # Импорты модулей handlers
 # ----------------------------------------------------------------------
 from .practice import handle_container_check, handle_practice
+from .htb import handle_htb
+from .walkthroughs import handle_walkthrough, handle_exploit_search
 from .quiz import (
     handle_code_review,
     handle_quiz_action,
@@ -374,8 +376,10 @@ def handle_extended_commands(
     # ----- Practice & labs -----
     if action == "practice":
         return handle_practice(action)
-    if action.startswith("lab") or action == "htb":
+    if action.startswith("lab"):
         return handle_practice(action)
+    if action == "htb" or action.startswith("htb "):
+        return handle_htb(action)
 
     # ----- Courses & story -----
     if action == "next":
@@ -441,6 +445,12 @@ def handle_extended_commands(
     # ----- Spaced Repetition -----
     if action == "repeat":
         return handle_repeat(action)
+
+    # ----- Walkthroughs & Exploits (M-26) -----
+    if action == "walkthrough" or action.startswith("walkthrough "):
+        return handle_walkthrough(action)
+    if action == "exploit" or action.startswith("exploit "):
+        return handle_exploit_search(action)
 
     # ----- Summary generation -----
     if action.startswith("summary"):

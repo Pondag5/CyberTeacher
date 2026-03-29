@@ -16,6 +16,10 @@ All notable changes to CyberTeacher project.
 - **H-09** — Web UI (Streamlit): `web_ui.py` dashboard with tabs for system, network, labs, CVE, missions
 - **H-10** — Documentation: full README update, ADRs (5), implementation plan
 
+### Added (Subsequent Features M-25..M-26)
+- **M-25** — HackTheBox integration: `/htb` commands (login, machines, machine details, submit flags, sync, status, walkthrough)
+- **M-26** — Exploit walkthrough system: `/walkthrough <topic>` generates step-by-step exploitation guide; `/exploit <CVE>` searches for exploits
+
 ### Added (Infrastructure & Quality Q-01..Q-08)
 - **Q-01** — Unit tests coverage >70% (359 tests passing, ~73% coverage)
 - **Q-02** — CI/CD (GitHub Actions) with tests, coverage, lint, typecheck

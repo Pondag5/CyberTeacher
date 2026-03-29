@@ -127,8 +127,8 @@
 
 | ID | Задача | Описание | Источник | Статус |
 |----|--------|----------|----------|--------|
-| M-25 | **HackTheBox / TryHackMe Integration** | Парсинг API, импорт машин как миссий, синхронизация прогресса. | FUTURE_VISION.md:1 | Not started |
-| M-26 | **Step-by-Step Exploit Walkthroughs** | После прохождения лаборатории интерактивный разбор: уязвимый код, шаги эксплуатации, root cause, рекомендации. | FUTURE_VISION.md:8 | Not started |
+| M-25 | **HackTheBox / TryHackMe Integration** | Парсинг API, импорт машин как миссий, синхронизация прогресса. | FUTURE_VISION.md:1 | ✅ Done |
+| M-26 | **Step-by-Step Exploit Walkthroughs** | После прохождения лаборатории интерактивный разбор: уязвимый код, шаги эксплуатации, root cause, рекомендации. | FUTURE_VISION.md:8 | ✅ Done |
 | M-27 | **Exploit Submission (PoC verification)** | Замена флагов на скрипты-эксплойты, проверка в песочнице, автоматическая оценка. | FUTURE_VISION.md:15 | Not started |
 | M-28 | **Learner Dashboard (личная аналитика)** | Подробные графики: XP over time, success_rate по темам, heatmap активности. | FUTURE_VISION.md:30 | Not started |
 | M-29 | **Path-based Adaptive Learning Tracks** | Обучающие треки (Web Security 101), ветвление на основе успехов, рекомендации. | FUTURE_VISION.md:37 | Not started |
