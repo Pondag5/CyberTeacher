@@ -10,6 +10,14 @@ from state import get_state
 console = Console()
 
 
+def handle_backup(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+    """Создать бэкап state и news cache."""
+    state = get_state()
+    state.maybe_auto_backup()
+    console.print("[green]✅ Бэкап создан (или актуальный уже существует).[/green]")
+    return True, None, None, True
+
+
 def _ask_confirm(message: str) -> bool:
     try:
         from rich.prompt import Confirm

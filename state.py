@@ -2,8 +2,10 @@
 🔐 Состояние приложения - глобальные переменные в одном месте
 """
 
+import json
 import logging
 import os
+import shutil
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -532,7 +534,9 @@ class AppState:
 
     # === RATE LIMITING (Q-05) ===
 
-    def can_make_request(self, window_seconds: int = 60, max_requests: int = 10) -> bool:
+    def can_make_request(
+        self, window_seconds: int = 60, max_requests: int = 10
+    ) -> bool:
         """Check if a new request is allowed within the rate limit."""
         now = time.time()
         self.request_timestamps = [
@@ -543,6 +547,45 @@ class AppState:
     def record_request(self) -> None:
         """Record that a request was made."""
         self.request_timestamps.append(time.time())
+
+    # === BACKUP (Q-06) ===
+
+    def maybe_auto_backup(
+        self, backup_dir: str = "./backups", max_age_hours: int = 24
+    ) -> None:
+        """Создать бэкап state и news cache, если последний бэкап старше max_age_hours."""
+        os.makedirs(backup_dir, exist_ok=True)
+        # Find latest backup of app_state
+        state_backups = [
+            f
+            for f in os.listdir(backup_dir)
+            if f.startswith("app_state_") and f.endswith(".json")
+        ]
+        latest_state_ts = 0
+        for fname in state_backups:
+            try:
+                # Extract timestamp from filename like app_state_2026-03-29_21-58.json
+                parts = fname.split("_")
+                if len(parts) >= 3:
+                    ts_str = parts[2].replace(".json", "")
+                    ts = time.mktime(time.strptime(ts_str, "%Y-%m-%d_%H-%M"))
+                    latest_state_ts = max(latest_state_ts, ts)
+            except Exception:
+                continue
+        now = time.time()
+        if now - latest_state_ts < max_age_hours * 3600:
+            return  # recent backup exists
+
+        # Create new backup
+        timestamp = time.strftime("%Y-%m-%d_%H-%M")
+        state_src = "./memory/app_state.json"
+        news_src = "./knowledge_base/news_cache.json"
+        if os.path.exists(state_src):
+            dst = os.path.join(backup_dir, f"app_state_{timestamp}.json")
+            shutil.copy2(state_src, dst)
+        if os.path.exists(news_src):
+            dst = os.path.join(backup_dir, f"news_cache_{timestamp}.json")
+            shutil.copy2(news_src, dst)
 
     def save_to_file(self, path: str = "./memory/app_state.json"):
         """Сохранить состояние в файл"""

@@ -342,6 +342,10 @@ def main():
     # Инициализируем лог терминала
     init_terminal_log()
 
+    # Автоматический бэкап при старте (Q-06)
+    state = get_state()
+    state.maybe_auto_backup()
+
     # === PROMPT_TOOLKIT (история команд) ===
     session = None
     have_prompt_toolkit = False

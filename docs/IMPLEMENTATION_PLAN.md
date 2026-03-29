@@ -27,7 +27,7 @@
 | Q-03 | Ruff + mypy линтинг | Единый стандарт кода, типы. | A-06 | ✅ Done |
 | Q-04 | Metrics & health checks | Логирование времени ответа, токенов, hit rate кэша. Эндпоинт /health. | H-18 | ✅ Done |
 | Q-05 | Rate limiting | Максимум 10 запросов в минуту к боту. | M-21 | ✅ Done |
-| Q-06 | Бэкапы state/БД | Автоматический бэкап memory/app_state.json, knowledge_base/news_cache.json. | — | Not started |
+| Q-06 | Бэкапы state/БД | Автоматический бэкап memory/app_state.json, knowledge_base/news_cache.json. | — | ✅ Done |
 | Q-07 | ADRs | Документирование ключевых архитектурных решений в docs/adr/. | M-33 | Not started |
 | Q-08 | Сканирование уязвимостей зависимостей | Запуск pip-audit/safety в CI, блокировать merge при критических уязвимостях. | H-17 | Not started |
 

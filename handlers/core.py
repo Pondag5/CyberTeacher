@@ -21,6 +21,7 @@ from .misc import (
     extract_json_block,
     handle_adaptive,
     handle_add_book,
+    handle_backup,
     handle_course,
     handle_history,
     handle_model,
@@ -445,6 +446,8 @@ def handle_extended_commands(
         return handle_auto_writeup(action)
     if action == "health":
         return handle_health(action)
+    if action == "backup":
+        return handle_backup(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")
