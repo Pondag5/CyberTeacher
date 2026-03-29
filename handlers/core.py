@@ -15,6 +15,7 @@ from ui import Mode, show_help, show_help_detail, show_menu
 from .achievements import handle_achievements
 from .flags import handle_flag_check
 from .health import handle_health
+from .network import handle_network
 from .misc import (
     _ask_confirm,
     check_open_answer,
@@ -448,6 +449,8 @@ def handle_extended_commands(
         return handle_health(action)
     if action == "backup":
         return handle_backup(action)
+    if action == "network":
+        return handle_network(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")
