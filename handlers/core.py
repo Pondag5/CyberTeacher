@@ -1,9 +1,9 @@
 # handlers/core.py
+import contextlib
 import json
 import logging
 import os
 from collections import OrderedDict, deque
-import contextlib
 from typing import Any, Optional
 
 from rich.console import Console

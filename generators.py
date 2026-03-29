@@ -1,7 +1,7 @@
 import json
 import random
 import re
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Any
 
 from config import LazyLoader
@@ -115,7 +115,7 @@ def generate_task(vectordb=None, category=None):
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
             return Task(
-                id=int(datetime.now(timezone.utc).timestamp()),
+                id=int(datetime.now(UTC).timestamp()),
                 question=json_block.get("question", ""),
                 answer=json_block.get("answer", ""),
                 hint=json_block.get("hint", ""),

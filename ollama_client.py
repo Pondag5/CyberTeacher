@@ -93,6 +93,7 @@ class OllamaClient:
                 encoding="utf-8",
                 errors="ignore",
                 timeout=120,
+                check=False,
             )
 
             if result.returncode != 0:

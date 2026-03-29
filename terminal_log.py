@@ -3,7 +3,7 @@
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 TERMINAL_LOG_FILE = "./memory/terminal_log.txt"
@@ -20,7 +20,7 @@ def log_command(command: str, output: str = "", is_input: bool = True):
     """Записать команду в лог (с санитизацией)"""
     from config import sanitize_log
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
     entry = f"\n[{timestamp}] {'>>> ' if is_input else '<<< '}"
     # Санитизируем команду (убираем пароли, ключи)
     sanitized = sanitize_log(command)

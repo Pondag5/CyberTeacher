@@ -9,7 +9,7 @@ import json
 import os
 import shutil
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Any
 
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
@@ -274,7 +274,7 @@ def load_knowledge_base():
         save_metadata(
             {
                 "files": updated_files,
-                "created": datetime.now(timezone.utc).isoformat(),
+                "created": datetime.now(UTC).isoformat(),
                 "total_chunks": total_chunks_final,
             }
         )
@@ -358,7 +358,7 @@ def load_knowledge_base():
         save_metadata(
             {
                 "files": updated_files,
-                "created": datetime.now(timezone.utc).isoformat(),
+                "created": datetime.now(UTC).isoformat(),
                 "total_chunks": total_chunks,
             }
         )

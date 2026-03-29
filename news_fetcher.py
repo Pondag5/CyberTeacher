@@ -5,7 +5,7 @@
 import json
 import logging
 import os
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 import requests
 from bs4 import BeautifulSoup

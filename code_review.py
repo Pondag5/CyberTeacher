@@ -19,7 +19,10 @@ def run_bandit_scan(code: str):
             temp_path = f.name
 
         result = subprocess.run(
-            ["bandit", "-f", "json", "-r", temp_path], capture_output=True, text=True
+            ["bandit", "-f", "json", "-r", temp_path],
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
         if result.stdout:

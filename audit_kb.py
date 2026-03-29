@@ -367,7 +367,7 @@ def audit_file_sizes() -> tuple[list, list, list]:
 
 def generate_report():
     """Сгенерировать полный отчёт по покрытию"""
-    coverage, counts = analyze_coverage()
+    coverage, _ = analyze_coverage()
     good, issues, small = audit_file_sizes()
 
     print("=" * 80)
