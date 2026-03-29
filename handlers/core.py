@@ -16,6 +16,7 @@ from .achievements import handle_achievements
 from .flags import handle_flag_check
 from .health import handle_health
 from .network import handle_network
+from .equipment import handle_tools, handle_equip
 from .misc import (
     _ask_confirm,
     check_open_answer,
@@ -451,6 +452,10 @@ def handle_extended_commands(
         return handle_backup(action)
     if action == "network":
         return handle_network(action)
+    if action == "tools":
+        return handle_tools(action)
+    if action.startswith("equip "):
+        return handle_equip(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")

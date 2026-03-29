@@ -90,6 +90,9 @@ class AppState:
     xp_boost_multiplier: float = 1.0
     xp_boost_expiry: float = 0.0  # timestamp
 
+    # Экипировка (H-02) — выбранные инструменты и их использование RAM
+    selected_tools: list[str] = field(default_factory=list)
+
     # Расписание интервальных повторений (Spaced Repetition)
     # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
     review_schedule: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -649,6 +652,7 @@ class AppState:
             "xp_boost_expiry": self.xp_boost_expiry
             if hasattr(self, "xp_boost_expiry")
             else 0.0,
+            "selected_tools": self.selected_tools,
         }
         # Add metric fields (Q-04)
         state_dict.update(
@@ -714,6 +718,7 @@ class AppState:
                 self.hint_credits = data.get("hint_credits", 0)
                 self.xp_boost_multiplier = data.get("xp_boost_multiplier", 1.0)
                 self.xp_boost_expiry = data.get("xp_boost_expiry", 0.0)
+                self.selected_tools = data.get("selected_tools", [])
                 # Метрики (Q-04)
                 self.llm_call_count = data.get("llm_call_count", 0)
                 self.llm_total_time = data.get("llm_total_time", 0.0)
