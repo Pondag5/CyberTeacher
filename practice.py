@@ -6,8 +6,11 @@ import json
 import random
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass
 from typing import ClassVar, Optional
+
+from state import get_state
 
 # Проверка доступности Docker при импорте
 DOCKER_AVAILABLE = shutil.which("docker") is not None
@@ -312,6 +315,12 @@ def start_lab(lab_name: str) -> str:
             lab["image"],
         ]
     )
+
+    # Установить таймер Trace, если задан лимит времени (H-03)
+    if "time_limit_minutes" in lab:
+        state = get_state()
+        state.trace_deadline = time.time() + lab["time_limit_minutes"] * 60
+        state.trace_hint = lab.get("hint", "Время вышло! Попробуйте другой подход.")
 
     return f"""
 ✅ {lab["name"]} ЗАПУЩЕН!

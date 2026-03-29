@@ -49,6 +49,10 @@ def handle_practice(action: str) -> tuple[bool, Any | None, Any | None, bool]:
             lab_name = parts[2]
             result = stop_lab(lab_name)
             console.print(result)
+            # Сбросить таймер Trace при остановке лабы
+            state = get_state()
+            state.trace_deadline = None
+            state.trace_hint = None
             return True, None, None, True
 
         elif (

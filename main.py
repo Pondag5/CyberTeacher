@@ -3,6 +3,7 @@ import json
 import os
 import random
 import sys
+import time
 
 # Force UTF-8 on Windows
 if sys.platform == "win32":
@@ -420,6 +421,14 @@ def main():
             console.print("[red]❌ Слишком много запросов. Подождите минуту.[/red]")
             continue
         state.record_request()
+
+        # Trace timeout (H-03)
+        if state.trace_deadline is not None and time.time() > state.trace_deadline:
+            console.print("[red]⏰ Время на лабораторию истекло![/red]")
+            if state.trace_hint:
+                console.print(f"[yellow]💡 Подсказка: {state.trace_hint}[/yellow]")
+            state.trace_deadline = None
+            state.trace_hint = None
 
         # Отмечаем отправку сообщения в state (для статистики)
         with contextlib.suppress(Exception):
