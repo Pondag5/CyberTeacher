@@ -33,6 +33,7 @@ from .misc import (
     handle_version,
     handle_writeup,
 )
+from .health import handle_health
 from .news import get_last_news, handle_security_news
 
 # ----------------------------------------------------------------------
@@ -442,6 +443,8 @@ def handle_extended_commands(
     # ----- Auto Writeup -----
     if action == "auto_writeup":
         return handle_auto_writeup(action)
+    if action == "health":
+        return handle_health(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")

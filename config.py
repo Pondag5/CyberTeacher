@@ -286,4 +286,48 @@ NUMERIC_MENU = {
 
 def get_llm():
     """Получить экземпляр LLM (ленивая загрузка)."""
-    return LazyLoader.get_llm()
+    llm = LazyLoader.get_llm()
+    if llm is None:
+        return None
+    return InstrumentedLLM(llm)
+
+
+class InstrumentedLLM:
+    """Wrapper around LLM to record usage metrics."""
+
+    def __init__(self, llm):
+        self._llm = llm
+
+    def invoke(self, prompt, **kwargs):
+        from time import perf_counter
+        from state import get_state
+
+        start = perf_counter()
+        result = self._llm.invoke(prompt, **kwargs)
+        duration = perf_counter() - start
+        tokens = None
+        try:
+            if hasattr(result, "usage_metadata"):
+                meta = getattr(result, "usage_metadata")
+                if isinstance(meta, dict):
+                    tokens = meta.get("total_tokens")
+                else:
+                    tokens = getattr(meta, "total_tokens", None)
+            elif hasattr(result, "response_metadata"):
+                meta = getattr(result, "response_metadata")
+                if isinstance(meta, dict):
+                    tokens = meta.get("token_usage", {}).get("total_tokens")
+        except Exception:
+            tokens = None
+        state = get_state()
+        state.llm_call_count += 1
+        state.llm_total_time += duration
+        if tokens is not None:
+            state.llm_total_tokens += tokens
+        return result
+
+    def __getattr__(self, name):
+        return getattr(self._llm, name)
+
+    def __call__(self, *args, **kwargs):
+        return self.invoke(*args, **kwargs)

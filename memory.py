@@ -202,19 +202,24 @@ def cleanup_expired_cache(conn):
 
 def get_cached_response(conn, query_hash: str):
     """Получить ответ из кэша если не просрочен"""
+    from state import get_state
+
     c = conn.cursor()
     c.execute(
         "SELECT response, expires_at FROM query_cache WHERE query_hash = ?",
         (query_hash,),
     )
     row = c.fetchone()
+    state = get_state()
     if row:
         response, expires_at = row
         if expires_at is None or expires_at > datetime.now(UTC).isoformat():
+            state.cache_hits += 1
             return response
         # Просрочен — удаляем
         c.execute("DELETE FROM query_cache WHERE query_hash = ?", (query_hash,))
         conn.commit()
+    state.cache_misses += 1
     return None
 
 
