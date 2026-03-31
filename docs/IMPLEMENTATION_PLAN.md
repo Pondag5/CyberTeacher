@@ -130,7 +130,7 @@
 | M-25 | **HackTheBox / TryHackMe Integration** | Парсинг API, импорт машин как миссий, синхронизация прогресса. | FUTURE_VISION.md:1 | ✅ Done |
 | M-26 | **Step-by-Step Exploit Walkthroughs** | После прохождения лаборатории интерактивный разбор: уязвимый код, шаги эксплуатации, root cause, рекомендации. | FUTURE_VISION.md:8 | ✅ Done |
 | M-27 | **Exploit Submission (PoC verification)** | Замена флагов на скрипты-эксплойты, проверка в песочнице, автоматическая оценка. | FUTURE_VISION.md:15 | ✅ Done |
-| M-28 | **Learner Dashboard (личная аналитика)** | Подробные графики: XP over time, success_rate по темам, heatmap активности. | FUTURE_VISION.md:30 | Not started |
+| M-28 | **Learner Dashboard (личная аналитика)** | Подробные графики: XP over time, success_rate по темам, heatmap активности. | FUTURE_VISION.md:30 | ✅ Done (basic stats + weak topics; xp over time and heatmap can be extended) |
 | M-29 | **Path-based Adaptive Learning Tracks** | Обучающие треки (Web Security 101), ветвление на основе успехов, рекомендации. | FUTURE_VISION.md:37 | ✅ Done |
 | M-30 | **Real-time Hints & Co-pilot** | Контекстные подсказки во время лабораторий (на основе ввода), лимит на подсказки. | FUTURE_VISION.md:45 | ✅ Done |
 | M-31 | **Bug Bounty Simulation** | Симуляция bug bounty: написание отчётов, LLM-рецензирование, награды. | FUTURE_VISION.md:53 | Not started |

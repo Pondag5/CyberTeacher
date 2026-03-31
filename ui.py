@@ -118,6 +118,7 @@ def show_help():
   /genassignment - Генератор заданий (CTF/лаба)
   /story       - Режим истории (эпизоды)
   /tracks      - Учебные траектории (структурированные пути)
+  /dashboard   - Личный дашборд (аналитика, слабые темы, XP)
   /progress    - Прогресс по активному заданию
 
 [bold magenta]📊 ИНФОРМАЦИЯ:[/bold magenta]
@@ -293,6 +294,10 @@ def show_help_detail():
 [blue]/tracks[/blue] — Учебные траектории
   Структурированные learning paths с последовательными темами, адаптивным подбором и отслеживанием прогресса. Команды: /tracks list, /tracks start <id>, /tracks next, /tracks progress.
   Пример: /tracks list
+
+[blue]/dashboard[/blue] — Личный дашборд
+  Показывает обзор прогресса: XP, статистику, слабые темы, активность по трекам.
+  Пример: /dashboard
 
 [blue]/next[/blue] — Следующая тема курса
   Переход к следующей теме в текущем курсе.

@@ -48,6 +48,7 @@ from .news import get_last_news, handle_security_news
 from .practice import handle_container_check, handle_practice
 from .htb import handle_htb
 from .walkthroughs import handle_walkthrough, handle_exploit_search
+from .dashboard import handle_dashboard
 from .exploit_submit import handle_exploit_submit
 from .hints import handle_hint
 from .tracks import handle_tracks
@@ -448,6 +449,10 @@ def handle_extended_commands(
     # ----- Adaptive learning -----
     if action in {"adaptive", "weaknesses"}:
         return handle_adaptive(action)
+
+    # ----- Learner Dashboard (M-28) -----
+    if action == "dashboard":
+        return handle_dashboard(action)
 
     # ----- Spaced Repetition -----
     if action == "repeat":
