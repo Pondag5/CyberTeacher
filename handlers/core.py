@@ -54,6 +54,7 @@ from .dashboard import handle_dashboard
 from .exploit_submit import handle_exploit_submit
 from .hints import handle_hint
 from .tracks import handle_tracks
+from .analytics import handle_analytics
 from .quiz import (
     handle_code_review,
     handle_quiz_action,
@@ -455,6 +456,16 @@ def handle_extended_commands(
     # ----- Learner Dashboard (M-28) -----
     if action == "dashboard":
         return handle_dashboard(action)
+
+    # ----- Advanced Analytics (M-33) -----
+    if action == "analytics":
+        return handle_analytics(action)
+
+    # ----- Voice Assistant (M-34) -----
+    if action.startswith("voice") or action == "voice":
+        from handlers.voice import handle_voice
+
+        return handle_voice(action, "")
 
     # ----- Spaced Repetition -----
     if action == "repeat":

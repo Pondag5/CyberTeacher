@@ -135,8 +135,8 @@
 | M-30 | **Real-time Hints & Co-pilot** | Контекстные подсказки во время лабораторий (на основе ввода), лимит на подсказки. | FUTURE_VISION.md:45 | ✅ Done |
 | M-31 | **Bug Bounty Simulation** | Симуляция bug bounty: написание отчётов, LLM-рецензирование, награды. | FUTURE_VISION.md:53 | ✅ Done |
 | M-32 | **Mobile Companion App (PWA)** | Приложение для квизов и уведомлений, синхронизация прогресса. | FUTURE_VISION.md:61 | Not started |
-| M-33 | **Advanced Analytics & AI Tutor** | Графики прогресса, AI-рекомендации, predictive modeling. | FUTURE_VISION.md:69 | Not started |
-| M-34 | **Voice Assistant (TTS/STT)** | Голосовой ввод/вывод для удобства практики. | FUTURE_VISION.md:76 | Not started |
+| M-33 | **Advanced Analytics & AI Tutor** | Графики прогресса, AI-рекомендации, predictive modeling. | FUTURE_VISION.md:69 | ✅ Done |
+| M-34 | **Voice Assistant (TTS/STT)** | Голосовой ввод/вывод для удобства практики. | FUTURE_VISION.md:76 | ✅ Done (TTS only, STT optional) |
 
 ### Отложено / не для индивидуального использования
 

@@ -76,7 +76,7 @@ def show_menu():
   [magenta]33[/magenta] - Добавить книгу (/add_book)
   [magenta]34[/magenta] - Social engineering trainer (/social)
 
-[bold yellow]🔍 РАЗНОЕ (35-51)[/bold yellow]
+[bold yellow]🔍 РАЗНОЕ (35-52)[/bold yellow]
   [yellow]35[/yellow] - Повторение (/repeat)
   [yellow]36[/yellow] - Генерация конспекта (/summary <тема>)
   [yellow]37[/yellow] - Авто-writeup (/auto_writeup)
@@ -93,9 +93,11 @@ def show_menu():
   [yellow]48[/yellow] - Песочница (/sandbox <lang> <code>)
   [yellow]49[/yellow] - Подсказки в реальном времени (/hint)
   [yellow]50[/yellow] - Личный дашборд (/dashboard)
-  [yellow]51[/yellow] - Bug Bounty симуляция (/bounty)
+   [yellow]51[/yellow] - Bug Bounty симуляция (/bounty)
+   [yellow]52[/yellow] - Продвинутая аналитика и AI рекомендации (/analytics)
+   [yellow]53[/yellow] - Голосовой помощник (/voice on/off/test)
 
-[bold red]🚪 ВЫХОД[/bold red]
+ [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
 
 [dim]Примечание: Можно также вводить команды со / (например, /news, /provider)[/dim]
@@ -129,9 +131,11 @@ def show_help():
   /cve         - Информация о CVE
   /threats     - APT досье (7 групп)
   /groups      - Группировка APT по странам
-  /threat      - Сводка угроз (недельная)
-  /stats       - Статистика (очки, курсы, флаги)
-  /achievements- Достижения и XP
+   /threat      - Сводка угроз (недельная)
+   /stats       - Статистика (очки, курсы, флаги)
+   /analytics   - Продвинутая аналитика и AI рекомендации (M-33)
+   /voice       - Голосовой помощник (TTS) (M-34)
+   /achievements- Достижения и XP
   /history     - История чата
   /guide       - Гайд по VM (Kali, HTB)
 
@@ -258,6 +262,15 @@ def show_help_detail():
 [green]/achievements[/green] — Достижения
   Просмотр списка достижений и вашего прогресса. Можно получить за сбор флагов, прохождение курсов и т.д.
   Пример: /achievements
+
+[green]/analytics[/green] — Продвинутая аналитика и AI рекомендации (M-33)
+  Расширенная аналитика прогресса: очки, статистика, слабые темы, график успеваемости, AI-рекомендации по обучению на основе метрик.
+  Пример: /analytics
+
+[yellow]/voice[/yellow] — Голосовой помощник (TTS) (M-34)
+  Управление голосовым выводом ответов бота. Включите, чтобы бот зачитывал свои ответы вслух.
+  Команды: /voice on, /voice off, /voice test, /voice status.
+  Пример: /voice on
 
 [blue]/history[/blue] — История чата
   Показать последние сообщения из чата.
@@ -439,7 +452,7 @@ def show_help_detail():
   Выход из приложения. Состояние сохраняется автоматически.
   Пример: /exit
 
-[dim]Примечание: команды можно вводить без косой черты, если это цифра из меню (0-44).[/dim]
+[dim]Примечание: команды можно вводить без косой черты, если это цифра из меню (0-53).[/dim]
 [dim]Команды с аргументами: /flag FLAG{...}, /model qwen2.5:7b, /sandbox python "print('hello')", /summary "SQL инъекции"[/dim]
     """
     console.print(help_detail)

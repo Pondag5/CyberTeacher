@@ -238,6 +238,12 @@ from ui import (
     show_menu,
 )
 
+# Voice Assistant (M-34)
+try:
+    from handlers.voice import speak_if_enabled
+except Exception:
+    speak_if_enabled = None
+
 
 def is_cybersecurity_related(query: str) -> bool:
     return True  # Всегда пропускаем
@@ -600,6 +606,12 @@ def main():
                     full_response += chunk_text
                     console.print(chunk_text, end="")
                 console.print()
+                # Voice output (M-34) - speak the full response if enabled
+                if speak_if_enabled and get_state().voice_enabled:
+                    try:
+                        speak_if_enabled(full_response)
+                    except Exception as e:
+                        logging.getLogger(__name__).error(f"Voice output error: {e}")
         except Exception as e:
             console.print(f"[red]Ошибка: {e}[/red]")
 

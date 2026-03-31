@@ -132,6 +132,11 @@ class AppState:
     last_hint_time: float = 0.0  # timestamp of last hint
     hint_cooldown: int = 30  # seconds between auto-hints
 
+    # Voice Assistant (M-34)
+    voice_enabled: bool = False  # TTS for responses
+    voice_engine: str = "pyttsx3"  # TTS engine
+    voice_rate: int = 200  # words per minute (for pyttsx3)
+
     # Расписание интервальных повторений (Spaced Repetition)
     # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
     review_schedule: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -731,6 +736,14 @@ class AppState:
             "hint_cooldown": self.hint_cooldown
             if hasattr(self, "hint_cooldown")
             else 30,
+            # Voice Assistant (M-34)
+            "voice_enabled": self.voice_enabled
+            if hasattr(self, "voice_enabled")
+            else False,
+            "voice_engine": self.voice_engine
+            if hasattr(self, "voice_engine")
+            else "pyttsx3",
+            "voice_rate": self.voice_rate if hasattr(self, "voice_rate") else 200,
         }
         # Add metric fields (Q-04)
         state_dict.update(
@@ -818,6 +831,10 @@ class AppState:
                 self.hints_used = data.get("hints_used", 0)
                 self.last_hint_time = data.get("last_hint_time", 0.0)
                 self.hint_cooldown = data.get("hint_cooldown", 30)
+                # Voice Assistant (M-34)
+                self.voice_enabled = data.get("voice_enabled", False)
+                self.voice_engine = data.get("voice_engine", "pyttsx3")
+                self.voice_rate = data.get("voice_rate", 200)
                 # Метрики (Q-04)
                 self.llm_call_count = data.get("llm_call_count", 0)
                 self.llm_total_time = data.get("llm_total_time", 0.0)
