@@ -160,6 +160,7 @@ from config import (
     THINKING_ENABLED,
     LazyLoader,
 )
+from handlers.hints import generate_contextual_hint
 from state import get_state
 
 
@@ -429,6 +430,27 @@ def main():
                 console.print(f"[yellow]💡 Подсказка: {state.trace_hint}[/yellow]")
             state.trace_deadline = None
             state.trace_hint = None
+
+        # Real-time hints (M-30): automatic pattern-based hints
+        # Only if hints enabled, not a command (not starting with / or digit), and credits/cooldown allow
+        if (
+            not user_input.startswith("/")
+            and not user_input.isdigit()
+            and state.hint_enabled
+            and state.hints_used < 3
+            and state.hint_credits > 0
+            and time.time() - state.last_hint_time > state.hint_cooldown
+        ):
+            hint = generate_contextual_hint(user_input, state.get_learning_context())
+            if hint:
+                console.print(f"[yellow]💡 Подсказка: {hint}[/yellow]")
+                state.hints_used += 1
+                state.last_hint_time = time.time()
+                # Penalty: reduce points by 10% (minimum 0)
+                state.points = max(0, state.points * 0.9)
+                console.print(
+                    f"[dim]Использовано подсказок: {state.hints_used}/3[/dim]"
+                )
 
         # Отмечаем отправку сообщения в state (для статистики)
         with contextlib.suppress(Exception):

@@ -113,6 +113,13 @@ class AppState:
         default_factory=list
     )  # [{"mission_id": "...", "step_order": 1}, ...]
 
+    # Real-time Hints (M-30)
+    hint_enabled: bool = True  # automatic hints on/off
+    hint_credits: int = 3  # available manual hints
+    hints_used: int = 0  # used in current session/mission
+    last_hint_time: float = 0.0  # timestamp of last hint
+    hint_cooldown: int = 30  # seconds between auto-hints
+
     # Расписание интервальных повторений (Spaced Repetition)
     # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
     review_schedule: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -665,7 +672,7 @@ class AppState:
             "unlocked_topics": self.unlocked_topics
             if hasattr(self, "unlocked_topics")
             else [],
-            "hint_credits": self.hint_credits if hasattr(self, "hint_credits") else 0,
+            "hint_credits": self.hint_credits if hasattr(self, "hint_credits") else 3,
             "xp_boost_multiplier": self.xp_boost_multiplier
             if hasattr(self, "xp_boost_multiplier")
             else 1.0,
@@ -689,6 +696,17 @@ class AppState:
             "exploit_success": self.exploit_success
             if hasattr(self, "exploit_success")
             else [],
+            # Real-time Hints (M-30)
+            "hint_enabled": self.hint_enabled
+            if hasattr(self, "hint_enabled")
+            else True,
+            "hints_used": self.hints_used if hasattr(self, "hints_used") else 0,
+            "last_hint_time": self.last_hint_time
+            if hasattr(self, "last_hint_time")
+            else 0.0,
+            "hint_cooldown": self.hint_cooldown
+            if hasattr(self, "hint_cooldown")
+            else 30,
         }
         # Add metric fields (Q-04)
         state_dict.update(
@@ -765,6 +783,12 @@ class AppState:
                 self.htb_completed = data.get("htb_completed", [])
                 # PoC Verification (M-27)
                 self.exploit_success = data.get("exploit_success", [])
+                # Real-time Hints (M-30)
+                self.hint_enabled = data.get("hint_enabled", True)
+                self.hint_credits = data.get("hint_credits", 3)
+                self.hints_used = data.get("hints_used", 0)
+                self.last_hint_time = data.get("last_hint_time", 0.0)
+                self.hint_cooldown = data.get("hint_cooldown", 30)
                 # Метрики (Q-04)
                 self.llm_call_count = data.get("llm_call_count", 0)
                 self.llm_total_time = data.get("llm_total_time", 0.0)

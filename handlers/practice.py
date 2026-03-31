@@ -33,11 +33,14 @@ def handle_practice(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         ):
             lab_name = parts[2]
             # Отмечаем запуск лаборатории в state (достижение)
-            get_state().start_lab()
+            state = get_state()
+            state.start_lab()
+            # Reset hint counter for new lab session
+            state.hints_used = 0
             result = start_lab(lab_name)
             console.print(result)
             # Проверяем, не заработано ли новое достижение
-            newly_earned = get_state().check_achievements()
+            newly_earned = state.check_achievements()
             if newly_earned:
                 for ach in newly_earned:
                     console.print(

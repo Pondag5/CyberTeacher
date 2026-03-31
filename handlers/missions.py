@@ -91,6 +91,8 @@ def _start_mission(mission_id: str) -> str:
 
     # Set active mission in state
     state.active_mission = mission_id
+    # Reset hint counter for new mission
+    state.hints_used = 0
     # Set trace timer if provided
     if "time_limit_minutes" in data:
         import time as _time

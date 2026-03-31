@@ -75,7 +75,7 @@ def show_menu():
   [magenta]32[/magenta] - Добавить книгу (/add_book)
   [magenta]33[/magenta] - Social engineering trainer (/social)
 
-[bold yellow]🔍 РАЗНОЕ (34-47)[/bold yellow]
+[bold yellow]🔍 РАЗНОЕ (34-48)[/bold yellow]
   [yellow]34[/yellow] - Повторение (/repeat)
   [yellow]35[/yellow] - Генерация конспекта (/summary <тема>)
   [yellow]36[/yellow] - Авто-writeup (/auto_writeup)
@@ -90,6 +90,7 @@ def show_menu():
   [yellow]45[/yellow] - CVE информация (/cve)
   [yellow]46[/yellow] - Search (/news search)
   [yellow]47[/yellow] - Песочница (/sandbox <lang> <code>)
+  [yellow]48[/yellow] - Подсказки в реальном времени (/hint)
 
 [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -369,6 +370,14 @@ def show_help_detail():
 [yellow]/add_book[/yellow] — Добавить PDF в базу знаний
   Загрузка PDF-файла в RAG базу знаний для последующего поиска.
   Пример: /add_book /path/to/book.pdf
+
+[cyan]/hint[/cyan] — Подсказки в реальном времени (M-30)
+  Автоматические контекстные подсказки при вводе команд (nmap, sqlmap и др.). Тратит кредиты и снижает XP.
+  Пример: /hint on|off|status|get|clear
+  • on/off — включить/выключить авто-подсказки
+  • status — статистика
+  • get — получить ручную подсказку
+  • clear — сбросить счётчики
 
 [cyan]/cache stats[/cyan] — Статистика кэша
   Показать hit rate, размер кэша ответов LLM.

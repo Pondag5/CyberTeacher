@@ -49,6 +49,7 @@ from .practice import handle_container_check, handle_practice
 from .htb import handle_htb
 from .walkthroughs import handle_walkthrough, handle_exploit_search
 from .exploit_submit import handle_exploit_submit
+from .hints import handle_hint
 from .quiz import (
     handle_code_review,
     handle_quiz_action,
@@ -474,6 +475,8 @@ def handle_extended_commands(
         return handle_missions(action)
     if action == "exploit_submit" or action.startswith("exploit_submit "):
         return handle_exploit_submit(action)
+    if action == "hint" or action.startswith("hint "):
+        return handle_hint(action)
     if action.startswith("cve "):
         return handle_cve(action)
     if action.startswith("scan "):

@@ -1,0 +1,42 @@
+[
+  {
+    "regex": "['\"]\\s*OR\\s*['\"]?1['\"]?\\s*=\\s*['\"]?1['\"]",
+    "hint": "💡 Попробуй добавить `UNION SELECT` для извлечения данных",
+    "tags": ["sqli"]
+  },
+  {
+    "regex": "nmap\\s+-p-",
+    "hint": "💡 Сканирование всех 65535 портов очень долгое. Уточни диапазон: `-p 1-1000` или используй `-sV` для определения служб",
+    "tags": ["recon"]
+  },
+  {
+    "regex": "sqlmap\\s+-u\\s+\\S+\\s+--dbs",
+    "hint": "💡 Хорошо! После определения БД, используй `--tables` для списка таблиц, затем `--dump` для извлечения данных",
+    "tags": ["sqli"]
+  },
+  {
+    "regex": "gobuster\\s+dir\\s+-u\\s+\\S+\\s+-w\\s+\\S+",
+    "hint": "💡 Если находишь `/admin`, попробуй `/admin.php`, `/admin/login`. Также добавь `-x .php,.txt` для расширений",
+    "tags": ["recon"]
+  },
+  {
+    "regex": "curl\\s+(http|https)://.*\\?id=\\d+",
+    "hint": "💡 Параметр `id` часто уязвим к SQLi. Попробуй `id=1' OR '1'='1`",
+    "tags": ["sqli"]
+  },
+  {
+    "regex": "<\\s*script\\s*>",
+    "hint": "💡 Для XSS попробуй `<script>alert(1)</script>` или `<img src=x onerror=alert(1)>`",
+    "tags": ["xss"]
+  },
+  {
+    "regex": "burp|proxy|intercept",
+    "hint": "💡 Не забудь включить proxying в браузере и forwarded requests в Burp",
+    "tags": ["proxy"]
+  },
+  {
+    "regex": "hydra\\s+-l\\s+\\S+\\s+-P\\s+\\S+\\s+\\S+\\s+\\S+",
+    "hint": "💡 Если brute force не работает, попробуй найти правильный логин через рекогносцировку или используй `--username` для перебора только логинов",
+    "tags": ["bruteforce"]
+  }
+]
