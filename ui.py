@@ -342,6 +342,11 @@ def show_help_detail():
   Проверка флага (например, FLAG{...}) на правильность. Можно использовать в CTF-режиме или в активном задании.
   Пример: /flag FLAG{SQLi_is_awesome}
 
+[magenta]/exploit_submit[/magenta] — Отправить PoC (эксплойт-скрипт)
+  Для миссий, где шаг требует PoC verification. Запускает скрипт в песочнице и проверяет вывод на ожидаемый флаг.
+  Миссия должна иметь step с accepts_exploit: true и exploit_validation.
+  Пример: /exploit_submit intro_web 1 exploit.py
+
 [magenta]/provider[/magenta] — Провайдер LLM
   Показать или сменить провайдера (ollama, openrouter, huggingface).
   Пример: /provider

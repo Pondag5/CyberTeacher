@@ -206,6 +206,33 @@ Algoritmo SuperMemo (упрощённый SM-2) для интервальных 
 
 Использует LLM для генерации, кэшируется 1 час.
 
+### M-27: PoC Verification (`/exploit_submit`)
+Для миссий, которые требуют реального exploitation, а не просто флага:
+- **`/exploit_submit <mission_id> <step_order> <script_path>`** — отправить скрипт-эксплойт
+  - Скрипт запускается в песочнице (Docker, ограничения: 256MB RAM, no network)
+  - Валидация: проверка `stdout`/`stderr`/`exit_code` на ожидаемое значение (флаг)
+  - Шаг миссии должен иметь `accepts_exploit: true` и `exploit_validation` в описании
+  - При успехе шаг отмечается пройденным; afterwards `/mission submit` завершает миссию
+- Замена флагов на PoC исключает читерство и учит писать рабочие эксплойты
+
+Пример миссии (`missions/intro_web.json`):
+```json
+{
+  "steps": [
+    {
+      "order": 1,
+      "objective": "Найти SQL инъекцию...",
+      "flag": "FLAG{...}",
+      "accepts_exploit": true,
+      "exploit_validation": {
+        "type": "stdout_contains",
+        "value": "FLAG{...}"
+      }
+    }
+  ]
+}
+```
+
 ### Fix: Кодировка Windows
 Проблема `UnicodeEncodeError` при выводе эмодзи и спецсимволов решена автоматически:
 - `utils/console_encoding.py` настраивает консоль на UTF-8
@@ -217,7 +244,6 @@ Algoritmo SuperMemo (упрощённый SM-2) для интервальных 
 
 Проект активно развивается. См. [docs/FUTURE_VISION.md](./docs/FUTURE_VISION.md) — 10 ключевых направлений для превращения в полноценную платформу:
 
-- **M-27** Приём Proof-of-Concept (PoC)
 - **M-28** Learner Dashboard (личная аналитика)
 - **M-29** Path-based Adaptive Learning Tracks
 - **M-30** Real-time Hints & Co-pilot
@@ -226,7 +252,7 @@ Algoritmo SuperMemo (упрощённый SM-2) для интервальных 
 - **M-33** Advanced Analytics & AI Tutor
 - **M-34** Voice Assistant (TTS/STT)
 
-✅ Завершено: M-25 (HTB Integration), M-26 (Exploit Walkthroughs).
+✅ Завершено: M-25 (HTB Integration), M-26 (Exploit Walkthroughs), **M-27 (PoC Verification)**.
 
 ---
 
