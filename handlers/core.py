@@ -50,6 +50,7 @@ from .htb import handle_htb
 from .walkthroughs import handle_walkthrough, handle_exploit_search
 from .exploit_submit import handle_exploit_submit
 from .hints import handle_hint
+from .tracks import handle_tracks
 from .quiz import (
     handle_code_review,
     handle_quiz_action,
@@ -390,6 +391,10 @@ def handle_extended_commands(
         return handle_course(action)
     if action in ("story", "episode", "quest"):
         return handle_story_mode(action)
+
+    # ----- Tracks (M-29) -----
+    if action == "tracks" or action.startswith("tracks "):
+        return handle_tracks(action)
 
     # ----- Quiz & tasks -----
     if action == "quiz":

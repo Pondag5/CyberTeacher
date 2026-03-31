@@ -20,6 +20,7 @@ All notable changes to CyberTeacher project.
 - **M-25** — HackTheBox integration: `/htb` commands (login, machines, machine details, submit flags, sync, status, walkthrough)
 - **M-26** — Exploit walkthrough system: `/walkthrough <topic>` generates step-by-step exploitation guide; `/exploit <CVE>` searches for exploits
 - **M-27** — PoC Verification: `/exploit_submit <mission_id> <step_order> <script>` validate exploit script in sandbox; mission steps require `accepts_exploit: true` and define `exploit_validation`. Success recorded in `state.exploit_success`.
+- **M-29** — Path-based Adaptive Learning Tracks: `/tracks` commands (list, start, progress, next, complete, recommend, reset, status). YAML-defined tracks with topics, prerequisites, labs, quizzes. Adaptive selection based on weak_topics. Progress tracking with bonus XP. Includes 4 example tracks (web-fundamentals, network-security, privesc-master, ctf-prep).
 - **M-30** — Real-time Hints: `/hint` (on/off/status/get/clear) with automatic pattern-based detection during input. Configurable patterns in `hints/patterns.json`. Credits (default 3), 10% XP penalty, cooldown 30s, per-session limit 3. Resets on mission/lab start.
 
 ### Added (Infrastructure & Quality Q-01..Q-08)

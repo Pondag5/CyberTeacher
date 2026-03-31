@@ -2,13 +2,12 @@
 🔐 Состояние приложения - глобальные переменные в одном месте
 """
 
-import json
 import logging
 import os
 import shutil
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -112,6 +111,14 @@ class AppState:
     exploit_success: list[dict] = field(
         default_factory=list
     )  # [{"mission_id": "...", "step_order": 1}, ...]
+
+    # Path-based Tracks (M-29)
+    tracks_enrolled: list[str] = field(
+        default_factory=list
+    )  # ID треков, на которые записан пользователь
+    track_progress: dict[str, dict[str, Any]] = field(
+        default_factory=dict
+    )  # {track_id: {"current_topic_idx": 0, "completed_topics": [], "started_at": ts, "completed_at": None}}
 
     # Real-time Hints (M-30)
     hint_enabled: bool = True  # automatic hints on/off
@@ -696,10 +703,18 @@ class AppState:
             "exploit_success": self.exploit_success
             if hasattr(self, "exploit_success")
             else [],
+            # Path-based Tracks (M-29)
+            "tracks_enrolled": self.tracks_enrolled
+            if hasattr(self, "tracks_enrolled")
+            else [],
+            "track_progress": self.track_progress
+            if hasattr(self, "track_progress")
+            else {},
             # Real-time Hints (M-30)
             "hint_enabled": self.hint_enabled
             if hasattr(self, "hint_enabled")
             else True,
+            # "hint_credits": self.hint_credits if hasattr(self, "hint_credits") else 3,  # DUPLICATE - already set in shop section
             "hints_used": self.hints_used if hasattr(self, "hints_used") else 0,
             "last_hint_time": self.last_hint_time
             if hasattr(self, "last_hint_time")
@@ -783,6 +798,9 @@ class AppState:
                 self.htb_completed = data.get("htb_completed", [])
                 # PoC Verification (M-27)
                 self.exploit_success = data.get("exploit_success", [])
+                # Path-based Tracks (M-29)
+                self.tracks_enrolled = data.get("tracks_enrolled", [])
+                self.track_progress = data.get("track_progress", {})
                 # Real-time Hints (M-30)
                 self.hint_enabled = data.get("hint_enabled", True)
                 self.hint_credits = data.get("hint_credits", 3)

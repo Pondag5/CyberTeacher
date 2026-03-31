@@ -1,0 +1,57 @@
+# Network Security Track
+# Сетевая разведка и эксплуатация
+
+id: network-security
+name: Сетевая безопасность
+description: Сканирование сетей, анализ сервисов, эксплуатация SMB/FTP/SSH
+level: intermediate
+adaptive: true
+estimated_hours: 12
+prerequisites:
+  - web-fundamentals  # Лучше иметь базовое понимание уязвимостей
+
+topics:
+  - topic_id: nmap-scanning
+    order: 1
+    title: Nmap Scanning
+    description: Сканирование портов, определение ОС, скрипты NSE
+    required: true
+    quiz_topic: network
+    lab_id: metasploitable2
+    min_score: 75.0
+
+  - topic_id: service-enumeration
+    order: 2
+    title: Enumeration of Services
+    description: Детальный анализ сервисов SMB, FTP, SSH, выяснение пользователей
+    required: true
+    quiz_topic: network
+    lab_id: metasploitable2
+    min_score: 70.0
+
+  - topic_id: smb-exploitation
+    order: 3
+    title: SMB Exploitation
+    description: Атаки на Samba/SMB, null sessions, EternalBlue
+    required: true
+    quiz_topic: windows
+    lab_id: metasploitable2
+    min_score: 70.0
+
+  - topic_id: ftp-bruteforce
+    order: 4
+    title: FTPBruteforce & Anonymous Login
+    description: Подбор учётных данных, анонимный доступ, загрузка файлов
+    required: false
+    quiz_topic: network
+    lab_id: metasploitable2
+    min_score: 65.0
+
+  - topic_id: ssh-attacks
+    order: 5
+    title: SSH Attacks
+    description: Брутфорс, перебор ключей, атаки через known_hosts
+    required: false
+    quiz_topic: linux
+    lab_id: metasploitable2
+    min_score: 65.0

@@ -1,0 +1,63 @@
+# CTF Preparation Track
+# Подготовка к CTF соревнованиям
+
+id: ctf-prep
+name: CTF Starter Pack
+description: Базовые навыки для участия в CTF: веб, стеганография, крипто, forensic
+level: beginner
+adaptive: false  # все темы нужны для CTF
+estimated_hours: 15
+prerequisites: []  # Для новичков
+
+topics:
+  - topic_id: web-ctf-basics
+    order: 1
+    title: Web CTF Basics
+    description: Основные типы веб-задач: SQL, XSS, File Inclusion, LFI/RFI
+    required: true
+    linked_course: web-basics
+    quiz_topic: web
+    lab_id: dvwa
+    min_score: 65.0
+
+  - topic_id: steganography
+    order: 2
+    title: Steganography
+    description: Стеганография в изображениях и аудио: steghide, zsteg, binwalk
+    required: true
+    quiz_topic: ctf
+    lab_id: ctf-starter
+    min_score: 60.0
+
+  - topic_id: crypto-basics
+    order: 3
+    title: Cryptography Basics
+    description: Базовое шифрование, base64, XOR, rot13, шифр Цезаря
+    required: true
+    quiz_topic: crypto
+    min_score: 60.0
+
+  - topic_id: forensic-basics
+    order: 4
+    title: Digital Forensics
+    description: Анализ файлов, strings, hex-edit, EXIF, память
+    required: true
+    quiz_topic: forensic
+    min_score: 60.0
+
+  - topic_id: pwn-basics
+    order: 5
+    title: Binary Exploitation Intro
+    description: Buffer overflow, GDB, NOP sled, shellcode
+    required: false
+    quiz_topic: pwn
+    lab_id: pwnlab
+    min_score: 65.0
+
+  - topic_id: reversing-basics
+    order: 6
+    title: Reverse Engineering Intro
+    description: Дизассемблирование, main, проверка условий, патчинг
+    required: false
+    quiz_topic: reversing
+    min_score: 60.0

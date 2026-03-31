@@ -51,46 +51,47 @@ def show_menu():
   [cyan]11[/cyan]  - Гайд по VM (/guide)    [white]12[/white] - Версия (/version)
   [cyan]13[/cyan]  - Показать меню (/menu)
 
-[bold blue]🔧 ПРАКТИКА & КУРСЫ (14-23)[/bold blue]
+[bold blue]🔧 ПРАКТИКА & ОБУЧЕНИЕ (14-24)[/bold blue]
   [blue]14[/blue]  - Практика (Practice)
   [blue]15[/blue]  - HTB интеграция (/htb)
   [blue]16[/blue]  - Walkthrough (разбор)
   [blue]17[/blue]  - Exploit search (/exploit)
   [blue]18[/blue]  - Лаборатории (/lab)
   [blue]19[/blue]  - Курсы (Courses)
-  [blue]20[/blue]  - Режим истории (Story)
-  [blue]21[/blue]  - Задание (Task)
-  [blue]22[/blue]  - Генератор заданий (/genassignment)
-  [blue]23[/blue]  - Адаптивные темы (/adaptive)
+  [blue]20[/blue]  - Траектории (Tracks)
+  [blue]21[/blue]  - Режим истории (Story)
+  [blue]22[/blue]  - Задание (Task)
+  [blue]23[/blue]  - Генератор заданий (/genassignment)
+  [blue]24[/blue]  - Адаптивные темы (/adaptive)
 
-[bold magenta]⚙️ УПРАВЛЕНИЕ (24-33)[/bold magenta]
-  [magenta]24[/magenta] - Показать провайдера (/provider)
-  [magenta]25[/magenta] - Показать модель (/model)
-  [magenta]26[/magenta] - Лог терминала (/terminal)
-  [magenta]27[/magenta] - Статистика кэша (/cache stats)
-  [magenta]28[/magenta] - Очистить кэш (/clearcache)
-  [magenta]29[/magenta] - Проверить контейнеры (/check)
-  [magenta]30[/magenta] - История чата (/history)
-  [magenta]31[/magenta] - Шаблон writeup (/writeup)
-  [magenta]32[/magenta] - Добавить книгу (/add_book)
-  [magenta]33[/magenta] - Social engineering trainer (/social)
+[bold magenta]⚙️ УПРАВЛЕНИЕ (25-34)[/bold magenta]
+  [magenta]25[/magenta] - Показать провайдера (/provider)
+  [magenta]26[/magenta] - Показать модель (/model)
+  [magenta]27[/magenta] - Лог терминала (/terminal)
+  [magenta]28[/magenta] - Статистика кэша (/cache stats)
+  [magenta]29[/magenta] - Очистить кэш (/clearcache)
+  [magenta]30[/magenta] - Проверить контейнеры (/check)
+  [magenta]31[/magenta] - История чата (/history)
+  [magenta]32[/magenta] - Шаблон writeup (/writeup)
+  [magenta]33[/magenta] - Добавить книгу (/add_book)
+  [magenta]34[/magenta] - Social engineering trainer (/social)
 
-[bold yellow]🔍 РАЗНОЕ (34-48)[/bold yellow]
-  [yellow]34[/yellow] - Повторение (/repeat)
-  [yellow]35[/yellow] - Генерация конспекта (/summary <тема>)
-  [yellow]36[/yellow] - Авто-writeup (/auto_writeup)
-  [yellow]37[/yellow] - Проверить флаг (/flag) [нужен аргумент]
-  [yellow]38[/yellow] - Записать лог (/log <cmd>)
-  [yellow]39[/yellow] - Установить API ключ (/set-api-key)
-  [yellow]40[/yellow] - Умный тест (/smart_test)
-  [yellow]41[/yellow] - Чтение URL (/read_url)
-  [yellow]42[/yellow] - Угрозы (/threats)
-  [yellow]43[/yellow] - Группы APT (/groups)
-  [yellow]44[/yellow] - Сводка угроз (/threat summary)
-  [yellow]45[/yellow] - CVE информация (/cve)
-  [yellow]46[/yellow] - Search (/news search)
-  [yellow]47[/yellow] - Песочница (/sandbox <lang> <code>)
-  [yellow]48[/yellow] - Подсказки в реальном времени (/hint)
+[bold yellow]🔍 РАЗНОЕ (35-49)[/bold yellow]
+  [yellow]35[/yellow] - Повторение (/repeat)
+  [yellow]36[/yellow] - Генерация конспекта (/summary <тема>)
+  [yellow]37[/yellow] - Авто-writeup (/auto_writeup)
+  [yellow]38[/yellow] - Проверить флаг (/flag) [нужен аргумент]
+  [yellow]39[/yellow] - Записать лог (/log <cmd>)
+  [yellow]40[/yellow] - Установить API ключ (/set-api-key)
+  [yellow]41[/yellow] - Умный тест (/smart_test)
+  [yellow]42[/yellow] - Чтение URL (/read_url)
+  [yellow]43[/yellow] - Угрозы (/threats)
+  [yellow]44[/yellow] - Группы APT (/groups)
+  [yellow]45[/yellow] - Сводка угроз (/threat summary)
+  [yellow]46[/yellow] - CVE информация (/cve)
+  [yellow]47[/yellow] - Search (/news search)
+  [yellow]48[/yellow] - Песочница (/sandbox <lang> <code>)
+  [yellow]49[/yellow] - Подсказки в реальном времени (/hint)
 
 [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -116,6 +117,7 @@ def show_help():
   /task        - Практическое задание (открытый ответ)
   /genassignment - Генератор заданий (CTF/лаба)
   /story       - Режим истории (эпизоды)
+  /tracks      - Учебные траектории (структурированные пути)
   /progress    - Прогресс по активному заданию
 
 [bold magenta]📊 ИНФОРМАЦИЯ:[/bold magenta]
@@ -287,6 +289,10 @@ def show_help_detail():
 [blue]/courses[/blue] — Учебные курсы
   Список доступных курсов, прогресс, прохождение тем.
   Пример: /courses
+
+[blue]/tracks[/blue] — Учебные траектории
+  Структурированные learning paths с последовательными темами, адаптивным подбором и отслеживанием прогресса. Команды: /tracks list, /tracks start <id>, /tracks next, /tracks progress.
+  Пример: /tracks list
 
 [blue]/next[/blue] — Следующая тема курса
   Переход к следующей теме в текущем курсе.

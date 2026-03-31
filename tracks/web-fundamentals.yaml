@@ -1,0 +1,63 @@
+# Web Security Fundamentals Track
+# Адаптивный трек для изучения базовых веб-уязвимостей
+
+id: web-fundamentals
+name: Основы веб-безопасности
+description: Изучение 4 основных веб-уязвимостей: SQLi, XSS, CSRF, Command Injection
+level: beginner
+adaptive: true
+estimated_hours: 8
+prerequisites: []  # Можно начинать с нуля
+
+topics:
+  - topic_id: sql-injection
+    order: 1
+    title: SQL Injection
+    description: Инъекции в базы данных, UNION-атаки, извлечение данных
+    required: true
+    linked_course: web-basics
+    linked_topic: sql
+    quiz_topic: sql
+    lab_id: dvwa
+    min_score: 70.0
+
+  - topic_id: xss
+    order: 2
+    title: Cross-Site Scripting (XSS)
+    description: Reflected, Stored, DOM-based XSS, обход фильтров
+    required: true
+    linked_course: web-basics
+    linked_topic: xss
+    quiz_topic: xss
+    lab_id: dvwa
+    min_score: 70.0
+
+  - topic_id: csrf
+    order: 3
+    title: CSRF
+    description: Подделка межсайтовых запросов, токены, SameSite cookie
+    required: true
+    linked_course: web-basics
+    linked_topic: csrf
+    quiz_topic: web
+    lab_id: dvwa
+    min_score: 60.0
+
+  - topic_id: command-injection
+    order: 4
+    title: Command Injection
+    description: Внедрение команд ОС, RCE, блокировка вывода
+    required: false
+    linked_course: web-advanced
+    quiz_topic: command
+    lab_id: dvwa
+    min_score: 65.0
+
+  - topic_id: file-upload
+    order: 5
+    title: Уязвимости загрузки файлов
+    description: Upload shell, обход валидации, double extension
+    required: false
+    linked_course: web-advanced
+    lab_id: dvwa
+    min_score: 65.0
