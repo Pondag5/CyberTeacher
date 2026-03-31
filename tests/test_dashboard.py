@@ -1,4 +1,5 @@
 """Tests for Learner Dashboard (M-28)"""
+# isort: skip_file
 
 import unittest
 from unittest.mock import MagicMock, patch

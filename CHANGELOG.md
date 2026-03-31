@@ -23,6 +23,7 @@ All notable changes to CyberTeacher project.
 - **M-28** — Learner Dashboard: `/dashboard` shows personal analytics (XP, stats, weak topics, track progress, activity counters) in a formatted overview.
 - **M-29** — Path-based Adaptive Learning Tracks: `/tracks` commands (list, start, progress, next, complete, recommend, reset, status). YAML-defined tracks with topics, prerequisites, labs, quizzes. Adaptive selection based on weak_topics. Progress tracking with bonus XP. Includes 4 example tracks (web-fundamentals, network-security, privesc-master, ctf-prep).
 - **M-30** — Real-time Hints: `/hint` (on/off/status/get/clear) with automatic pattern-based detection during input. Configurable patterns in `hints/patterns.json`. Credits (default 3), 10% XP penalty, cooldown 30s, per-session limit 3. Resets on mission/lab start.
+- **M-31** — Bug Bounty Simulation (`/bounty`): Interactive report writing for simulated vulnerabilities. LLM acts as triage reviewer, scores report (0-100), provides feedback, awards XP (base 50 + score*2). Includes 5 scenarios (SQLi, XSS, CSRF, File Upload, IDOR). Learn responsible disclosure and report structure.
 
 ### Added (Infrastructure & Quality Q-01..Q-08)
 - **Q-01** — Unit tests coverage >70% (359 tests passing, ~73% coverage)

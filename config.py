@@ -270,7 +270,7 @@ NUMERIC_MENU = {
     "32": "writeup",  # Шаблон writeup
     "33": "add_book",  # Добавить книгу (интерактивно)
     "34": "social",  # Social engineering trainer
-    # Разное (35-48)
+    # Разное (35-51)
     "35": "repeat",  # Интервальные повторения
     "36": "summary",  # Генерация конспекта
     "37": "auto_writeup",  # Автоматический writeup
@@ -286,6 +286,8 @@ NUMERIC_MENU = {
     "47": "news search",  # Search
     "48": "sandbox",  # Песочница для кода
     "49": "hint",  # Подсказки в реальном времени
+    "50": "dashboard",  # Личный дашборд
+    "51": "bounty",  # Bug Bounty симуляция
 }
 
 

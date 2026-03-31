@@ -162,7 +162,7 @@ class TrackEngine:
         return list(self.tracks.values())
 
     def get_available_tracks(
-        self, completed_tracks: list[str], weak_topics: list[dict] = None
+        self, completed_tracks: list[str], _weak_topics: list[dict] | None = None
     ) -> list[Track]:
         """Получить треки, доступные для прохождения (примитивы выполнены)"""
         available = []
@@ -174,7 +174,7 @@ class TrackEngine:
         return available
 
     def recommend_tracks(
-        self, weak_topics: list[dict], completed_tracks: list[str] = None
+        self, weak_topics: list[dict], completed_tracks: list[str] | None = None
     ) -> list[tuple[Track, float]]:
         """Рекомендовать треки на основе слабых тем.
 
@@ -219,7 +219,11 @@ class TrackEngine:
         return recommendations
 
     def validate_topic_completion(
-        self, track: Track, topic_id: str, score: float = None, min_score: float = None
+        self,
+        track: Track,
+        topic_id: str,
+        score: float | None = None,
+        min_score: float | None = None,
     ) -> bool:
         """Проверить, пройдена ли тема (достигнут ли минимальный балл)"""
         topic = track.get_topic_by_id(topic_id)
@@ -237,7 +241,7 @@ _engine: TrackEngine | None = None
 
 def get_track_engine() -> TrackEngine:
     """Получить глобальный экземпляр TrackEngine (ленивая загрузка)"""
-    global _engine
+    global _engine  # noqa: PLW0603
     if _engine is None:
         _engine = TrackEngine()
     return _engine

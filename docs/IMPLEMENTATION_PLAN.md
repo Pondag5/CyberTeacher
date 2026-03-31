@@ -133,7 +133,7 @@
 | M-28 | **Learner Dashboard (личная аналитика)** | Подробные графики: XP over time, success_rate по темам, heatmap активности. | FUTURE_VISION.md:30 | ✅ Done (basic stats + weak topics; xp over time and heatmap can be extended) |
 | M-29 | **Path-based Adaptive Learning Tracks** | Обучающие треки (Web Security 101), ветвление на основе успехов, рекомендации. | FUTURE_VISION.md:37 | ✅ Done |
 | M-30 | **Real-time Hints & Co-pilot** | Контекстные подсказки во время лабораторий (на основе ввода), лимит на подсказки. | FUTURE_VISION.md:45 | ✅ Done |
-| M-31 | **Bug Bounty Simulation** | Симуляция bug bounty: написание отчётов, LLM-рецензирование, награды. | FUTURE_VISION.md:53 | Not started |
+| M-31 | **Bug Bounty Simulation** | Симуляция bug bounty: написание отчётов, LLM-рецензирование, награды. | FUTURE_VISION.md:53 | ✅ Done |
 | M-32 | **Mobile Companion App (PWA)** | Приложение для квизов и уведомлений, синхронизация прогресса. | FUTURE_VISION.md:61 | Not started |
 | M-33 | **Advanced Analytics & AI Tutor** | Графики прогресса, AI-рекомендации, predictive modeling. | FUTURE_VISION.md:69 | Not started |
 | M-34 | **Voice Assistant (TTS/STT)** | Голосовой ввод/вывод для удобства практики. | FUTURE_VISION.md:76 | Not started |

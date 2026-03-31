@@ -1,4 +1,5 @@
 """Tests for path-based learning tracks (M-29)"""
+# isort: skip_file
 
 import os
 import tempfile
@@ -422,7 +423,7 @@ class TestHandlersTracks(unittest.TestCase):
             "test-track": {"completed_topics": [], "current_topic_idx": 0}
         }
         self.mock_state.learning_context = {"current_track": "test-track"}
-        success, msg, _ = cmd_track_complete_topic("t1")
+        success, _, __ = cmd_track_complete_topic("t1")
         self.assertTrue(success)
         # Check that topic was added to completed list
         self.assertIn(
@@ -476,7 +477,7 @@ class TestHandlersTracks(unittest.TestCase):
 
         self.mock_state.tracks_enrolled = ["test-track"]
         self.mock_state.track_progress = {"test-track": {"current_topic_idx": 1}}
-        success, msg, _ = cmd_track_reset("test-track")
+        success, _, __ = cmd_track_reset("test-track")
         self.assertTrue(success)
         self.assertNotIn("test-track", self.mock_state.tracks_enrolled)
         self.assertNotIn("test-track", self.mock_state.track_progress)

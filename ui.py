@@ -76,7 +76,7 @@ def show_menu():
   [magenta]33[/magenta] - Добавить книгу (/add_book)
   [magenta]34[/magenta] - Social engineering trainer (/social)
 
-[bold yellow]🔍 РАЗНОЕ (35-49)[/bold yellow]
+[bold yellow]🔍 РАЗНОЕ (35-51)[/bold yellow]
   [yellow]35[/yellow] - Повторение (/repeat)
   [yellow]36[/yellow] - Генерация конспекта (/summary <тема>)
   [yellow]37[/yellow] - Авто-writeup (/auto_writeup)
@@ -92,6 +92,8 @@ def show_menu():
   [yellow]47[/yellow] - Search (/news search)
   [yellow]48[/yellow] - Песочница (/sandbox <lang> <code>)
   [yellow]49[/yellow] - Подсказки в реальном времени (/hint)
+  [yellow]50[/yellow] - Личный дашборд (/dashboard)
+  [yellow]51[/yellow] - Bug Bounty симуляция (/bounty)
 
 [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -119,6 +121,7 @@ def show_help():
   /story       - Режим истории (эпизоды)
   /tracks      - Учебные траектории (структурированные пути)
   /dashboard   - Личный дашборд (аналитика, слабые темы, XP)
+  /bounty      - Bug Bounty симуляция (написание отчётов)
   /progress    - Прогресс по активному заданию
 
 [bold magenta]📊 ИНФОРМАЦИЯ:[/bold magenta]
@@ -306,6 +309,10 @@ def show_help_detail():
 [yellow]/adaptive[/yellow] — Адаптивные слабые темы
   Показывает темы, в которых вы допускаете ошибки (успешность <70%). Рекомендуется потренировать их через /quiz.
   Пример: /adaptive
+
+[magenta]/bounty[/magenta] — Bug Bounty симуляция
+  Интерактивное написание отчёта об уязвимости. LLM выступает в роли триage-рецензента, оценивает отчёт и начисляет XP.
+  Пример: /bounty
 
 [yellow]/repeat[/yellow] — Интервальные повторения
   Показывает темы, готовые к повторению (алгоритм SuperMemo SM-2), и запускает квиз для повторения.

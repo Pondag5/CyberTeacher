@@ -120,6 +120,11 @@ class AppState:
         default_factory=dict
     )  # {track_id: {"current_topic_idx": 0, "completed_topics": [], "started_at": ts, "completed_at": None}}
 
+    # Bug Bounty Simulation (M-31)
+    bounty_reports: list[dict[str, Any]] = field(
+        default_factory=list
+    )  # Список отчётов с оценкой и XP
+
     # Real-time Hints (M-30)
     hint_enabled: bool = True  # automatic hints on/off
     hint_credits: int = 3  # available manual hints
@@ -710,6 +715,10 @@ class AppState:
             "track_progress": self.track_progress
             if hasattr(self, "track_progress")
             else {},
+            # Bug Bounty Simulation (M-31)
+            "bounty_reports": self.bounty_reports
+            if hasattr(self, "bounty_reports")
+            else [],
             # Real-time Hints (M-30)
             "hint_enabled": self.hint_enabled
             if hasattr(self, "hint_enabled")
@@ -801,6 +810,8 @@ class AppState:
                 # Path-based Tracks (M-29)
                 self.tracks_enrolled = data.get("tracks_enrolled", [])
                 self.track_progress = data.get("track_progress", {})
+                # Bug Bounty Simulation (M-31)
+                self.bounty_reports = data.get("bounty_reports", [])
                 # Real-time Hints (M-30)
                 self.hint_enabled = data.get("hint_enabled", True)
                 self.hint_credits = data.get("hint_credits", 3)

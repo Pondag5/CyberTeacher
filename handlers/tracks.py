@@ -1,6 +1,7 @@
 """
 🎯 Handlers for path-based learning tracks (M-29)
 """
+# isort: skip_file
 
 import logging
 import time

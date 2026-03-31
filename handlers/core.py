@@ -1,4 +1,5 @@
 # handlers/core.py
+# isort: skip_file
 import contextlib
 import json
 import logging
@@ -48,6 +49,7 @@ from .news import get_last_news, handle_security_news
 from .practice import handle_container_check, handle_practice
 from .htb import handle_htb
 from .walkthroughs import handle_walkthrough, handle_exploit_search
+from .bug_bounty import handle_bounty
 from .dashboard import handle_dashboard
 from .exploit_submit import handle_exploit_submit
 from .hints import handle_hint
@@ -491,6 +493,10 @@ def handle_extended_commands(
         return handle_cve(action)
     if action.startswith("scan "):
         return handle_code_scan(action)
+
+    # ----- Bug Bounty Simulation (M-31) -----
+    if action == "bounty":
+        return handle_bounty(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")
