@@ -233,6 +233,22 @@ Algoritmo SuperMemo (упрощённый SM-2) для интервальных 
 }
 ```
 
+### M-30: Real-time Hints (`/hint`)
+Контекстные подсказки во время выполнения заданий:
+- **Автоматические подсказки** — система анализирует ввод (nmap, sqlmap, curl) и показывает релевантные советы
+- **Команды управления:**
+  - `/hint on|off` — включить/выключить автоматические подсказки
+  - `/hints` — статистика использованных подсказок
+  - `/hint get` — получить ручную подсказку (тратит кредит)
+  - `/hint clear` — сбросить счётчики
+- **Механика:**
+  - 3 кредита на сессию (новые пользователи)
+  - Каждая подсказка снижает XP на 10% (автоматические) или 5% (ручные)
+  - Кулдаун 30 секунд между автоматическими
+  - Сбрасывается при запуске миссии/лаборатории
+- **Конфигурация паттернов:** `hints/patterns.json` — можно добавлять свои regex и советы
+- **Цель:** помогать, когда застрял, но поощрять самостоятельное мышление через лимиты и штрафы
+
 ### Fix: Кодировка Windows
 Проблема `UnicodeEncodeError` при выводе эмодзи и спецсимволов решена автоматически:
 - `utils/console_encoding.py` настраивает консоль на UTF-8
@@ -246,13 +262,12 @@ Algoritmo SuperMemo (упрощённый SM-2) для интервальных 
 
 - **M-28** Learner Dashboard (личная аналитика)
 - **M-29** Path-based Adaptive Learning Tracks
-- **M-30** Real-time Hints & Co-pilot
 - **M-31** Bug Bounty Simulation
 - **M-32** Mobile Companion App (PWA)
 - **M-33** Advanced Analytics & AI Tutor
 - **M-34** Voice Assistant (TTS/STT)
 
-✅ Завершено: M-25 (HTB Integration), M-26 (Exploit Walkthroughs), **M-27 (PoC Verification)**.
+✅ Завершено: M-25 (HTB Integration), M-26 (Exploit Walkthroughs), **M-27 (PoC Verification)**, **M-30 (Real-time Hints)**.
 
 ---
 

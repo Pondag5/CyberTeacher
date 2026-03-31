@@ -16,10 +16,11 @@ All notable changes to CyberTeacher project.
 - **H-09** — Web UI (Streamlit): `web_ui.py` dashboard with tabs for system, network, labs, CVE, missions
 - **H-10** — Documentation: full README update, ADRs (5), implementation plan
 
-### Added (Subsequent Features M-25..M-27)
+### Added (Subsequent Features M-25..M-30)
 - **M-25** — HackTheBox integration: `/htb` commands (login, machines, machine details, submit flags, sync, status, walkthrough)
 - **M-26** — Exploit walkthrough system: `/walkthrough <topic>` generates step-by-step exploitation guide; `/exploit <CVE>` searches for exploits
 - **M-27** — PoC Verification: `/exploit_submit <mission_id> <step_order> <script>` validate exploit script in sandbox; mission steps require `accepts_exploit: true` and define `exploit_validation`. Success recorded in `state.exploit_success`.
+- **M-30** — Real-time Hints: `/hint` (on/off/status/get/clear) with automatic pattern-based detection during input. Configurable patterns in `hints/patterns.json`. Credits (default 3), 10% XP penalty, cooldown 30s, per-session limit 3. Resets on mission/lab start.
 
 ### Added (Infrastructure & Quality Q-01..Q-08)
 - **Q-01** — Unit tests coverage >70% (359 tests passing, ~73% coverage)
