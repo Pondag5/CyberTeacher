@@ -48,6 +48,7 @@ from .news import get_last_news, handle_security_news
 from .practice import handle_container_check, handle_practice
 from .htb import handle_htb
 from .walkthroughs import handle_walkthrough, handle_exploit_search
+from .exploit_submit import handle_exploit_submit
 from .quiz import (
     handle_code_review,
     handle_quiz_action,
@@ -471,6 +472,8 @@ def handle_extended_commands(
         return handle_equip(action)
     if action == "missions" or action.startswith("mission "):
         return handle_missions(action)
+    if action == "exploit_submit" or action.startswith("exploit_submit "):
+        return handle_exploit_submit(action)
     if action.startswith("cve "):
         return handle_cve(action)
     if action.startswith("scan "):

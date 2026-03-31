@@ -109,9 +109,26 @@ def _submit_mission(mission_id: str) -> str:
     if mission_id in (getattr(state, "missions_completed", [])):
         return f"[yellow]Миссия '{mission_id}' уже завершена[/yellow]"
 
-    # Check flags (here we just simulate by asking console? In real, flags would be submitted via /flag. For simplicity, we mark complete immediately.)
-    # For now, auto-complete (or later we can verify flags were collected via state.collected_flags)
-    # Assume success
+    # Check PoC steps if any
+    steps = data.get("steps", [])
+    exploit_steps = [s for s in steps if s.get("accepts_exploit", False)]
+    if exploit_steps:
+        # Verify all exploit steps are completed
+        for step in exploit_steps:
+            order = step.get("order")
+            success_entry = next(
+                (
+                    d
+                    for d in getattr(state, "exploit_success", [])
+                    if d.get("mission_id") == mission_id
+                    and d.get("step_order") == order
+                ),
+                None,
+            )
+            if not success_entry:
+                return f"[red]❌ Шаг {order} не пройден через /exploit_submit. Используйте /exploit_submit <mission_id> {order} <script>[/red]"
+
+    # All checks passed, complete mission
     if not hasattr(state, "missions_completed"):
         state.missions_completed = []
     state.missions_completed.append(mission_id)

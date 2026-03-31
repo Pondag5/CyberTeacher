@@ -10,14 +10,24 @@
       "objective": "Найти SQL инъекцию в форме аутентификации",
       "hint": "Попробуйте ввести ' OR '1'='1 в логин",
       "flag": "FLAG{SQL_INJECTION_DVWA}",
-      "lab": "dvwa"
+      "lab": "dvwa",
+      "accepts_exploit": true,
+      "exploit_validation": {
+        "type": "stdout_contains",
+        "value": "FLAG{SQL_INJECTION_DVWA}"
+      }
     },
     {
       "order": 2,
       "objective": "Эксплуатаровать XSS для кражи cookie",
       "hint": "Введите <script>alert(1)</script> в поле комментария",
       "flag": "FLAG{XSS_COOKIE_DVWA}",
-      "lab": "dvwa"
+      "lab": "dvwa",
+      "accepts_exploit": true,
+      "exploit_validation": {
+        "type": "stdout_contains",
+        "value": "FLAG{XSS_COOKIE_DVWA}"
+      }
     }
   ],
   "xp_reward": 150,

@@ -108,6 +108,11 @@ class AppState:
         default_factory=list
     )  # список ID завершённых машин
 
+    # PoC Verification (M-27)
+    exploit_success: list[dict] = field(
+        default_factory=list
+    )  # [{"mission_id": "...", "step_order": 1}, ...]
+
     # Расписание интервальных повторений (Spaced Repetition)
     # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
     review_schedule: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -680,6 +685,10 @@ class AppState:
             "htb_completed": self.htb_completed
             if hasattr(self, "htb_completed")
             else [],
+            # PoC Verification (M-27)
+            "exploit_success": self.exploit_success
+            if hasattr(self, "exploit_success")
+            else [],
         }
         # Add metric fields (Q-04)
         state_dict.update(
@@ -754,6 +763,8 @@ class AppState:
                 self.htb_email = data.get("htb_email")
                 self.htb_password = data.get("htb_password")
                 self.htb_completed = data.get("htb_completed", [])
+                # PoC Verification (M-27)
+                self.exploit_success = data.get("exploit_success", [])
                 # Метрики (Q-04)
                 self.llm_call_count = data.get("llm_call_count", 0)
                 self.llm_total_time = data.get("llm_total_time", 0.0)
