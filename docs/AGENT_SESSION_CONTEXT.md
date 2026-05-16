@@ -71,16 +71,16 @@
 
 ## 📊 TEST STATUS
 
-- **Total:** 844 tests
-- **Passing:** 839
+- **Total:** 851 tests
+- **Passing:** 846
 - **Failing:** 1 (Ollama not running — environment)
 - **Skipped:** 4 (external services)
 - **Coverage:** ~95%+ (all handlers covered)
 
-### Recent Test Additions (14 tests)
+### Recent Test Additions (7 tests)
 | File | Tests | Coverage |
 |------|-------|----------|
-| `test_di.py` | 14 | DI container, AppContext, @inject decorator |
+| `test_web_ui.py` | 7 | Web UI helper functions (XP history, heatmap) |
 
 ---
 
@@ -89,9 +89,9 @@
 | Priority | ID | Task | Notes |
 |----------|----|------|-------|
 | 🟡 Medium | REF-04 | Dependency Injection (phase 2) | Migrate handlers to use ctx.state instead of get_state() |
-| 🟡 Medium | M-28 | Web UI: XP graphs, heatmap | Streamlit enhancement |
 | 🟢 Low | L-07 | Translate comments to English | Open-source readiness |
 | 🟡 Medium | Q-02 | Coverage >90% | ✅ DONE — ~95% reached, all handlers covered |
+| ✅ Done | M-28 | Web UI: XP graphs, heatmap | ✅ DONE — Enhanced dashboard with 6 tabs |
 
 ---
 
