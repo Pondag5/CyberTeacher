@@ -19,7 +19,7 @@
 
 ## ✅ COMPLETED (ALL PUSHED TO `main`)
 
-### Refactoring (REF-05 — REF-15)
+### Refactoring (REF-05 — REF-15, REF-04 phase 1)
 | ID | Task | Status |
 |----|------|--------|
 | REF-05 | Mode enum → `shared_types.py` | ✅ |
@@ -32,6 +32,7 @@
 | REF-13 | 10 state modules → 4 consolidated | ✅ |
 | REF-14 | Pydantic Settings | ✅ |
 | REF-15 | Business logic → services | ✅ |
+| REF-04 | Dependency Injection (phase 1) | ✅ Container created, phase 2 pending |
 
 ### i18n Localization
 | Feature | Files |
@@ -41,6 +42,15 @@
 | `/lang` command | `handlers/lang.py` |
 | Teacher prompts | `config/teacher_prompts.json` (ru + en) |
 | Language field | `settings_state.py` |
+
+### Dependency Injection (REF-04)
+| Component | Status |
+|-----------|--------|
+| `di.py` — AppContext container | ✅ Created |
+| `@inject` decorator | ✅ Created |
+| `get_context()/set_context()` | ✅ Created |
+| `handlers/core.py` — Context initialization | ✅ Migrated |
+| Handler migration (phase 2) | ⏳ Pending |
 
 ### New Tests (64 total this session)
 | File | Tests | Coverage |
@@ -61,20 +71,16 @@
 
 ## 📊 TEST STATUS
 
-- **Total:** 830 tests
-- **Passing:** 825
+- **Total:** 844 tests
+- **Passing:** 839
 - **Failing:** 1 (Ollama not running — environment)
 - **Skipped:** 4 (external services)
 - **Coverage:** ~95%+ (all handlers covered)
 
-### Recent Test Additions (112 tests)
+### Recent Test Additions (14 tests)
 | File | Tests | Coverage |
 |------|-------|----------|
-| `test_batch1_handlers.py` | 22 | daily, network, equipment, mermaid, mindmap |
-| `test_batch2_handlers.py` | 24 | htb, walkthroughs, exploit_submit, code_scan, docker_gen |
-| `test_batch3_handlers.py` | 24 | emotions, subscribe, telegram_bot, vision, kb_manager |
-| `test_batch4_handlers.py` | 17 | api_handler, async_handler, registry, export_extended, summarize |
-| `test_batch5_handlers.py` | 25 | assignment_templates, threats |
+| `test_di.py` | 14 | DI container, AppContext, @inject decorator |
 
 ---
 
@@ -82,9 +88,9 @@
 
 | Priority | ID | Task | Notes |
 |----------|----|------|-------|
-| 🟡 Medium | REF-04 | Dependency Injection | Replace `get_state()` singleton |
-| 🟢 Low | L-07 | Translate comments to English | Open-source readiness |
+| 🟡 Medium | REF-04 | Dependency Injection (phase 2) | Migrate handlers to use ctx.state instead of get_state() |
 | 🟡 Medium | M-28 | Web UI: XP graphs, heatmap | Streamlit enhancement |
+| 🟢 Low | L-07 | Translate comments to English | Open-source readiness |
 | 🟡 Medium | Q-02 | Coverage >90% | ✅ DONE — ~95% reached, all handlers covered |
 
 ---
@@ -93,10 +99,11 @@
 
 1. **State:** `get_state()` → singleton `AppState` with 4 Pydantic modules
 2. **Config:** `get_settings()` → singleton `Settings` (pydantic-settings)
-3. **Services:** Pure functions, no state mutation
-4. **Tests:** `unittest.mock` for `get_state()` and `console`
-5. **i18n:** `t(lang, 'ui.key')` for translations
-6. **Language:** Code in English, docs/comments in Russian
+3. **DI:** `get_context()` → `AppContext` with state, settings, db_conn, llm, kb
+4. **Services:** Pure functions, no state mutation
+5. **Tests:** `unittest.mock` for `get_state()` and `console`
+6. **i18n:** `t(lang, 'ui.key')` for translations
+7. **Language:** Code in English, docs/comments in Russian
 
 ---
 
@@ -106,8 +113,9 @@
 |------|---------|
 | `state.py` | Core state orchestration |
 | `settings.py` | Typed configuration |
+| `di.py` | Dependency injection container |
 | `i18n.py` | Localization engine |
-| `handlers/core.py` | Command dispatcher |
+| `handlers/core.py` | Command dispatcher (DI initialized) |
 | `handlers/lang.py` | Language switching |
 | `services/` | Business logic |
 | `locales/` | Translation files |
@@ -124,10 +132,9 @@
 
 ## 🔄 NEXT STEPS
 
-1. Add tests for remaining 20 handlers → 90% coverage
-2. REF-04: Dependency Injection (large refactor)
-3. M-28: Web UI enhancements
-4. L-07: Translate comments to English
+1. REF-04 phase 2: Migrate handlers to use `ctx.state` instead of `get_state()`
+2. M-28: Web UI enhancements (XP graphs, heatmap)
+3. L-07: Translate comments to English
 
 ---
 
