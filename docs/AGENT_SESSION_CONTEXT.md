@@ -1,6 +1,6 @@
 # 📌 AGENT SESSION CONTEXT — CyberTeacher
 
-> **Updated:** 2026-05-16  
+> **Updated:** 2026-05-17  
 > **Purpose:** Compressed session state for agent continuity.
 
 ---
@@ -12,7 +12,7 @@
 - **RAG:** Chroma + sentence-transformers
 - **UI:** Rich (CLI) + Streamlit (Web)
 - **DB:** SQLite
-- **Tests:** unittest (851 tests, 846 passing)
+- **Tests:** unittest (851 tests, 850 passing)
 - **Coverage:** ~95%+ (all handlers covered)
 
 ---
@@ -53,10 +53,21 @@
 - `get_context()/set_context()/reset_context()` for lifecycle
 - `handlers/core.py` — Context initialized in `handle_commands()`
 
+### REF-04 Phase 2 — DI Migration (IN PROGRESS)
+Мигрировано 12 обработчиков с `get_state()` → `get_context().state`:
+- `health.py`, `theme.py`, `profile.py`
+- `lang.py`, `daily.py`, `news.py`
+- `quiz.py`, `skills.py`, `config.py`
+- `features.py`, `ctf_flags.py`, `emotions.py`
+
+Осталось мигрировать ~41 обработчик:
+`analytics`, `bug_bounty`, `dashboard`, `equipment`, `hints`, `htb`, `missions`, `network`, `phishing`, `shop`, `social`, `voice`, `writeup_auto`, `sync`, `media`, `jupyter`, `investigation`, `malware_analysis`, `exploit_trainer`, `history`, `osint`, `misc`, `mermaid`, `summarize`, `tracks`, `practice`, `exploit_submit`, `code_scan`, `cve`, `flags`, `achievements`, `threats`, `assignment_templates`, `export_extended`, `timeloop`, `voice_stt`, `shodan_censys`, `subscribe`, `core` (частично)
+
 ### Tests (851 total)
-- All 60+ handlers covered (100% handler coverage)
-- Services, settings, DI, web_ui tested
-- ~95%+ overall coverage
+- Все 60+ обработчиков покрыты (100% handler coverage)
+- Services, settings, DI, web_ui протестированы
+- ~95%+ общее покрытие
+- 850 passing, 1 env error, 4 skipped
 
 ---
 
@@ -64,7 +75,7 @@
 
 | Priority | ID | Task | Notes |
 |----------|----|------|-------|
-| 🟡 Medium | REF-04 | DI Phase 2 | Migrate handlers: `get_state()` → `ctx.state` |
+| 🟡 Medium | REF-04 | DI Phase 2 | ~41 handlers: `get_state()` → `ctx.state` |
 | 🟢 Low | L-07 | Translate comments | English for open-source |
 
 ---
@@ -75,7 +86,7 @@
 2. **Config:** `get_settings()` → singleton `Settings` (pydantic-settings)
 3. **DI:** `get_context()` → `AppContext` with state, settings, db_conn, llm, kb
 4. **Services:** Pure functions, no state mutation
-5. **Tests:** `unittest.mock` for `get_state()` and `console`
+5. **Tests:** `unittest.mock` for `get_context()` and `console`
 6. **i18n:** `t(lang, 'ui.key')` for translations
 7. **Language:** Code in English, docs/comments in Russian
 
@@ -107,7 +118,7 @@
 
 ## 🔄 NEXT STEPS
 
-1. REF-04 Phase 2: Migrate handlers to use `ctx.state` instead of `get_state()`
+1. REF-04 Phase 2: Migrate remaining ~41 handlers to use `ctx.state` instead of `get_state()`
 2. L-07: Translate comments to English
 
 ---
