@@ -2,34 +2,40 @@
 Achievements, XP, and progress tracking.
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field, field_validator, model_validator
 import time
 
 
-@dataclass
-class AchievementsState:
+class AchievementsState(BaseModel):
     """Achievements, XP, and progress tracking."""
-    
+
     # Статистика для достижений
-    total_flags_collected: int = 0
-    assignments_completed: int = 0
-    labs_started: int = 0
-    quizzes_taken: int = 0
-    news_checked: int = 0
-    messages_sent: int = 0
-    earned_achievements: List[str] = field(default_factory=list)
+    total_flags_collected: int = Field(default=0, ge=0)
+    assignments_completed: int = Field(default=0, ge=0)
+    labs_started: int = Field(default=0, ge=0)
+    quizzes_taken: int = Field(default=0, ge=0)
+    news_checked: int = Field(default=0, ge=0)
+    messages_sent: int = Field(default=0, ge=0)
+    earned_achievements: List[str] = Field(default_factory=list)
 
     # Новые счётчики для расширенных достижений (C-13)
-    social_success: int = 0  # Успешные сценарии социальной инженерии
-    apt_groups_viewed: int = 0  # Просмотренные досье APT-групп
-    stealth_ops: int = 0  # Стелс-операции (задания с низким уровнем риска)
-    threat_exposures: int = 0  # Изучение угроз (анализ сводок, новости)
+    social_success: int = Field(
+        default=0, ge=0
+    )  # Успешные сценарии социальной инженерии
+    apt_groups_viewed: int = Field(default=0, ge=0)  # Просмотренные досье APT-групп
+    stealth_ops: int = Field(
+        default=0, ge=0
+    )  # Стелс-операции (задания с низким уровнем риска)
+    threat_exposures: int = Field(
+        default=0, ge=0
+    )  # Изучение угроз (анализ сводок, новости)
 
     # XP и бусты
-    points: float = 0.0  # float для поддержки XP multipliers
-    xp_boost_multiplier: float = 1.0
-    xp_boost_expiry: float = 0.0  # timestamp
+    points: float = Field(default=0.0, ge=0.0)  # float для поддержки XP multipliers
+    xp_boost_multiplier: float = Field(default=1.0, ge=0.0)
+    xp_boost_expiry: float = Field(default=0.0, ge=0.0)  # timestamp
 
     def increment_flag(self):
         """Увеличить счётчик собранных флагов"""
@@ -85,5 +91,13 @@ class AchievementsState:
 
     def apply_xp_boost(self, multiplier: float, duration_hours: float):
         """Применить XP буст."""
-        self.xp_boost_multiplier = multiplier
-        self.xp_boost_expiry = time.time() + duration_hours * 3600
+        self.xp_boost_multiplier = max(0.0, multiplier)
+        self.xp_boost_expiry = time.time() + max(0.0, duration_hours) * 3600
+
+    @model_validator(mode="after")
+    def validate_xp_boost(self):
+        """Validate XP boost fields consistency."""
+        if self.xp_boost_expiry > 0 and self.xp_boost_multiplier <= 1.0:
+            # If expiry is set but multiplier is not boosting, reset expiry
+            self.xp_boost_expiry = 0.0
+        return self

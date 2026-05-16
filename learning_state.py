@@ -2,23 +2,22 @@
 Learning progress and course management.
 """
 
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class LearningState:
+class LearningState(BaseModel):
     """Learning progress and course data."""
-    
+
     # Курс
     current_course: Optional[str] = None
-    current_topic: int = 0
+    current_topic: int = Field(default=0, ge=0)
 
     # Для курсов
-    course_progress: Dict[str, int] = field(default_factory=dict)
+    course_progress: Dict[str, int] = Field(default_factory=dict)
 
     # Контекст обучения
-    learning_context: Dict[str, Any] = field(
+    learning_context: Dict[str, Any] = Field(
         default_factory=lambda: {
             "current_course": None,
             "current_topic": None,
@@ -55,3 +54,5 @@ class LearningState:
     def next_topic(self):
         """Следующая тема"""
         self.current_topic += 1
+
+    model_config = {"validate_assignment": True}

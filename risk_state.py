@@ -2,14 +2,13 @@
 Risk level management for CTF and Story modes.
 """
 
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class RiskState:
+class RiskState(BaseModel):
     """Risk level and related methods."""
     
-    risk_level: int = 0  # 0-100, increases on mistakes, decreases on success
+    risk_level: int = Field(default=0, ge=0, le=100)  # 0-100, increases on mistakes, decreases on success
 
     def increase_risk(self, amount: int = 10):
         """Increase risk level (on mistake/protection trigger)."""
@@ -33,3 +32,7 @@ class RiskState:
             return "🟠 Высокий"
         else:
             return "🔴 Критический"
+
+    model_config = {
+        "validate_assignment": True
+    }

@@ -2,33 +2,33 @@
 Shop, themes, and inventory management.
 """
 
-from dataclasses import dataclass, field
+import time
 from typing import List, Optional
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class ShopState:
+class ShopState(BaseModel):
     """Shop, themes, and inventory management."""
     
     # Магазин (C-14)
-    owned_themes: List[str] = field(default_factory=list)
-    current_theme: str = "default"
-    unlocked_topics: List[str] = field(default_factory=list)
-    hint_credits: int = 0  # available manual hints
+    owned_themes: List[str] = Field(default_factory=list)
+    current_theme: str = Field(default="default")
+    unlocked_topics: List[str] = Field(default_factory=list)
+    hint_credits: int = Field(default=0, ge=0)  # available manual hints
 
     # XP Boosts (хранятся здесь для удобства, хотя логически относятся к достижениям)
-    xp_boost_multiplier: float = 1.0
-    xp_boost_expiry: float = 0.0  # timestamp
+    xp_boost_multiplier: float = Field(default=1.0, ge=0.0)
+    xp_boost_expiry: float = Field(default=0.0, ge=0.0)  # timestamp
 
     # Экипировка (H-02) — выбранные инструменты и их использование
-    selected_tools: List[str] = field(default_factory=list)
+    selected_tools: List[str] = Field(default_factory=list)
 
     # Таймер Trace (H-03) — для лабораторий с ограничением времени
     trace_deadline: Optional[float] = None
     trace_hint: Optional[str] = None
 
     # Прогресс миссий (H-05)
-    missions_completed: List[str] = field(default_factory=list)
+    missions_completed: List[str] = Field(default_factory=list)
     active_mission: Optional[str] = None
 
     def apply_item_effect(self, item: dict) -> str:
@@ -52,10 +52,8 @@ class ShopState:
         elif item_type == "xp_boost":
             multiplier = item.get("multiplier", 2.0)
             duration_hours = item.get("duration_hours", 1)
-            import time
-
-            self.xp_boost_multiplier = multiplier
-            self.xp_boost_expiry = time.time() + duration_hours * 3600
+            self.xp_boost_multiplier = max(0.0, multiplier)
+            self.xp_boost_expiry = time.time() + max(0.0, duration_hours) * 3600
             return "xp_boost"
         elif item_type == "consumable":
             effect = item.get("effect")
@@ -67,8 +65,6 @@ class ShopState:
 
     def get_xp_multiplier(self) -> float:
         """Возвращает текущий множитель XP с учетом активного буста."""
-        import time
-
         now = time.time()
         if self.xp_boost_expiry > 0 and now < self.xp_boost_expiry:
             return self.xp_boost_multiplier
@@ -76,3 +72,7 @@ class ShopState:
         self.xp_boost_multiplier = 1.0
         self.xp_boost_expiry = 0.0
         return 1.0
+
+    model_config = {
+        "validate_assignment": True
+    }

@@ -455,14 +455,44 @@
 | ID | Задача | Приоритет | Сложность | Статус |
 |----|--------|-----------|-----------|--------|
 | REF-04 | Dependency Injection вместо глобального singleton | 🟡 Medium | Высокая | ⏳ Planned |
-| REF-05 | Устранить циклические импорты (Mode enum → `types.py`) | 🟡 Medium | Низкая | ⏳ Planned |
-| REF-06 | Заменить `__getattr__` на явные property | 🟡 Medium | Средняя | ⏳ Planned |
-| REF-07 | Pydantic для валидации состояния | 🟡 Medium | Средняя | ⏳ Planned |
-| REF-08 | Вынести `check_achievements` в `services/` | 🟡 Medium | Средняя | ⏳ In Progress |
+| REF-05 | Устранить циклические импорты (Mode enum → `shared_types.py`) | 🟡 Medium | Низкая | ✅ Done |
+| REF-06 | Заменить `__getattr__` на явные property | 🟡 Medium | Средняя | ✅ Done |
+| REF-07 | Pydantic для валидации состояния | 🟡 Medium | Средняя | ✅ Done (все 10 модулей) |
+| REF-08 | Вынести `check_achievements` в `services/` | 🟡 Medium | Средняя | ⏳ Planned |
 | REF-09 | Валидация входных данных при загрузке JSON | 🟢 Low | Низкая | ⏳ Planned |
 | REF-10 | `.env` поддержка для всех секретов | 🟢 Low | Низкая | ⏳ Planned |
 | REF-12 | Вынести пути в конфигурацию | 🟢 Low | Низкая | ⏳ Planned |
 | REF-13 | Объединить мелкие state модули (10 → 4) | 🟢 Low | Низкая | ⏳ Planned |
+
+---
+
+## 📊 Сессия 2026-05-16 #5 — Pydantic State Validation (REF-07)
+
+### Выполнено
+| Компонент | Описание |
+|-----------|----------|
+| **REF-05** | Mode enum → `shared_types.py`, устранены циклические импорты |
+| **REF-06** | `__getattr__`/`__setattr__` → явные `@property` в `state.py` |
+| **REF-07** | Все 10 state-модулей переведены на Pydantic v2 |
+
+### Переведённые модули на Pydantic
+| Файл | Валидация |
+|------|-----------|
+| `achievements_state.py` | `ge=0` для счётчиков, `ge=0.0` для XP |
+| `user_state.py` | `ge=0` для репутации, `validate_assignment` |
+| `explanation_state.py` | `validate_assignment` |
+| `hints_state.py` | `ge=0` для кредитов, `gt=0` для cooldown |
+| `learning_state.py` | `ge=0` для current_topic |
+| `metrics_state.py` | `ge=0` для всех метрик |
+| `persona_state.py` | `validate_assignment` |
+| `risk_state.py` | `ge=0, le=100` для risk_level |
+| `shop_state.py` | `ge=0` для hint_credits, XP boost |
+| `voice_state.py` | `gt=0` для voice_rate |
+
+### Статистика
+- **47 тестов** проходят (state, achievements, user_state)
+- **10/10 модулей** состояния теперь с Pydantic валидацией
+- **0 фейлов** — полная обратная совместимость
 
 ---
 

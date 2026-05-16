@@ -2,14 +2,13 @@
 Explanation depth state management.
 """
 
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class ExplanationState:
+class ExplanationState(BaseModel):
     """Explanation depth configuration."""
-    
-    explanation_depth: str = "normal"  # beginner, normal, expert
+
+    explanation_depth: str = Field(default="normal")  # beginner, normal, expert
 
     def set_explanation_depth(self, depth: str) -> str:
         """Set explanation depth: beginner, normal, expert."""
@@ -20,3 +19,5 @@ class ExplanationState:
     def get_explanation_depth(self) -> str:
         """Get current explanation depth."""
         return self.explanation_depth
+
+    model_config = {"validate_assignment": True}

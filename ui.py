@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Optional
 
 from rich.console import Console
@@ -6,16 +5,9 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.text import Text
+from shared_types import Mode
 
 console = Console()
-
-
-class Mode(Enum):
-    TEACHER = "Учитель"
-    EXPERT = "Эксперт"
-    CTF = "CTF"
-    CODE_REVIEW = "Анализ кода"
-    QUIZ = "Викторина"
 
 
 def print_banner():

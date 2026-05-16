@@ -2,16 +2,17 @@
 Real-time hints state management.
 """
 
-from dataclasses import dataclass, field
+from pydantic import BaseModel, Field
 import time
 
 
-@dataclass
-class HintsState:
+class HintsState(BaseModel):
     """Real-time hints configuration and state."""
-    
-    hint_enabled: bool = True  # automatic hints on/off
-    hint_credits: int = 3  # available manual hints
-    hints_used: int = 0  # used in current session/mission
-    last_hint_time: float = 0.0  # timestamp of last hint
-    hint_cooldown: int = 30  # seconds between auto-hints
+
+    hint_enabled: bool = Field(default=True)  # automatic hints on/off
+    hint_credits: int = Field(default=3, ge=0)  # available manual hints
+    hints_used: int = Field(default=0, ge=0)  # used in current session/mission
+    last_hint_time: float = Field(default_factory=time.time)  # timestamp of last hint
+    hint_cooldown: int = Field(default=30, gt=0)  # seconds between auto-hints
+
+    model_config = {"validate_assignment": True}

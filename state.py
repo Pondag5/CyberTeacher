@@ -9,7 +9,11 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from utils.security import decrypt_value as _decrypt, encrypt_value as _encrypt, is_encrypted
+from utils.security import (
+    decrypt_value as _decrypt,
+    encrypt_value as _encrypt,
+    is_encrypted,
+)
 
 # Импорты модульных компонентов состояния
 from achievements_state import AchievementsState
@@ -84,105 +88,479 @@ class AppState:
         self.skill_tracker = {}
         self.emotion_mode = "neutral"
 
-    def __getattr__(self, name: str) -> Any:
-        """Делегирование доступа к атрибутам модулей для обратной совместимости"""
-        # Маппинг атрибутов к модулям
-        module_mapping = {
-            # learning_state
-            "current_course": "learning", "current_topic": "learning",
-            "course_progress": "learning", "learning_context": "learning",
-            # achievements_state
-            "total_flags_collected": "achievements", "assignments_completed": "achievements",
-            "labs_started": "achievements", "quizzes_taken": "achievements",
-            "news_checked": "achievements", "messages_sent": "achievements",
-            "earned_achievements": "achievements", "social_success": "achievements",
-            "apt_groups_viewed": "achievements", "stealth_ops": "achievements",
-            "threat_exposures": "achievements", "points": "achievements",
-            "xp_boost_multiplier": "achievements", "xp_boost_expiry": "achievements",
-            # metrics_state
-            "llm_call_count": "metrics", "llm_total_time": "metrics",
-            "llm_total_tokens": "metrics", "cache_hits": "metrics",
-            "cache_misses": "metrics", "start_time": "metrics",
-            "request_timestamps": "metrics", "command_usage": "metrics",
-            # user_state
-            "username": "user", "avatar": "user", "reputation": "user",
-            "handle": "user", "htb_email": "user", "htb_password": "user",
-            "htb_completed": "user",
-            # shop_state
-            "owned_themes": "shop", "current_theme": "shop",
-            "unlocked_topics": "shop", "hint_credits": "shop",
-            "selected_tools": "shop", "trace_deadline": "shop",
-            "trace_hint": "shop", "missions_completed": "shop",
-            "active_mission": "shop", "xp_boost_multiplier": "shop",
-            "xp_boost_expiry": "shop",
-            # risk_state
-            "risk_level": "risk",
-            # voice_state
-            "voice_enabled": "voice", "voice_engine": "voice", "voice_rate": "voice",
-            # persona_state
-            "current_persona": "persona", "current_mode": "persona",
-            # hints_state
-            "hint_enabled": "hints", "hints_used": "hints",
-            "last_hint_time": "hints", "hint_cooldown": "hints",
-            # explanation_state
-            "explanation_depth": "explanation",
-        }
+    # Learning state properties
+    @property
+    def current_course(self) -> str | None:
+        return self.learning.current_course
 
-        if name in module_mapping:
-            module_name = module_mapping[name]
-            return getattr(getattr(self, module_name), name)
-        
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    @current_course.setter
+    def current_course(self, value: str | None):
+        self.learning.current_course = value
+
+    @property
+    def current_topic(self) -> str | None:
+        return self.learning.current_topic
+
+    @current_topic.setter
+    def current_topic(self, value: str | None):
+        self.learning.current_topic = value
+
+    @property
+    def course_progress(self) -> dict[str, Any]:
+        return self.learning.course_progress
+
+    @course_progress.setter
+    def course_progress(self, value: dict[str, Any]):
+        self.learning.course_progress = value
+
+    @property
+    def learning_context(self) -> dict[str, Any]:
+        return self.learning.learning_context
+
+    @learning_context.setter
+    def learning_context(self, value: dict[str, Any]):
+        self.learning.learning_context = value
+
+    # Achievements state properties
+    @property
+    def total_flags_collected(self) -> int:
+        return self.achievements.total_flags_collected
+
+    @total_flags_collected.setter
+    def total_flags_collected(self, value: int):
+        self.achievements.total_flags_collected = value
+
+    @property
+    def assignments_completed(self) -> int:
+        return self.achievements.assignments_completed
+
+    @assignments_completed.setter
+    def assignments_completed(self, value: int):
+        self.achievements.assignments_completed = value
+
+    @property
+    def labs_started(self) -> int:
+        return self.achievements.labs_started
+
+    @labs_started.setter
+    def labs_started(self, value: int):
+        self.achievements.labs_started = value
+
+    @property
+    def quizzes_taken(self) -> int:
+        return self.achievements.quizzes_taken
+
+    @quizzes_taken.setter
+    def quizzes_taken(self, value: int):
+        self.achievements.quizzes_taken = value
+
+    @property
+    def news_checked(self) -> int:
+        return self.achievements.news_checked
+
+    @news_checked.setter
+    def news_checked(self, value: int):
+        self.achievements.news_checked = value
+
+    @property
+    def messages_sent(self) -> int:
+        return self.achievements.messages_sent
+
+    @messages_sent.setter
+    def messages_sent(self, value: int):
+        self.achievements.messages_sent = value
+
+    @property
+    def earned_achievements(self) -> list[str]:
+        return self.achievements.earned_achievements
+
+    @earned_achievements.setter
+    def earned_achievements(self, value: list[str]):
+        self.achievements.earned_achievements = value
+
+    @property
+    def social_success(self) -> int:
+        return self.achievements.social_success
+
+    @social_success.setter
+    def social_success(self, value: int):
+        self.achievements.social_success = value
+
+    @property
+    def apt_groups_viewed(self) -> int:
+        return self.achievements.apt_groups_viewed
+
+    @apt_groups_viewed.setter
+    def apt_groups_viewed(self, value: int):
+        self.achievements.apt_groups_viewed = value
+
+    @property
+    def stealth_ops(self) -> int:
+        return self.achievements.stealth_ops
+
+    @stealth_ops.setter
+    def stealth_ops(self, value: int):
+        self.achievements.stealth_ops = value
+
+    @property
+    def threat_exposures(self) -> int:
+        return self.achievements.threat_exposures
+
+    @threat_exposures.setter
+    def threat_exposures(self, value: int):
+        self.achievements.threat_exposures = value
+
+    @property
+    def points(self) -> float:
+        return self.achievements.points
+
+    @points.setter
+    def points(self, value: float):
+        self.achievements.points = value
+
+    @property
+    def xp_boost_multiplier(self) -> float:
+        # Prefer shop state for XP boost as it's more specific to shop items
+        return self.shop.xp_boost_multiplier
+
+    @xp_boost_multiplier.setter
+    def xp_boost_multiplier(self, value: float):
+        # Set in both achievements and shop for backward compatibility
+        self.achievements.xp_boost_multiplier = value
+        self.shop.xp_boost_multiplier = value
+
+    @property
+    def xp_boost_expiry(self) -> float:
+        # Prefer shop state for XP boost as it's more specific to shop items
+        return self.shop.xp_boost_expiry
+
+    @xp_boost_expiry.setter
+    def xp_boost_expiry(self, value: float):
+        # Set in both achievements and shop for backward compatibility
+        self.achievements.xp_boost_expiry = value
+        self.shop.xp_boost_expiry = value
+
+    # Metrics state properties
+    @property
+    def llm_call_count(self) -> int:
+        return self.metrics.llm_call_count
+
+    @llm_call_count.setter
+    def llm_call_count(self, value: int):
+        self.metrics.llm_call_count = value
+
+    @property
+    def llm_total_time(self) -> float:
+        return self.metrics.llm_total_time
+
+    @llm_total_time.setter
+    def llm_total_time(self, value: float):
+        self.metrics.llm_total_time = value
+
+    @property
+    def llm_total_tokens(self) -> int:
+        return self.metrics.llm_total_tokens
+
+    @llm_total_tokens.setter
+    def llm_total_tokens(self, value: int):
+        self.metrics.llm_total_tokens = value
+
+    @property
+    def cache_hits(self) -> int:
+        return self.metrics.cache_hits
+
+    @cache_hits.setter
+    def cache_hits(self, value: int):
+        self.metrics.cache_hits = value
+
+    @property
+    def cache_misses(self) -> int:
+        return self.metrics.cache_misses
+
+    @cache_misses.setter
+    def cache_misses(self, value: int):
+        self.metrics.cache_misses = value
+
+    @property
+    def start_time(self) -> float:
+        return self.metrics.start_time
+
+    @start_time.setter
+    def start_time(self, value: float):
+        self.metrics.start_time = value
+
+    @property
+    def request_timestamps(self) -> list[float]:
+        return self.metrics.request_timestamps
+
+    @request_timestamps.setter
+    def request_timestamps(self, value: list[float]):
+        self.metrics.request_timestamps = value
+
+    @property
+    def command_usage(self) -> dict[str, int]:
+        return self.metrics.command_usage
+
+    @command_usage.setter
+    def command_usage(self, value: dict[str, int]):
+        self.metrics.command_usage = value
+
+    # User state properties
+    @property
+    def username(self) -> str:
+        return self.user.username
+
+    @username.setter
+    def username(self, value: str):
+        self.user.username = value
+
+    @property
+    def avatar(self) -> str:
+        return self.user.avatar
+
+    @avatar.setter
+    def avatar(self, value: str):
+        self.user.avatar = value
+
+    @property
+    def reputation(self) -> int:
+        return self.user.reputation
+
+    @reputation.setter
+    def reputation(self, value: int):
+        self.user.reputation = value
+
+    @property
+    def handle(self) -> str:
+        return self.user.handle
+
+    @handle.setter
+    def handle(self, value: str):
+        self.user.handle = value
+
+    @property
+    def htb_email(self) -> str | None:
+        return self.user.htb_email
+
+    @htb_email.setter
+    def htb_email(self, value: str | None):
+        self.user.htb_email = value
+
+    @property
+    def htb_password(self) -> str | None:
+        return self.user.htb_password
+
+    @htb_password.setter
+    def htb_password(self, value: str | None):
+        self.user.htb_password = value
+
+    @property
+    def htb_completed(self) -> list[str]:
+        return self.user.htb_completed
+
+    @htb_completed.setter
+    def htb_completed(self, value: list[str]):
+        self.user.htb_completed = value
+
+    # Shop state properties
+    @property
+    def owned_themes(self) -> list[str]:
+        return self.shop.owned_themes
+
+    @owned_themes.setter
+    def owned_themes(self, value: list[str]):
+        self.shop.owned_themes = value
+
+    @property
+    def current_theme(self) -> str:
+        return self.shop.current_theme
+
+    @current_theme.setter
+    def current_theme(self, value: str):
+        self.shop.current_theme = value
+
+    @property
+    def unlocked_topics(self) -> list[str]:
+        return self.shop.unlocked_topics
+
+    @unlocked_topics.setter
+    def unlocked_topics(self, value: list[str]):
+        self.shop.unlocked_topics = value
+
+    @property
+    def hint_credits(self) -> int:
+        return self.shop.hint_credits
+
+    @hint_credits.setter
+    def hint_credits(self, value: int):
+        self.shop.hint_credits = value
+
+    @property
+    def selected_tools(self) -> list[str]:
+        return self.shop.selected_tools
+
+    @selected_tools.setter
+    def selected_tools(self, value: list[str]):
+        self.shop.selected_tools = value
+
+    @property
+    def trace_deadline(self) -> float | None:
+        return self.shop.trace_deadline
+
+    @trace_deadline.setter
+    def trace_deadline(self, value: float | None):
+        self.shop.trace_deadline = value
+
+    @property
+    def trace_hint(self) -> str | None:
+        return self.shop.trace_hint
+
+    @trace_hint.setter
+    def trace_hint(self, value: str | None):
+        self.shop.trace_hint = value
+
+    @property
+    def missions_completed(self) -> int:
+        return self.shop.missions_completed
+
+    @missions_completed.setter
+    def missions_completed(self, value: int):
+        self.shop.missions_completed = value
+
+    @property
+    def active_mission(self) -> dict[str, Any] | None:
+        return self.shop.active_mission
+
+    @active_mission.setter
+    def active_mission(self, value: dict[str, Any] | None):
+        self.shop.active_mission = value
+
+    # Risk state properties
+    @property
+    def risk_level(self) -> int:
+        return self.risk.risk_level
+
+    @risk_level.setter
+    def risk_level(self, value: int):
+        self.risk.risk_level = value
+
+    # Voice state properties
+    @property
+    def voice_enabled(self) -> bool:
+        return self.voice.voice_enabled
+
+    @voice_enabled.setter
+    def voice_enabled(self, value: bool):
+        self.voice.voice_enabled = value
+
+    @property
+    def voice_engine(self) -> str:
+        return self.voice.voice_engine
+
+    @voice_engine.setter
+    def voice_engine(self, value: str):
+        self.voice.voice_engine = value
+
+    @property
+    def voice_rate(self) -> int:
+        return self.voice.voice_rate
+
+    @voice_rate.setter
+    def voice_rate(self, value: int):
+        self.voice.voice_rate = value
+
+    # Persona state properties
+    @property
+    def current_persona(self) -> str:
+        return self.persona.current_persona
+
+    @current_persona.setter
+    def current_persona(self, value: str):
+        self.persona.current_persona = value
+
+    @property
+    def current_mode(self) -> str:
+        return self.persona.current_mode
+
+    @current_mode.setter
+    def current_mode(self, value: str):
+        self.persona.current_mode = value
+
+    # Hints state properties
+    @property
+    def hint_enabled(self) -> bool:
+        return self.hints.hint_enabled
+
+    @hint_enabled.setter
+    def hint_enabled(self, value: bool):
+        self.hints.hint_enabled = value
+
+    @property
+    def hints_used(self) -> int:
+        return self.hints.hints_used
+
+    @hints_used.setter
+    def hints_used(self, value: int):
+        self.hints.hints_used = value
+
+    @property
+    def last_hint_time(self) -> float:
+        return self.hints.last_hint_time
+
+    @last_hint_time.setter
+    def last_hint_time(self, value: float):
+        self.hints.last_hint_time = value
+
+    @property
+    def hint_cooldown(self) -> int:
+        return self.hints.hint_cooldown
+
+    @hint_cooldown.setter
+    def hint_cooldown(self, value: int):
+        self.hints.hint_cooldown = value
+
+    # Explanation state properties
+    @property
+    def explanation_depth(self) -> str:
+        return self.explanation.explanation_depth
+
+    @explanation_depth.setter
+    def explanation_depth(self, value: str):
+        self.explanation.explanation_depth = value
 
     def __setattr__(self, name: str, value: Any) -> None:
-        """Делегирование записи атрибутов модулям для обратной совместимости"""
-        module_mapping = {
-            "current_course": "learning", "current_topic": "learning",
-            "course_progress": "learning", "learning_context": "learning",
-            "total_flags_collected": "achievements", "assignments_completed": "achievements",
-            "labs_started": "achievements", "quizzes_taken": "achievements",
-            "news_checked": "achievements", "messages_sent": "achievements",
-            "earned_achievements": "achievements", "social_success": "achievements",
-            "apt_groups_viewed": "achievements", "stealth_ops": "achievements",
-            "threat_exposures": "achievements", "points": "achievements",
-            "xp_boost_multiplier": "achievements", "xp_boost_expiry": "achievements",
-            "llm_call_count": "metrics", "llm_total_time": "metrics",
-            "llm_total_tokens": "metrics", "cache_hits": "metrics",
-            "cache_misses": "metrics", "start_time": "metrics",
-            "request_timestamps": "metrics", "command_usage": "metrics",
-            "username": "user", "avatar": "user", "reputation": "user",
-            "handle": "user", "htb_email": "user", "htb_password": "user",
-            "htb_completed": "user",
-            "owned_themes": "shop", "current_theme": "shop",
-            "unlocked_topics": "shop", "hint_credits": "shop",
-            "selected_tools": "shop", "trace_deadline": "shop",
-            "trace_hint": "shop", "missions_completed": "shop",
-            "active_mission": "shop", "xp_boost_multiplier": "shop",
-            "xp_boost_expiry": "shop",
-            "risk_level": "risk",
-            "voice_enabled": "voice", "voice_engine": "voice", "voice_rate": "voice",
-            "current_persona": "persona", "current_mode": "persona",
-            "hint_enabled": "hints", "hints_used": "hints",
-            "last_hint_time": "hints", "hint_cooldown": "hints",
-            "explanation_depth": "explanation",
-        }
-
-        # Прямые атрибуты AppState
+        """Set direct attributes for backward compatibility"""
+        # These are direct attributes not covered by explicit properties
         direct_attrs = {
-            "last_news", "active_assignment", "collected_flags", "weak_topics",
-            "review_schedule", "feature_flags", "last_writeup_activity",
-            "writeup_history", "exploit_success", "tracks_enrolled",
-            "track_progress", "bounty_reports", "skill_tracker", "emotion_mode",
-            # Модули
-            "achievements", "explanation", "hints", "learning", "metrics",
-            "persona", "risk", "shop", "user", "voice"
+            "last_news",
+            "active_assignment",
+            "collected_flags",
+            "weak_topics",
+            "review_schedule",
+            "feature_flags",
+            "last_writeup_activity",
+            "writeup_history",
+            "exploit_success",
+            "tracks_enrolled",
+            "track_progress",
+            "bounty_reports",
+            "skill_tracker",
+            "emotion_mode",
+            # Modules themselves
+            "achievements",
+            "explanation",
+            "hints",
+            "learning",
+            "metrics",
+            "persona",
+            "risk",
+            "shop",
+            "user",
+            "voice",
         }
 
         if name in direct_attrs:
             object.__setattr__(self, name, value)
-        elif name in module_mapping:
-            module_name = module_mapping[name]
-            setattr(getattr(self, module_name), name, value)
         else:
             object.__setattr__(self, name, value)
 
@@ -345,7 +723,9 @@ class AppState:
 
     def set_learning_context(self, course=None, topic=None, lab=None, action=None):
         """Установить контекст обучения"""
-        self.learning.set_learning_context(course=course, topic=topic, lab=lab, action=action)
+        self.learning.set_learning_context(
+            course=course, topic=topic, lab=lab, action=action
+        )
 
     def get_learning_context(self) -> dict[str, Any]:
         """Получить контекст обучения"""
@@ -355,7 +735,7 @@ class AppState:
         """Установить текущую персону (teacher, expert, ctf, review)"""
         self.persona.set_persona(persona)
         # Также обновляем режим для совместимости
-        from ui import Mode
+        from shared_types import Mode
 
         persona_to_mode = {
             "teacher": Mode.TEACHER,
@@ -640,14 +1020,18 @@ class AppState:
         """Получить все навыки с прогрессом."""
         result = []
         for name, data in self.skill_tracker.items():
-            result.append({
-                "name": name,
-                "level": data["level"],
-                "xp": data["xp"],
-                "attempts": data["attempts"],
-                "successes": data["successes"],
-                "success_rate": round(data["successes"] / data["attempts"] * 100, 1) if data["attempts"] > 0 else 0,
-            })
+            result.append(
+                {
+                    "name": name,
+                    "level": data["level"],
+                    "xp": data["xp"],
+                    "attempts": data["attempts"],
+                    "successes": data["successes"],
+                    "success_rate": round(data["successes"] / data["attempts"] * 100, 1)
+                    if data["attempts"] > 0
+                    else 0,
+                }
+            )
         return sorted(result, key=lambda x: x["level"], reverse=True)
 
     # === BACKUP (Q-06) ===
@@ -705,7 +1089,9 @@ class AppState:
             "reputation": self.reputation,
             "handle": self.handle,
             "htb_email": self.htb_email,
-            "htb_password_enc": _encrypt(self.htb_password) if self.htb_password else None,
+            "htb_password_enc": _encrypt(self.htb_password)
+            if self.htb_password
+            else None,
             "htb_completed": self.htb_completed,
             # Achievements
             "points": self.points,
@@ -788,11 +1174,13 @@ class AppState:
             if os.path.exists(path):
                 with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                
+
                 # Learning
                 self.current_course = data.get("current_course")
                 self.current_topic = data.get("current_topic", 0)
-                self.learning_context = data.get("learning_context", self.learning_context)
+                self.learning_context = data.get(
+                    "learning_context", self.learning_context
+                )
                 self.course_progress = data.get("course_progress", {})
                 # User
                 self.username = data.get("username", "Аноним")
