@@ -1,7 +1,7 @@
-# 📌 AGENT SESSION CONTEXT — CyberTeacher Refactoring
+# 📌 AGENT SESSION CONTEXT — CyberTeacher
 
-> **Created:** 2026-05-16  
-> **Purpose:** Compressed session state for agent continuity across context window limits.
+> **Updated:** 2026-05-16  
+> **Purpose:** Compressed session state for agent continuity.
 
 ---
 
@@ -12,59 +12,60 @@
 - **RAG:** Chroma + sentence-transformers
 - **UI:** Rich (CLI)
 - **DB:** SQLite
-- **Tests:** unittest (643 tests, 638 passing)
+- **Tests:** unittest (685 tests, 680 passing)
+- **Coverage:** ~83%
 
 ---
 
-## ✅ COMPLETED REFACTORING (ALL PUSHED TO `main`)
+## ✅ COMPLETED (ALL PUSHED TO `main`)
 
-| ID | Task | Files Changed |
-|----|------|---------------|
-| REF-05 | Mode enum → `shared_types.py` | `shared_types.py` |
-| REF-06 | `__getattr__` → explicit `@property` | `state.py` |
-| REF-07 | 10 state modules → Pydantic v2 | `*_state.py` ×4 |
-| REF-08 | Extract `check_achievements` | `services/achievement_service.py` |
-| REF-09 | JSON validation via Pydantic | `state_models.py` |
-| REF-10 | Secrets → `.env` | `config.py` |
-| REF-12 | Paths → `.env` | `config.py` |
-| REF-13 | 10 state modules → 4 consolidated | `progress/settings/user_profile/metrics_state.py` |
-| REF-14 | Pydantic Settings | `settings.py` |
-| REF-15 | Business logic → services | `services/*.py` ×4 |
+### Refactoring (REF-05 — REF-15)
+| ID | Task | Status |
+|----|------|--------|
+| REF-05 | Mode enum → `shared_types.py` | ✅ |
+| REF-06 | `__getattr__` → explicit `@property` | ✅ |
+| REF-07 | 10 state modules → Pydantic v2 | ✅ |
+| REF-08 | `check_achievements` → `services/` | ✅ |
+| REF-09 | JSON validation via Pydantic | ✅ |
+| REF-10 | Secrets → `.env` | ✅ |
+| REF-12 | Paths → `.env` | ✅ |
+| REF-13 | 10 state modules → 4 consolidated | ✅ |
+| REF-14 | Pydantic Settings | ✅ |
+| REF-15 | Business logic → services | ✅ |
 
-### New Architecture
-```
-state.py                  — Thin orchestration layer (4 consolidated modules)
-settings.py               — pydantic-settings singleton
-shared_types.py           — Mode enum
-state_models.py           — AppStateModel (Pydantic validation)
-progress_state.py         — learning + achievements + shop + risk
-settings_state.py         — hints + voice + explanation
-user_profile_state.py     — user + persona
-metrics_state.py          — metrics
-services/
-  achievement_service.py  — Achievement checking logic
-  weak_topics_service.py  — Weak topic tracking
-  spaced_repetition_service.py — Review scheduling
-  skill_tracker_service.py — Skill leveling
-```
+### i18n Localization
+| Feature | Files |
+|---------|-------|
+| Russian/English UI | `locales/ru.json`, `locales/en.json` |
+| Localization engine | `i18n.py` |
+| `/lang` command | `handlers/lang.py` |
+| Teacher prompts | `config/teacher_prompts.json` (ru + en) |
+| Language field | `settings_state.py` |
+
+### New Tests (64 total this session)
+| File | Tests | Coverage |
+|------|-------|----------|
+| `test_services.py` | 23 | Services (weak topics, spaced repetition, skills, achievements) |
+| `test_settings.py` | 8 | Pydantic Settings validation |
+| `test_profile_handler.py` | 8 | Profile handler |
+| `test_health_handler.py` | 3 | Health metrics |
+| `test_theme_handler.py` | 10 | Theme switching |
+| `test_hints_handler.py` | 12 | Hints system |
+| `test_i18n.py` | 10 | Localization engine |
+| `test_lang_handler.py` | 4 | `/lang` command |
+| `test_ctf_flags.py` | 12 | CTF flag generation/verification |
+| `test_cve_handler.py` | 5 | CVE lookup with caching |
+| `test_skills_handler.py` | 11 | Skills, reputation, depth |
 
 ---
 
 ## 📊 TEST STATUS
 
-- **Total:** 643 tests
-- **Passing:** 638
-- **Failing:** 1 (Ollama not running — environment issue)
+- **Total:** 685 tests
+- **Passing:** 680
+- **Failing:** 1 (Ollama not running — environment)
 - **Skipped:** 4 (external services)
-- **Coverage:** ~80%
-
-New test files added:
-- `tests/test_services.py` (23 tests)
-- `tests/test_settings.py` (8 tests)
-- `tests/test_profile_handler.py` (8 tests)
-- `tests/test_health_handler.py` (3 tests)
-- `tests/test_theme_handler.py` (10 tests)
-- `tests/test_hints_handler.py` (12 tests)
+- **Coverage:** ~83%
 
 ---
 
@@ -72,29 +73,21 @@ New test files added:
 
 | Priority | ID | Task | Notes |
 |----------|----|------|-------|
-| 🟡 Medium | REF-04 | Dependency Injection | Replace `get_state()` singleton with factory/DI |
-| 🟡 Medium | Q-01 | Test coverage >80% | ✅ DONE — 80% reached |
-| 🟢 Low | L-07 | Translate comments/logs to English | For open-source readiness |
+| 🟡 Medium | REF-04 | Dependency Injection | Replace `get_state()` singleton |
+| 🟢 Low | L-07 | Translate comments to English | Open-source readiness |
 | 🟡 Medium | M-28 | Web UI: XP graphs, heatmap | Streamlit enhancement |
+| 🟡 Medium | Q-02 | Coverage >90% | ~20 handlers without tests |
 
 ---
 
-## 🔑 KEY PATTERNS & CONVENTIONS
+## 🔑 KEY PATTERNS
 
-1. **State:** `get_state()` returns singleton `AppState` with explicit properties
-2. **Config:** `get_settings()` returns singleton `Settings` (pydantic-settings)
-3. **Services:** Pure functions, accept data, return results (no state mutation)
-4. **Tests:** Use `unittest.mock` for `get_state()` and `console`
-5. **Imports:** Standard lib → Third-party → Local (see `AGENTS.md`)
+1. **State:** `get_state()` → singleton `AppState` with 4 Pydantic modules
+2. **Config:** `get_settings()` → singleton `Settings` (pydantic-settings)
+3. **Services:** Pure functions, no state mutation
+4. **Tests:** `unittest.mock` for `get_state()` and `console`
+5. **i18n:** `t(lang, 'ui.key')` for translations
 6. **Language:** Code in English, docs/comments in Russian
-
----
-
-## ⚠️ KNOWN ISSUES
-
-1. **Ollama not running** — 1 test error (environment, not code)
-2. **Windows UnicodeEncodeError** — Some tests fail on Windows console encoding
-3. **Pydantic v1 warning** — Python 3.14 triggers warning from `langchain-core` (harmless)
 
 ---
 
@@ -104,20 +97,29 @@ New test files added:
 |------|---------|
 | `state.py` | Core state orchestration |
 | `settings.py` | Typed configuration |
-| `config.py` | .env fallbacks, LazyLoader |
-| `handlers/` | 60+ command handlers |
-| `services/` | Extracted business logic |
-| `docs/IMPLEMENTATION_PLAN.md` | Full task tracker |
+| `i18n.py` | Localization engine |
+| `handlers/core.py` | Command dispatcher |
+| `handlers/lang.py` | Language switching |
+| `services/` | Business logic |
+| `locales/` | Translation files |
 
 ---
 
-## 🔄 NEXT STEPS FOR AGENT
+## ⚠️ KNOWN ISSUES
 
-1. **If continuing refactoring:** Start with REF-04 (Dependency Injection)
-2. **If improving quality:** Add tests for `handlers/` to reach 80% coverage
-3. **If preparing for release:** Run `python -m unittest discover -s tests -v` and fix environment issues
-4. **Always:** Check `docs/IMPLEMENTATION_PLAN.md` for current task status
+1. **Ollama not running** — 1 test error (environment)
+2. **Windows UnicodeEncodeError** — Console encoding issue
+3. **Pydantic v1 warning** — Python 3.14 + langchain-core (harmless)
 
 ---
 
-*This file should be updated after each major session to maintain context continuity.*
+## 🔄 NEXT STEPS
+
+1. Add tests for remaining 20 handlers → 90% coverage
+2. REF-04: Dependency Injection (large refactor)
+3. M-28: Web UI enhancements
+4. L-07: Translate comments to English
+
+---
+
+*Update this file after each major session.*
