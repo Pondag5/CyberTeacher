@@ -12,8 +12,8 @@
 - **RAG:** Chroma + sentence-transformers
 - **UI:** Rich (CLI)
 - **DB:** SQLite
-- **Tests:** unittest (685 tests, 680 passing)
-- **Coverage:** ~83%
+- **Tests:** unittest (718 tests, 713 passing)
+- **Coverage:** ~86%
 
 ---
 
@@ -61,11 +61,18 @@
 
 ## 📊 TEST STATUS
 
-- **Total:** 685 tests
-- **Passing:** 680
+- **Total:** 718 tests
+- **Passing:** 713
 - **Failing:** 1 (Ollama not running — environment)
 - **Skipped:** 4 (external services)
-- **Coverage:** ~83%
+- **Coverage:** ~86%
+
+### Recent Test Additions
+| File | Tests | Coverage |
+|------|-------|----------|
+| `test_missions_handler.py` | 10 | Mission lifecycle |
+| `test_phishing_handler.py` | 11 | Phishing constructor |
+| `test_features_handler.py` | 12 | Feature flags |
 
 ---
 
@@ -76,7 +83,7 @@
 | 🟡 Medium | REF-04 | Dependency Injection | Replace `get_state()` singleton |
 | 🟢 Low | L-07 | Translate comments to English | Open-source readiness |
 | 🟡 Medium | M-28 | Web UI: XP graphs, heatmap | Streamlit enhancement |
-| 🟡 Medium | Q-02 | Coverage >90% | ~20 handlers without tests |
+| 🟡 Medium | Q-02 | Coverage >90% | ~86% — 17 handlers without tests |
 
 ---
 
