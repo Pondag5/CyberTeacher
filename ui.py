@@ -92,20 +92,21 @@ def show_menu():
     [yellow]55[/yellow] - Статистика команд (/usage)
     [yellow]56[/yellow] - Мастер настройки (/config)
     [yellow]57[/yellow] - Тема оформления (/theme)
-    [yellow]58[/yellow] - Управление модулями (/features)
-    [yellow]59[/yellow] - Суммаризация истории (/summarize)
-    [yellow]60[/yellow] - Конструктор фишинга (/phishing)
-    [yellow]61[/yellow] - Mermaid-диаграммы (/mermaid)
-    [yellow]62[/yellow] - Трекер навыков (/skills)
-    [yellow]63[/yellow] - Репутация (/reputation)
-    [yellow]64[/yellow] - Глубина объяснений (/depth)
-    [yellow]65[/yellow] - Безопасный код (/fixcode)
-    [yellow]66[/yellow] - Шаблоны заданий (/templates)
-    [yellow]67[/yellow] - Эмоции учителя (/emotions)
-    [yellow]68[/yellow] - Docker Compose (/dockergen)
-    [yellow]69[/yellow] - CTF-флаги (/ctf)
-    [yellow]70[/yellow] - Профиль (/profile)
-    [yellow]71[/yellow] - Ежедневный челлендж (/daily)
+    [yellow]58[/yellow] - Язык интерфейса (/lang)
+    [yellow]59[/yellow] - Управление модулями (/features)
+    [yellow]60[/yellow] - Суммаризация истории (/summarize)
+    [yellow]61[/yellow] - Конструктор фишинга (/phishing)
+    [yellow]62[/yellow] - Mermaid-диаграммы (/mermaid)
+    [yellow]63[/yellow] - Трекер навыков (/skills)
+    [yellow]64[/yellow] - Репутация (/reputation)
+    [yellow]65[/yellow] - Глубина объяснений (/depth)
+    [yellow]66[/yellow] - Безопасный код (/fixcode)
+    [yellow]67[/yellow] - Шаблоны заданий (/templates)
+    [yellow]68[/yellow] - Эмоции учителя (/emotions)
+    [yellow]69[/yellow] - Docker Compose (/dockergen)
+    [yellow]70[/yellow] - CTF-флаги (/ctf)
+    [yellow]71[/yellow] - Профиль (/profile)
+    [yellow]72[/yellow] - Ежедневный челлендж (/daily)
 
   [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -200,8 +201,9 @@ def show_help():
   /usage       - Статистика использования команд
   /export      - Экспорт истории чата (Markdown/JSON)
   /config      - Интерактивный мастер настройки
-  /theme       - Смена цветовой схемы
-  /features    - Вкл/выкл модулей
+   /theme       - Смена цветовой схемы
+   /lang        - Язык интерфейса (ru/en)
+   /features    - Вкл/выкл модулей
   /summarize   - Суммаризация истории диалога
   /phishing    - Конструктор фишинговых писем
   /mermaid     - Mermaid-инфографика

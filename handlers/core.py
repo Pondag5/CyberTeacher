@@ -80,6 +80,7 @@ from .summary import handle_summary
 from .summarize import handle_summarize
 from .threats import handle_groups, handle_threat_summary, handle_threats
 from .theme import handle_theme
+from .lang import handle_lang
 from .writeup_auto import handle_auto_writeup
 
 console = Console()
@@ -532,6 +533,10 @@ def handle_extended_commands(
     # ----- Theme (M-29) -----
     if action == "theme" or action.startswith("theme "):
         return handle_theme(action)
+
+    # ----- Language (i18n) -----
+    if action == "lang" or action.startswith("lang "):
+        return handle_lang(action)
 
     # ----- Feature flags (M-32) -----
     if action == "features" or action.startswith("features "):

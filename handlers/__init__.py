@@ -12,6 +12,7 @@ from .core import (  # основной диспетчер
     handle_commands,
 )
 from .flags import handle_flag_check
+from .lang import handle_lang
 from .misc import (
     handle_add_book,
     handle_course,
@@ -45,6 +46,7 @@ __all__ = [
     "handle_flag_check",
     "handle_groups",
     "handle_history",
+    "handle_lang",
     "handle_practice",
     "handle_quiz_action",
     "handle_quiz_generation",
