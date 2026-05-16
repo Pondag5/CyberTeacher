@@ -893,62 +893,22 @@ class AppState:
         self.check_achievements()
 
     def check_achievements(self):
-        """Проверить и выдать новые достижения"""
-        import json
-        import os
+        """Проверить и выдать новые достижения через сервис"""
+        from services.achievement_service import check_achievements
 
-        achievements_file = "data/achievements.json"
-        if not os.path.exists(achievements_file):
-            return []
+        def state_getter(name: str):
+            if name == "xp_multiplier":
+                return self.get_xp_multiplier()
+            return getattr(self, name)
 
-        try:
-            with open(achievements_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            achievements_list = data.get("achievements", [])
-        except Exception:
-            return []
+        def state_setter(name: str, value):
+            setattr(self, name, value)
 
-        newly_earned = []
-        for ach in achievements_list:
-            ach_id = ach.get("id")
-            if not ach_id or ach_id in self.earned_achievements:
-                continue
-
-            cond = ach.get("condition", {})
-            cond_type = cond.get("type")
-            threshold = cond.get("threshold", 0)
-
-            # Проверяем условия
-            unlocked = False
-            if cond_type == "flags_total":
-                unlocked = self.total_flags_collected >= threshold
-            elif cond_type == "assignments_completed":
-                unlocked = self.assignments_completed >= threshold
-            elif cond_type == "total_points":
-                unlocked = self.points >= threshold
-            elif cond_type == "labs_started":
-                unlocked = self.labs_started >= threshold
-            elif cond_type == "quizzes_taken":
-                unlocked = self.quizzes_taken >= threshold
-            elif cond_type == "news_checked":
-                unlocked = self.news_checked >= threshold
-            elif cond_type == "social_success":
-                unlocked = self.social_success >= threshold
-            elif cond_type == "apt_groups_viewed":
-                unlocked = self.apt_groups_viewed >= threshold
-            elif cond_type == "stealth_ops":
-                unlocked = self.stealth_ops >= threshold
-            elif cond_type == "threat_exposures":
-                unlocked = self.threat_exposures >= threshold
-
-            if unlocked:
-                self.earned_achievements.append(ach_id)
-                xp = ach.get("points", 0)
-                if xp > 0:
-                    self.points += xp * self.get_xp_multiplier()
-                newly_earned.append(ach)
-
-        return newly_earned
+        return check_achievements(
+            self.earned_achievements,
+            state_getter,
+            state_setter,
+        )
 
     # === RATE LIMITING (Q-05) ===
 
