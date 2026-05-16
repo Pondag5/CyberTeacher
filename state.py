@@ -1167,98 +1167,100 @@ class AppState:
             logger.error(f"Не удалось сохранить состояние: {e}")
 
     def load_from_file(self, path: str = "./memory/app_state.json"):
-        """Загрузить состояние из файла"""
+        """Загрузить состояние из файла с Pydantic валидацией"""
         import json
+        from state_models import AppStateModel
 
         try:
             if os.path.exists(path):
                 with open(path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+                    raw_data = json.load(f)
+
+                # Валидация данных через Pydantic
+                validated = AppStateModel.model_validate(raw_data)
 
                 # Learning
-                self.current_course = data.get("current_course")
-                self.current_topic = data.get("current_topic", 0)
-                self.learning_context = data.get(
-                    "learning_context", self.learning_context
-                )
-                self.course_progress = data.get("course_progress", {})
+                self.current_course = validated.current_course
+                self.current_topic = validated.current_topic
+                self.learning_context = validated.learning_context
+                self.course_progress = validated.course_progress
                 # User
-                self.username = data.get("username", "Аноним")
-                self.avatar = data.get("avatar", "🧑‍💻")
-                self.reputation = data.get("reputation", 0)
-                self.handle = data.get("handle", "Новичок")
-                self.htb_email = data.get("htb_email")
-                pwd_enc = data.get("htb_password_enc")
+                self.username = validated.username
+                self.avatar = validated.avatar
+                self.reputation = validated.reputation
+                self.handle = validated.handle
+                self.htb_email = validated.htb_email
+                pwd_enc = validated.htb_password_enc
                 if pwd_enc:
                     self.htb_password = _decrypt(pwd_enc)
                 else:
-                    self.htb_password = data.get("htb_password")
-                self.htb_completed = data.get("htb_completed", [])
+                    self.htb_password = validated.htb_password
+                self.htb_completed = validated.htb_completed
                 # Achievements
-                self.points = data.get("points", 0)
-                self.total_flags_collected = data.get("total_flags_collected", 0)
-                self.assignments_completed = data.get("assignments_completed", 0)
-                self.labs_started = data.get("labs_started", 0)
-                self.quizzes_taken = data.get("quizzes_taken", 0)
-                self.news_checked = data.get("news_checked", 0)
-                self.messages_sent = data.get("messages_sent", 0)
-                self.earned_achievements = data.get("earned_achievements", [])
-                self.social_success = data.get("social_success", 0)
-                self.apt_groups_viewed = data.get("apt_groups_viewed", 0)
-                self.stealth_ops = data.get("stealth_ops", 0)
-                self.threat_exposures = data.get("threat_exposures", 0)
-                self.xp_boost_multiplier = data.get("xp_boost_multiplier", 1.0)
-                self.xp_boost_expiry = data.get("xp_boost_expiry", 0.0)
+                self.points = validated.points
+                self.total_flags_collected = validated.total_flags_collected
+                self.assignments_completed = validated.assignments_completed
+                self.labs_started = validated.labs_started
+                self.quizzes_taken = validated.quizzes_taken
+                self.news_checked = validated.news_checked
+                self.messages_sent = validated.messages_sent
+                self.earned_achievements = validated.earned_achievements
+                self.social_success = validated.social_success
+                self.apt_groups_viewed = validated.apt_groups_viewed
+                self.stealth_ops = validated.stealth_ops
+                self.threat_exposures = validated.threat_exposures
+                self.xp_boost_multiplier = validated.xp_boost_multiplier
+                self.xp_boost_expiry = validated.xp_boost_expiry
                 # Metrics
-                self.llm_call_count = data.get("llm_call_count", 0)
-                self.llm_total_time = data.get("llm_total_time", 0.0)
-                self.llm_total_tokens = data.get("llm_total_tokens", 0)
-                self.cache_hits = data.get("cache_hits", 0)
-                self.cache_misses = data.get("cache_misses", 0)
-                self.start_time = data.get("start_time", time.time())
-                self.request_timestamps = data.get("request_timestamps", [])
-                self.command_usage = data.get("command_usage", {})
+                self.llm_call_count = validated.llm_call_count
+                self.llm_total_time = validated.llm_total_time
+                self.llm_total_tokens = validated.llm_total_tokens
+                self.cache_hits = validated.cache_hits
+                self.cache_misses = validated.cache_misses
+                self.start_time = validated.start_time
+                self.request_timestamps = validated.request_timestamps
+                self.command_usage = validated.command_usage
                 # Persona
-                self.current_persona = data.get("current_persona", "teacher")
-                self.current_mode = data.get("current_mode", "teacher")
+                self.current_persona = validated.current_persona
+                self.current_mode = validated.current_mode
                 # Risk
-                self.risk_level = data.get("risk_level", 0)
+                self.risk_level = validated.risk_level
                 # Shop
-                self.owned_themes = data.get("owned_themes", [])
-                self.current_theme = data.get("current_theme", "default")
-                self.unlocked_topics = data.get("unlocked_topics", [])
-                self.hint_credits = data.get("hint_credits", 3)
-                self.selected_tools = data.get("selected_tools", [])
-                self.trace_deadline = data.get("trace_deadline")
-                self.trace_hint = data.get("trace_hint")
-                self.missions_completed = data.get("missions_completed", [])
-                self.active_mission = data.get("active_mission")
+                self.owned_themes = validated.owned_themes
+                self.current_theme = validated.current_theme
+                self.unlocked_topics = validated.unlocked_topics
+                self.hint_credits = validated.hint_credits
+                self.selected_tools = validated.selected_tools
+                self.trace_deadline = validated.trace_deadline
+                self.trace_hint = validated.trace_hint
+                self.missions_completed = validated.missions_completed
+                self.active_mission = validated.active_mission
                 # Hints
-                self.hint_enabled = data.get("hint_enabled", True)
-                self.hints_used = data.get("hints_used", 0)
-                self.last_hint_time = data.get("last_hint_time", 0.0)
-                self.hint_cooldown = data.get("hint_cooldown", 30)
+                self.hint_enabled = validated.hint_enabled
+                self.hints_used = validated.hints_used
+                self.last_hint_time = validated.last_hint_time
+                self.hint_cooldown = validated.hint_cooldown
                 # Voice
-                self.voice_enabled = data.get("voice_enabled", False)
-                self.voice_engine = data.get("voice_engine", "pyttsx3")
-                self.voice_rate = data.get("voice_rate", 200)
+                self.voice_enabled = validated.voice_enabled
+                self.voice_engine = validated.voice_engine
+                self.voice_rate = validated.voice_rate
                 # Explanation
-                self.explanation_depth = data.get("explanation_depth", "normal")
+                self.explanation_depth = validated.explanation_depth
                 # Direct AppState attributes
-                self.last_news = data.get("last_news")
-                self.active_assignment = data.get("active_assignment")
-                self.collected_flags = data.get("collected_flags", [])
-                self.weak_topics = data.get("weak_topics", [])
-                self.review_schedule = data.get("review_schedule", {})
-                self.feature_flags = data.get("feature_flags", {})
-                self.last_writeup_activity = data.get("last_writeup_activity")
-                self.writeup_history = data.get("writeup_history", [])
-                self.exploit_success = data.get("exploit_success", [])
-                self.tracks_enrolled = data.get("tracks_enrolled", [])
-                self.track_progress = data.get("track_progress", {})
-                self.bounty_reports = data.get("bounty_reports", [])
-                self.skill_tracker = data.get("skill_tracker", {})
-                self.emotion_mode = data.get("emotion_mode", "neutral")
+                self.last_news = validated.last_news
+                self.active_assignment = validated.active_assignment
+                self.collected_flags = validated.collected_flags
+                self.weak_topics = validated.weak_topics
+                self.review_schedule = validated.review_schedule
+                self.feature_flags = validated.feature_flags
+                self.last_writeup_activity = validated.last_writeup_activity
+                self.writeup_history = validated.writeup_history
+                self.exploit_success = validated.exploit_success
+                self.tracks_enrolled = validated.tracks_enrolled
+                self.track_progress = validated.track_progress
+                self.bounty_reports = validated.bounty_reports
+                self.skill_tracker = validated.skill_tracker
+                self.emotion_mode = validated.emotion_mode
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")
