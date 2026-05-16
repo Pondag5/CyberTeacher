@@ -1,19 +1,18 @@
-# handlers/theme.py — Смена цветовой схемы (M-29)
-"""Темы оформления для CLI интерфейса."""
+# handlers/theme.py — Theme switching (M-29)
+"""UI theme management."""
 
 from typing import Any
 
+from di import get_context
 from rich.console import Console
 from rich.panel import Panel
-
-from state import get_state
 
 console = Console()
 
 THEMES = {
     "default": {
         "name": "Default",
-        "description": "Стандартная тема (cyan/green)",
+        "description": "Standard theme (cyan/green)",
         "border": "cyan",
         "primary": "cyan",
         "success": "green",
@@ -22,7 +21,7 @@ THEMES = {
     },
     "dark": {
         "name": "Dark Matrix",
-        "description": "Тёмная тема в стиле Matrix (green/black)",
+        "description": "Dark Matrix-style theme (green/black)",
         "border": "green",
         "primary": "green",
         "success": "bright_green",
@@ -31,7 +30,7 @@ THEMES = {
     },
     "ocean": {
         "name": "Ocean",
-        "description": "Морская тема (blue/teal)",
+        "description": "Ocean theme (blue/teal)",
         "border": "blue",
         "primary": "bright_cyan",
         "success": "green",
@@ -40,7 +39,7 @@ THEMES = {
     },
     "sunset": {
         "name": "Sunset",
-        "description": "Тёплая тема (orange/purple)",
+        "description": "Warm theme (orange/purple)",
         "border": "magenta",
         "primary": "bright_magenta",
         "success": "green",
@@ -49,7 +48,7 @@ THEMES = {
     },
     "colorblind": {
         "name": "Colorblind Friendly",
-        "description": "Доступная тема для дальтоников",
+        "description": "Accessible theme for colorblind users",
         "border": "white",
         "primary": "bright_white",
         "success": "bright_green",
@@ -58,7 +57,7 @@ THEMES = {
     },
     "hacker": {
         "name": "Hacker Terminal",
-        "description": "Стиль терминала хакера (bright green on black)",
+        "description": "Hacker terminal style (bright green on black)",
         "border": "bright_green",
         "primary": "bright_green",
         "success": "bright_green",
@@ -69,52 +68,53 @@ THEMES = {
 
 
 def handle_theme(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Управление темами оформления."""
-    state = get_state()
+    """Handle /theme command for theme switching."""
+    ctx = get_context()
+    state = ctx.state
 
-    # Инициализируем current_theme если нет
+    # Initialize current_theme if not present
     if not hasattr(state, "current_theme"):
         state.current_theme = "default"
-        state.save_to_file()
+        ctx.save_state()
 
     parts = action.split(maxsplit=1)
 
     if len(parts) == 1:
-        # Показать список тем
+        # Show available themes
         current = state.current_theme
         console.print(Panel(
-            "[bold cyan]🎨 Доступные темы оформления[/bold cyan]\n",
-            title="ТЕМЫ",
+            "[bold cyan]🎨 Available Themes[/bold cyan]\n",
+            title="THEMES",
             border_style="cyan",
         ))
 
         for theme_id, theme in THEMES.items():
-            marker = " [bold green]← текущая[/bold green]" if theme_id == current else ""
+            marker = " [bold green]← current[/bold green]" if theme_id == current else ""
             console.print(f"  [cyan]{theme_id:<12}[/cyan] — {theme['name']}{marker}")
             console.print(f"  [dim]{' ' * 14}{theme['description']}[/dim]")
             console.print()
 
-        console.print("[yellow]Использование: /theme <имя>[/yellow]")
-        console.print("[dim]Доступные: " + ", ".join(THEMES.keys()) + "[/dim]")
+        console.print("[yellow]Usage: /theme <name>[/yellow]")
+        console.print("[dim]Available: " + ", ".join(THEMES.keys()) + "[/dim]")
         return True, None, None, True
 
     theme_name = parts[1].strip().lower()
 
     if theme_name not in THEMES:
-        console.print(f"[red]❌ Тема '{theme_name}' не найдена[/red]")
-        console.print("[dim]Доступные: " + ", ".join(THEMES.keys()) + "[/dim]")
+        console.print(f"[red]❌ Theme '{theme_name}' not found[/red]")
+        console.print("[dim]Available: " + ", ".join(THEMES.keys()) + "[/dim]")
         return True, None, None, True
 
     state.current_theme = theme_name
-    state.save_to_file()
+    ctx.save_state()
 
     theme = THEMES[theme_name]
     console.print(Panel(
-        f"[bold green]✅ Тема изменена![/bold green]\n\n"
-        f"Название: [cyan]{theme['name']}[/cyan]\n"
-        f"Описание: {theme['description']}\n\n"
-        "[dim]Изменения применены к новым панелям.[/dim]",
-        title="ТЕМА",
+        f"[bold green]✅ Theme changed![/bold green]\n\n"
+        f"Name: [cyan]{theme['name']}[/cyan]\n"
+        f"Description: {theme['description']}\n\n"
+        "[dim]Changes applied to new panels.[/dim]",
+        title="THEME",
         border_style=theme["border"],
     ))
 
@@ -122,7 +122,8 @@ def handle_theme(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
 
 def get_theme_colors() -> dict[str, str]:
-    """Получить цвета текущей темы."""
-    state = get_state()
+    """Get colors of current theme."""
+    ctx = get_context()
+    state = ctx.state
     theme_name = getattr(state, "current_theme", "default")
     return THEMES.get(theme_name, THEMES["default"])

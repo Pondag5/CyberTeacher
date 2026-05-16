@@ -3,17 +3,17 @@
 import time
 from typing import Any
 
+from di import get_context
 from rich.console import Console
 from rich.table import Table
-
-from state import get_state
 
 console = Console()
 
 
 def handle_health(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Обработка команды /health"""
-    state = get_state()
+    """Handle /health command."""
+    ctx = get_context()
+    state = ctx.state
     uptime_seconds = time.time() - state.start_time
     hours, rem = divmod(uptime_seconds, 3600)
     minutes, seconds = divmod(rem, 60)

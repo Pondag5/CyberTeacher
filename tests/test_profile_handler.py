@@ -5,6 +5,7 @@ Tests for profile handler.
 import unittest
 from unittest.mock import patch, MagicMock
 
+from di import AppContext
 from handlers.profile import (
     AVATARS,
     _set_name,
@@ -17,67 +18,79 @@ from handlers.profile import (
 class TestProfileHandler(unittest.TestCase):
     """Tests for profile handler functions."""
 
-    @patch("handlers.profile.get_state")
+    @patch("handlers.profile.get_context")
     @patch("handlers.profile.console")
-    def test_set_name_valid(self, mock_console, mock_get_state):
+    def test_set_name_valid(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.username = "OldName"
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _set_name("NewName")
         self.assertTrue(result[0])
         self.assertEqual(mock_state.username, "NewName")
-        mock_state.save_to_file.assert_called_once()
+        mock_ctx.save_state.assert_called_once()
 
-    @patch("handlers.profile.get_state")
+    @patch("handlers.profile.get_context")
     @patch("handlers.profile.console")
-    def test_set_name_empty(self, mock_console, mock_get_state):
+    def test_set_name_empty(self, mock_console, mock_get_context):
+        mock_ctx = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = _set_name("   ")
         self.assertTrue(result[0])
         mock_console.print.assert_called()
 
-    @patch("handlers.profile.get_state")
+    @patch("handlers.profile.get_context")
     @patch("handlers.profile.console")
-    def test_set_name_too_long(self, mock_console, mock_get_state):
+    def test_set_name_too_long(self, mock_console, mock_get_context):
+        mock_ctx = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = _set_name("A" * 31)
         self.assertTrue(result[0])
         mock_console.print.assert_called()
 
-    @patch("handlers.profile.get_state")
+    @patch("handlers.profile.get_context")
     @patch("handlers.profile.console")
-    def test_set_avatar_valid(self, mock_console, mock_get_state):
+    def test_set_avatar_valid(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _set_avatar("🐱")
         self.assertTrue(result[0])
         self.assertEqual(mock_state.avatar, "🐱")
-        mock_state.save_to_file.assert_called_once()
+        mock_ctx.save_state.assert_called_once()
 
-    @patch("handlers.profile.get_state")
+    @patch("handlers.profile.get_context")
     @patch("handlers.profile.console")
-    def test_set_avatar_custom(self, mock_console, mock_get_state):
+    def test_set_avatar_custom(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _set_avatar("🦄")
         self.assertTrue(result[0])
         self.assertEqual(mock_state.avatar, "🦄")
 
-    @patch("handlers.profile.get_state")
+    @patch("handlers.profile.get_context")
     @patch("handlers.profile.console")
-    def test_list_avatars(self, mock_console, mock_get_state):
+    def test_list_avatars(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.avatar = "🧑‍💻"
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _list_avatars()
         self.assertTrue(result[0])
         mock_console.print.assert_called()
 
-    @patch("handlers.profile.get_state")
+    @patch("handlers.profile.get_context")
     @patch("handlers.profile.console")
-    def test_show_detailed_stats(self, mock_console, mock_get_state):
+    def test_show_detailed_stats(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.avatar = "🐱"
         mock_state.username = "TestUser"
@@ -92,7 +105,9 @@ class TestProfileHandler(unittest.TestCase):
         mock_state.messages_sent = 50
         mock_state.news_checked = 1
         mock_state.get_all_skills.return_value = []
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _show_detailed_stats()
         self.assertTrue(result[0])

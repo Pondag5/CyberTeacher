@@ -10,9 +10,9 @@
 **CyberTeacher** — Python CLI for cybersecurity education with LLM teacher.
 - **LLM:** Ollama/VL Studio (qwen2.5)
 - **RAG:** Chroma + sentence-transformers
-- **UI:** Rich (CLI)
+- **UI:** Rich (CLI) + Streamlit (Web)
 - **DB:** SQLite
-- **Tests:** unittest (830 tests, 825 passing)
+- **Tests:** unittest (851 tests, 846 passing)
 - **Coverage:** ~95%+ (all handlers covered)
 
 ---
@@ -32,55 +32,31 @@
 | REF-13 | 10 state modules → 4 consolidated | ✅ |
 | REF-14 | Pydantic Settings | ✅ |
 | REF-15 | Business logic → services | ✅ |
-| REF-04 | Dependency Injection (phase 1) | ✅ Container created, phase 2 pending |
+| REF-04 | Dependency Injection (phase 1) | ✅ Container created |
 
 ### i18n Localization
-| Feature | Files |
-|---------|-------|
-| Russian/English UI | `locales/ru.json`, `locales/en.json` |
-| Localization engine | `i18n.py` |
-| `/lang` command | `handlers/lang.py` |
-| Teacher prompts | `config/teacher_prompts.json` (ru + en) |
-| Language field | `settings_state.py` |
+- `locales/ru.json`, `locales/en.json` — UI translations
+- `i18n.py` — Localization engine with `t(lang, 'ui.key')`
+- `handlers/lang.py` — `/lang` command
+- `config/teacher_prompts.json` — ru + en prompts
+- `settings_state.py` — `language` field
+
+### Web UI (M-28)
+- `web_ui.py` — Enhanced Streamlit dashboard (6 tabs)
+- XP over time chart, activity heatmap, skill bars
+- Settings management (language, mode)
+- `tests/test_web_ui.py` — 7 tests
 
 ### Dependency Injection (REF-04)
-| Component | Status |
-|-----------|--------|
-| `di.py` — AppContext container | ✅ Created |
-| `@inject` decorator | ✅ Created |
-| `get_context()/set_context()` | ✅ Created |
-| `handlers/core.py` — Context initialization | ✅ Migrated |
-| Handler migration (phase 2) | ⏳ Pending |
+- `di.py` — AppContext container with state, settings, db_conn, llm, kb
+- `@inject` decorator for handler injection
+- `get_context()/set_context()/reset_context()` for lifecycle
+- `handlers/core.py` — Context initialized in `handle_commands()`
 
-### New Tests (64 total this session)
-| File | Tests | Coverage |
-|------|-------|----------|
-| `test_services.py` | 23 | Services (weak topics, spaced repetition, skills, achievements) |
-| `test_settings.py` | 8 | Pydantic Settings validation |
-| `test_profile_handler.py` | 8 | Profile handler |
-| `test_health_handler.py` | 3 | Health metrics |
-| `test_theme_handler.py` | 10 | Theme switching |
-| `test_hints_handler.py` | 12 | Hints system |
-| `test_i18n.py` | 10 | Localization engine |
-| `test_lang_handler.py` | 4 | `/lang` command |
-| `test_ctf_flags.py` | 12 | CTF flag generation/verification |
-| `test_cve_handler.py` | 5 | CVE lookup with caching |
-| `test_skills_handler.py` | 11 | Skills, reputation, depth |
-
----
-
-## 📊 TEST STATUS
-
-- **Total:** 851 tests
-- **Passing:** 846
-- **Failing:** 1 (Ollama not running — environment)
-- **Skipped:** 4 (external services)
-- **Coverage:** ~95%+ (all handlers covered)
-
-### Recent Test Additions (7 tests)
-| File | Tests | Coverage |
-|------|-------|----------|
-| `test_web_ui.py` | 7 | Web UI helper functions (XP history, heatmap) |
+### Tests (851 total)
+- All 60+ handlers covered (100% handler coverage)
+- Services, settings, DI, web_ui tested
+- ~95%+ overall coverage
 
 ---
 
@@ -88,10 +64,8 @@
 
 | Priority | ID | Task | Notes |
 |----------|----|------|-------|
-| 🟡 Medium | REF-04 | Dependency Injection (phase 2) | Migrate handlers to use ctx.state instead of get_state() |
-| 🟢 Low | L-07 | Translate comments to English | Open-source readiness |
-| 🟡 Medium | Q-02 | Coverage >90% | ✅ DONE — ~95% reached, all handlers covered |
-| ✅ Done | M-28 | Web UI: XP graphs, heatmap | ✅ DONE — Enhanced dashboard with 6 tabs |
+| 🟡 Medium | REF-04 | DI Phase 2 | Migrate handlers: `get_state()` → `ctx.state` |
+| 🟢 Low | L-07 | Translate comments | English for open-source |
 
 ---
 
@@ -117,6 +91,7 @@
 | `i18n.py` | Localization engine |
 | `handlers/core.py` | Command dispatcher (DI initialized) |
 | `handlers/lang.py` | Language switching |
+| `web_ui.py` | Streamlit dashboard |
 | `services/` | Business logic |
 | `locales/` | Translation files |
 
@@ -132,9 +107,8 @@
 
 ## 🔄 NEXT STEPS
 
-1. REF-04 phase 2: Migrate handlers to use `ctx.state` instead of `get_state()`
-2. M-28: Web UI enhancements (XP graphs, heatmap)
-3. L-07: Translate comments to English
+1. REF-04 Phase 2: Migrate handlers to use `ctx.state` instead of `get_state()`
+2. L-07: Translate comments to English
 
 ---
 

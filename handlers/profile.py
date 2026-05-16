@@ -1,13 +1,12 @@
-# handlers/profile.py — Профили пользователей (G-09)
-"""Смена имени, аватар, настройки профиля."""
+# handlers/profile.py — User profile management (G-09)
+"""Profile settings: name, avatar, stats."""
 
 import os
 from typing import Any
 
+from di import get_context
 from rich.console import Console
 from rich.panel import Panel
-
-from state import get_state
 
 console = Console()
 
@@ -19,7 +18,7 @@ AVATARS = [
 
 
 def handle_profile(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Управление профилем пользователя."""
+    """Handle profile management commands."""
     parts = action.split(maxsplit=2)
 
     if len(parts) == 1:
@@ -42,76 +41,79 @@ def handle_profile(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     if subcommand == "stats":
         return _show_detailed_stats()
 
-    console.print("[yellow]Использование: /profile name <имя> | avatar <эмодзи> | stats | reset[/yellow]")
+    console.print("[yellow]Usage: /profile name <name> | avatar <emoji> | stats | reset[/yellow]")
     return True, None, None, True
 
 
 def _show_profile() -> tuple[bool, Any | None, Any | None, bool]:
-    """Показать профиль."""
-    state = get_state()
-    username = getattr(state, "username", "Аноним")
+    """Show user profile."""
+    ctx = get_context()
+    state = ctx.state
+    username = getattr(state, "username", "Anonymous")
     avatar = getattr(state, "avatar", "🧑‍💻")
     handle = state.get_handle()
     rep = state.reputation
 
     console.print(Panel(
         f"[bold]{avatar} {username}[/bold]\n\n"
-        f"Хэндл: {handle}\n"
-        f"Репутация: {rep}\n"
+        f"Handle: {handle}\n"
+        f"Reputation: {rep}\n"
         f"XP: {state.points:.0f}\n"
-        f"Флагов: {state.total_flags_collected}\n"
-        f"Квизов: {state.quizzes_taken}\n"
-        f"Лабораторий: {state.labs_started}\n\n"
-        f"[dim]/profile name <имя> — сменить имя[/dim]\n"
-        f"[dim]/profile avatar — выбрать аватар[/dim]\n"
-        f"[dim]/profile stats — подробная статистика[/dim]",
-        title="ПРОФИЛЬ",
+        f"Flags: {state.total_flags_collected}\n"
+        f"Quizzes: {state.quizzes_taken}\n"
+        f"Labs: {state.labs_started}\n\n"
+        f"[dim]/profile name <name> — change name[/dim]\n"
+        f"[dim]/profile avatar — choose avatar[/dim]\n"
+        f"[dim]/profile stats — detailed stats[/dim]",
+        title="PROFILE",
         border_style="cyan",
     ))
     return True, None, None, True
 
 
 def _set_name(name: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Установить имя."""
+    """Set user name."""
+    ctx = get_context()
+    state = ctx.state
     name = name.strip()
     if not name:
-        console.print("[red]❌ Имя не может быть пустым[/red]")
+        console.print("[red]❌ Name cannot be empty[/red]")
         return True, None, None, True
     if len(name) > 30:
-        console.print("[red]❌ Имя слишком длинное (макс 30 символов)[/red]")
+        console.print("[red]❌ Name too long (max 30 characters)[/red]")
         return True, None, None, True
 
-    state = get_state()
-    old_name = getattr(state, "username", "Аноним")
+    old_name = getattr(state, "username", "Anonymous")
     state.username = name
-    state.save_to_file()
+    ctx.save_state()
 
-    console.print(f"[green]✅ Имя изменено: {old_name} → {name}[/green]")
+    console.print(f"[green]✅ Name changed: {old_name} → {name}[/green]")
     return True, None, None, True
 
 
 def _set_avatar(avatar: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Установить аватар."""
+    """Set user avatar."""
+    ctx = get_context()
+    state = ctx.state
     avatar = avatar.strip()
     if avatar not in AVATARS:
-        console.print(f"[yellow]⚠️ '{avatar}' нет в списке. /profile avatar для списка.[/yellow]")
-        # Всё равно установить — вдруг пользователь хочет свой эмодзи
-        state = get_state()
+        console.print(f"[yellow]⚠️ '{avatar}' not in list. /profile avatar for list.[/yellow]")
+        # Still allow custom emoji
         state.avatar = avatar
-        state.save_to_file()
-        console.print(f"[green]✅ Аватар установлен: {avatar}[/green]")
+        ctx.save_state()
+        console.print(f"[green]✅ Avatar set: {avatar}[/green]")
         return True, None, None, True
 
-    state = get_state()
     state.avatar = avatar
-    state.save_to_file()
-    console.print(f"[green]✅ Аватар установлен: {avatar}[/green]")
+    ctx.save_state()
+    console.print(f"[green]✅ Avatar set: {avatar}[/green]")
     return True, None, None, True
 
 
 def _list_avatars() -> tuple[bool, Any | None, Any | None, bool]:
-    """Показать доступные аватары."""
-    state = get_state()
+    """Show available avatars."""
+    ctx = get_context()
+    state = ctx.state
     current = getattr(state, "avatar", "🧑‍💻")
 
     lines = []
@@ -121,49 +123,51 @@ def _list_avatars() -> tuple[bool, Any | None, Any | None, bool]:
 
     console.print(Panel(
         " ".join(lines[:12]) + "\n" + " ".join(lines[12:]),
-        title="АВАТАРЫ",
+        title="AVATARS",
         border_style="cyan",
     ))
-    console.print("[dim]Использование: /profile avatar <эмодзи>[/dim]")
+    console.print("[dim]Usage: /profile avatar <emoji>[/dim]")
     return True, None, None, True
 
 
 def _reset_profile() -> tuple[bool, Any | None, Any | None, bool]:
-    """Сбросить профиль."""
-    console.print("[bold red]⚠️ Сбросить профиль? Имя и аватар будут удалены.[/bold red]")
-    confirm = input("Введите 'yes': ").strip().lower()
+    """Reset profile."""
+    ctx = get_context()
+    state = ctx.state
+    console.print("[bold red]⚠️ Reset profile? Name and avatar will be deleted.[/bold red]")
+    confirm = input("Type 'yes': ").strip().lower()
     if confirm == "yes":
-        state = get_state()
-        state.username = "Аноним"
+        state.username = "Anonymous"
         state.avatar = "🧑‍💻"
-        state.save_to_file()
-        console.print("[green]✅ Профиль сброшен[/green]")
+        ctx.save_state()
+        console.print("[green]✅ Profile reset[/green]")
     else:
-        console.print("[yellow]Отмена[/yellow]")
+        console.print("[yellow]Cancelled[/yellow]")
     return True, None, None, True
 
 
 def _show_detailed_stats() -> tuple[bool, Any | None, Any | None, bool]:
-    """Подробная статистика."""
-    state = get_state()
+    """Show detailed stats."""
+    ctx = get_context()
+    state = ctx.state
     skills = state.get_all_skills()
 
     lines = [
-        f"[bold]👤 {getattr(state, 'avatar', '🧑‍💻')} {getattr(state, 'username', 'Аноним')}[/bold]",
-        f"Хэндл: {state.get_handle()} | Репутация: {state.reputation}",
-        f"XP: {state.points:.0f} | Множитель: x{state.get_xp_multiplier():.1f}",
+        f"[bold]👤 {getattr(state, 'avatar', '🧑‍💻')} {getattr(state, 'username', 'Anonymous')}[/bold]",
+        f"Handle: {state.get_handle()} | Reputation: {state.reputation}",
+        f"XP: {state.points:.0f} | Multiplier: x{state.get_xp_multiplier():.1f}",
         "",
-        f"[bold]📊 Активность:[/bold]",
-        f"  Квизов: {state.quizzes_taken} | Заданий: {state.assignments_completed}",
-        f"  Флагов: {state.total_flags_collected} | Лаб: {state.labs_started}",
-        f"  Сообщений: {state.messages_sent} | Новостей: {state.news_checked}",
+        f"[bold]📊 Activity:[/bold]",
+        f"  Quizzes: {state.quizzes_taken} | Assignments: {state.assignments_completed}",
+        f"  Flags: {state.total_flags_collected} | Labs: {state.labs_started}",
+        f"  Messages: {state.messages_sent} | News: {state.news_checked}",
     ]
 
     if skills:
-        lines.append(f"\n[bold]🎯 Навыки:[/bold]")
+        lines.append(f"\n[bold]🎯 Skills:[/bold]")
         for s in skills[:5]:
             bar = "█" * s["level"] + "░" * (5 - s["level"])
             lines.append(f"  {s['name']:<20} [{bar}] L{s['level']} ({s['success_rate']}%)")
 
-    console.print(Panel("\n".join(lines), title="ПОДРОБНАЯ СТАТИСТИКА", border_style="cyan"))
+    console.print(Panel("\n".join(lines), title="DETAILED STATS", border_style="cyan"))
     return True, None, None, True
