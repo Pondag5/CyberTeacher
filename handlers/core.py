@@ -10,6 +10,7 @@ from typing import Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 
+from di import get_context
 from state import get_state
 from ui import Mode, show_help, show_help_detail, show_menu
 
@@ -259,6 +260,12 @@ def handle_commands(
     llm: Any,
 ) -> tuple[bool, Any | None, Any | None, bool]:
     """Главный диспетчер. Все команды (включая numeric menu) передаются в handle_extended_commands."""
+    # Initialize DI context with current connection and LLM
+    from di import AppContext
+    ctx = AppContext(state=get_state(), db_conn=conn, _llm=llm)
+    from di import set_context
+    set_context(ctx)
+    
     return handle_extended_commands(action, llm, conn)
 
 
