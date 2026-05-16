@@ -982,9 +982,13 @@ class AppState:
             dst = os.path.join(backup_dir, f"news_cache_{timestamp}.json")
             shutil.copy2(news_src, dst)
 
-    def save_to_file(self, path: str = "./memory/app_state.json"):
+    def save_to_file(self, path: str = None):
         """Сохранить состояние в файл"""
         import json
+        from config import STATE_FILE
+
+        if path is None:
+            path = STATE_FILE
 
         state_dict = {
             # Progress (learning, achievements, shop, risk)
@@ -1067,10 +1071,14 @@ class AppState:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось сохранить состояние: {e}")
 
-    def load_from_file(self, path: str = "./memory/app_state.json"):
+    def load_from_file(self, path: str = None):
         """Загрузить состояние из файла с Pydantic валидацией"""
         import json
+        from config import STATE_FILE
         from state_models import AppStateModel
+
+        if path is None:
+            path = STATE_FILE
 
         try:
             if os.path.exists(path):

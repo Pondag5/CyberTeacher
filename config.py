@@ -10,8 +10,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# === ПУТИ (можно переопределить через .env) ===
+PERSIST_DIR = os.getenv("PERSIST_DIR", "./embeddings")
+DB_FILE = os.getenv("DB_FILE", "./memory/chat_history.db")
+KNOWLEDGE_DIR = os.getenv("KNOWLEDGE_DIR", "./knowledge_base")
+METADATA_FILE = os.getenv("METADATA_FILE", "./embeddings/metadata.json")
+STATE_FILE = os.getenv("STATE_FILE", "./memory/app_state.json")
+ACHIEVEMENTS_FILE = os.getenv("ACHIEVEMENTS_FILE", "./data/achievements.json")
+LOG_FILE = os.getenv("LOG_FILE", "./cyberteacher.log")
 # === ЛОГИРОВАНИЕ ===
-LOG_FILE = "./cyberteacher.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -33,22 +40,22 @@ KNOWLEDGE_DIR = "./knowledge_base"
 METADATA_FILE = "./embeddings/metadata.json"
 
 # === LLM ПРОВАЙДЕР ===
-# Варианты: "ollama" (локально), "openrouter" (облако)
-LLM_PROVIDER = "ollama"  # Локально, бесплатно
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
 
 # === OLLAMA ===
-OLLAMA_URL = "http://localhost:11434"
-OLLAMA_MODEL = "qwen2.5:7b"
-MODEL_TEMPERATURE = 0.3
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+MODEL_TEMPERATURE = float(os.getenv("MODEL_TEMPERATURE", "0.3"))
 
-# === OPENROUTER (если LLM_PROVIDER="openrouter") ===
-OPENROUTER_URL = "https://openrouter.ai/api/v1"
-# Бесплатные модели с большим контекстом:
-# - "nvidia/nemotron-3-nano-30b-a3b:free" - 256K контекст, 30B, бесплатно
-# - "mistralai/mixtral-8x7b-instruct" - 32K, бесплатно
-OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
-# Получите API ключ на https://openrouter.ai/keys
-OPENROUTER_API_KEY = ""  # Заполните или установите через env: OPENROUTER_API_KEY
+# === OPENROUTER ===
+OPENROUTER_URL = os.getenv("OPENROUTER_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
+# === HUGGINGFACE ===
+HF_MODEL = os.getenv("HF_MODEL", "mistralai/Mixtral-8x7B-Instruct-v0.1")
+HF_API_URL = os.getenv("HF_API_URL", "https://api-inference.huggingface.co/models")
+HF_TOKEN = os.getenv("HF_TOKEN", "")
 
 # Общее имя модели (логирование)
 MODEL_NAME = OLLAMA_MODEL if LLM_PROVIDER == "ollama" else OPENROUTER_MODEL
@@ -59,10 +66,6 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 MAX_WORKERS = 8  # Уменьшили для снижения нагрузки
 CHUNK_SIZE = 600  # Оптимально для технической документации (было 300)
 CHUNK_OVERLAP = 50  # Сохраняем контекст между чанками (было 15)
-
-# === HUGGINGFACE INFERENCE API (бесплатно 10k токенов/день) ===
-HF_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"  # Бесплатная мощная модель
-HF_API_URL = "https://api-inference.huggingface.co/models"
 
 # === ПЕДАГОГИКА ===
 SOCRATIC_ENABLED = True
@@ -114,25 +117,23 @@ class LazyLoader:
             elif LLM_PROVIDER == "openrouter":
                 from langchain_openai import ChatOpenAI
 
-                api_key = os.getenv("OPENROUTER_API_KEY")
-                if not api_key:
-                    raise ValueError("OPENROUTER_API_KEY не установлен")
+                if not OPENROUTER_API_KEY:
+                    raise ValueError("OPENROUTER_API_KEY не установлен в .env")
                 cls._llm = ChatOpenAI(
                     model=OPENROUTER_MODEL,
                     temperature=MODEL_TEMPERATURE,
                     base_url=OPENROUTER_URL,
-                    api_key=api_key,
+                    api_key=OPENROUTER_API_KEY,
                     max_tokens=MAX_TOKENS,
                 )
             elif LLM_PROVIDER == "huggingface":
                 from langchain_huggingface import HuggingFaceEndpoint
 
-                hf_token = os.getenv("HF_TOKEN")
-                if not hf_token:
-                    raise ValueError("HF_TOKEN не установлен")
+                if not HF_TOKEN:
+                    raise ValueError("HF_TOKEN не установлен в .env")
                 cls._llm = HuggingFaceEndpoint(
                     repo_id=HF_MODEL,
-                    huggingfacehub_api_token=hf_token,
+                    huggingfacehub_api_token=HF_TOKEN,
                     max_new_tokens=MAX_TOKENS,
                     temperature=MODEL_TEMPERATURE,
                 )
@@ -185,15 +186,15 @@ RERANKER = LazyLoader()
 
 # === ПРОВЕРКА ПУТЕЙ ===
 def check_paths():
-    import logging
-
     for path in [PERSIST_DIR, DB_FILE, KNOWLEDGE_DIR, METADATA_FILE]:
         if not os.path.exists(path):
             logging.warning(f"Путь {path} не существует.")
 
     # Создаём директории если нет
-    os.makedirs("./memory", exist_ok=True)
-    os.makedirs("./embeddings", exist_ok=True)
+    os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
+    os.makedirs(PERSIST_DIR, exist_ok=True)
+    os.makedirs(KNOWLEDGE_DIR, exist_ok=True)
+    os.makedirs("./data", exist_ok=True)
 
 
 check_paths()

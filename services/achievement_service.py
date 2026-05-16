@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from typing import Any, Dict, List
+from config import ACHIEVEMENTS_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +24,9 @@ CONDITION_MAP: Dict[str, str] = {
     "threat_exposures": "threat_exposures",
 }
 
-ACHIEVEMENTS_FILE = "data/achievements.json"
-
 
 def load_achievements() -> List[Dict[str, Any]]:
-    """Загрузить список достижений из JSON-файла.
-
-    Returns:
-        Список достижений или пустой список при ошибке.
-    """
+    """Загрузить список достижений из JSON-файла."""
     if not os.path.exists(ACHIEVEMENTS_FILE):
         return []
     try:
@@ -48,16 +43,7 @@ def check_achievement(
     earned_achievements: List[str],
     state_getter,
 ) -> bool:
-    """Проверить, выполнено ли конкретное достижение.
-
-    Args:
-        achievement: Данные достижения из JSON.
-        earned_achievements: Список уже полученных достижений.
-        state_getter: Функция для получения значения атрибута состояния.
-
-    Returns:
-        True если достижение разблокировано.
-    """
+    """Проверить, выполнено ли конкретное достижение."""
     ach_id = achievement.get("id")
     if not ach_id or ach_id in earned_achievements:
         return False
@@ -79,16 +65,7 @@ def check_achievements(
     state_getter,
     state_setter,
 ) -> List[Dict[str, Any]]:
-    """Проверить все достижения и вернуть newly earned.
-
-    Args:
-        earned_achievements: Список уже полученных достижений.
-        state_getter: Функция для получения значения атрибута состояния.
-        state_setter: Функция для установки значения атрибута состояния.
-
-    Returns:
-        Список newly earned достижений.
-    """
+    """Проверить все достижения и вернуть newly earned."""
     achievements_list = load_achievements()
     if not achievements_list:
         return []
@@ -99,7 +76,6 @@ def check_achievements(
             ach_id = ach["id"]
             earned_achievements.append(ach_id)
 
-            # Начислить XP
             xp = ach.get("points", 0)
             if xp > 0:
                 current_points = state_getter("points")
