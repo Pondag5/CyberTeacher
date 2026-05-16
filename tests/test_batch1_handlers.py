@@ -12,13 +12,15 @@ from unittest.mock import patch, MagicMock
 class TestDailyHandler(unittest.TestCase):
     """Tests for /daily command handler."""
 
-    @patch("handlers.daily.get_state")
+    @patch("handlers.daily.get_context")
     @patch("handlers.daily.console")
     @patch("handlers.daily.generate_daily_challenge")
     @patch("handlers.daily.get_daily_status")
-    def test_daily_show_challenge(self, mock_status, mock_gen, mock_console, mock_get_state):
+    def test_daily_show_challenge(self, mock_status, mock_gen, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_gen.return_value = {"desc": "Test challenge", "difficulty": "easy"}
         mock_status.return_value = "Status info"
 
@@ -28,12 +30,14 @@ class TestDailyHandler(unittest.TestCase):
         self.assertTrue(success)
         self.assertTrue(continue_loop)
 
-    @patch("handlers.daily.get_state")
+    @patch("handlers.daily.get_context")
     @patch("handlers.daily.console")
     @patch("handlers.daily.get_hint")
-    def test_daily_hint(self, mock_hint, mock_console, mock_get_state):
+    def test_daily_hint(self, mock_hint, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_hint.return_value = "This is a hint"
 
         from handlers.daily import handle_daily
@@ -42,12 +46,14 @@ class TestDailyHandler(unittest.TestCase):
         self.assertTrue(success)
         mock_console.print.assert_called()
 
-    @patch("handlers.daily.get_state")
+    @patch("handlers.daily.get_context")
     @patch("handlers.daily.console")
     @patch("handlers.daily.get_daily_status")
-    def test_daily_status(self, mock_status, mock_console, mock_get_state):
+    def test_daily_status(self, mock_status, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_status.return_value = "Status info"
 
         from handlers.daily import handle_daily

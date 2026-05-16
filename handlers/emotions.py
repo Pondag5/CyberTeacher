@@ -1,5 +1,5 @@
-# handlers/emotions.py — Учитель с эмоциями (M-19)
-"""Sentiment-анализ ответов ученика и адаптация тона учителя."""
+# handlers/emotions.py — Teacher with emotions (M-19)
+"""Sentiment analysis of student answers and teacher tone adaptation."""
 
 import re
 from typing import Any
@@ -7,7 +7,7 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -83,8 +83,9 @@ def analyze_sentiment(text: str) -> str:
 
 
 def handle_emotions(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Управление эмоциями учителя."""
-    state = get_state()
+    """Manage teacher emotions."""
+    ctx = get_context()
+    state = ctx.state
     parts = action.split(maxsplit=1)
 
     if len(parts) == 1:
@@ -108,7 +109,7 @@ def handle_emotions(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
     if subcommand == "auto":
         state.emotion_mode = "auto"
-        state.save_to_file()
+        ctx.save_state()
         console.print("[green]✅ Автоматический sentiment-анализ включён[/green]")
         return True, None, None, True
 
@@ -122,7 +123,7 @@ def handle_emotions(action: str) -> tuple[bool, Any | None, Any | None, bool]:
             console.print(f"[red]❌ Доступные: {', '.join(EMOTION_STATES.keys())}[/red]")
             return True, None, None, True
         state.emotion_mode = emotion_state
-        state.save_to_file()
+        ctx.save_state()
         e = EMOTION_STATES[emotion_state]
         console.print(f"[green]✅ Установлено: {e['emoji']} {e['name']}[/green]")
         return True, None, None, True
@@ -141,8 +142,9 @@ def handle_emotions(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
 
 def get_emotion_prompt_modifier(user_input: str) -> str:
-    """Получить модификатор промпта на основе sentiment."""
-    state = get_state()
+    """Get prompt modifier based on sentiment."""
+    ctx = get_context()
+    state = ctx.state
     emotion_mode = getattr(state, "emotion_mode", "neutral")
 
     if emotion_mode == "auto":
@@ -154,7 +156,8 @@ def get_emotion_prompt_modifier(user_input: str) -> str:
 
 
 def get_emotion_status() -> dict[str, str]:
-    """Получить текущее состояние эмоций."""
-    state = get_state()
+    """Get current emotion state."""
+    ctx = get_context()
+    state = ctx.state
     emotion_mode = getattr(state, "emotion_mode", "neutral")
     return EMOTION_STATES.get(emotion_mode, EMOTION_STATES["neutral"])

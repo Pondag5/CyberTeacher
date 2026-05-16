@@ -20,15 +20,17 @@ class MockState:
 class TestHandlersNews(unittest.TestCase):
     """Tests for handlers/news module"""
 
-    @patch("handlers.news.get_state")
+    @patch("handlers.news.get_context")
     @patch("handlers.news.console.print")
     @patch("news_fetcher.fetch_news")
-    def test_handle_security_news_no_news(self, mock_fetch, mock_print, mock_get_state):
+    def test_handle_security_news_no_news(self, mock_fetch, mock_print, mock_get_context):
         """Test when fetch_news returns empty list"""
         from handlers import news
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_fetch.return_value = []
 
         result = news.handle_security_news("", lambda: None)
@@ -36,17 +38,19 @@ class TestHandlersNews(unittest.TestCase):
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call("[yellow]Новостей нет.[/yellow]")
 
-    @patch("handlers.news.get_state")
+    @patch("handlers.news.get_context")
     @patch("handlers.news.console.print")
     @patch("news_fetcher.fetch_news")
     def test_handle_security_news_without_llm(
-        self, mock_fetch, mock_print, mock_get_state
+        self, mock_fetch, mock_print, mock_get_context
     ):
         """Test news fetched but LLM is None -> raw display"""
         from handlers import news
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_fetch.return_value = [
             {"title": "Vuln 1"},
             {"title": "Vuln 2"},
@@ -61,17 +65,19 @@ class TestHandlersNews(unittest.TestCase):
         self.assertEqual(mock_state.last_news, "- Vuln 1\n- Vuln 2\n- Vuln 3")
         self.assertEqual(mock_state.news_checked, 1)
 
-    @patch("handlers.news.get_state")
+    @patch("handlers.news.get_context")
     @patch("handlers.news.console.print")
     @patch("news_fetcher.fetch_news")
     def test_handle_security_news_with_llm_success(
-        self, mock_fetch, mock_print, mock_get_state
+        self, mock_fetch, mock_print, mock_get_context
     ):
         """Test news processed by LLM (get_llm callable returns LLM instance)"""
         from handlers import news
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_fetch.return_value = [{"title": "News A"}, {"title": "News B"}]
 
         # Create mock LLM instance and a callable that returns it
@@ -88,17 +94,19 @@ class TestHandlersNews(unittest.TestCase):
         self.assertEqual(mock_state.last_news, "1. News A - Desc A\n2. News B - Desc B")
         mock_print.assert_any_call("[cyan]Обрабатываю новости...[/cyan]")
 
-    @patch("handlers.news.get_state")
+    @patch("handlers.news.get_context")
     @patch("handlers.news.console.print")
     @patch("news_fetcher.fetch_news")
     def test_handle_security_news_llm_exception_fallback(
-        self, mock_fetch, mock_print, mock_get_state
+        self, mock_fetch, mock_print, mock_get_context
     ):
         """Test LLM raises exception, fallback to raw"""
         from handlers import news
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_fetch.return_value = [{"title": "X"}, {"title": "Y"}]
 
         mock_llm_instance = MagicMock()
@@ -112,11 +120,11 @@ class TestHandlersNews(unittest.TestCase):
         self.assertEqual(result, (True, None, None, True))
         self.assertEqual(mock_state.last_news, "- X\n- Y")
 
-    @patch("handlers.news.get_state")
+    @patch("handlers.news.get_context")
     @patch("handlers.news.console.print")
     @patch("news_fetcher.fetch_news")
     def test_handle_security_news_achievements_checked(
-        self, mock_fetch, mock_print, mock_get_state
+        self, mock_fetch, mock_print, mock_get_context
     ):
         """Test that achievements are checked after news"""
         from handlers import news
@@ -124,7 +132,9 @@ class TestHandlersNews(unittest.TestCase):
         mock_state = MockState()
         mock_state.check_news = MagicMock()
         mock_state.check_achievements = MagicMock(return_value=[{"name": "Test Ach"}])
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_fetch.return_value = [{"title": "News"}]
 
         result = news.handle_security_news("", None)
@@ -133,15 +143,17 @@ class TestHandlersNews(unittest.TestCase):
         mock_state.check_news.assert_called_once()
         mock_state.check_achievements.assert_called_once()
 
-    @patch("handlers.news.get_state")
+    @patch("handlers.news.get_context")
     @patch("news_fetcher.fetch_news")
-    def test_get_last_news(self, mock_fetch, mock_get_state):
+    def test_get_last_news(self, mock_fetch, mock_get_context):
         """Test get_last_news returns state.last_news"""
         from handlers import news
 
         mock_state = MockState()
         mock_state.last_news = "Some news text"
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = news.get_last_news()
 

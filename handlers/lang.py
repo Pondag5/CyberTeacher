@@ -6,15 +6,16 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
+from di import get_context
 from i18n import get_available_languages, t
-from state import get_state
 
 console = Console()
 
 
 def handle_lang(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     """Handle /lang command for switching interface language."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     parts = action.split(maxsplit=1)
 
     if len(parts) == 1:
@@ -33,7 +34,7 @@ def handle_lang(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
     old_lang = state.language
     state.language = lang_code
-    state.save_to_file()
+    ctx.save_state()
 
     lang_name = get_available_languages()[codes.index(lang_code)]["name"]
     console.print(
@@ -44,7 +45,8 @@ def handle_lang(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
 def _show_languages() -> tuple[bool, Any | None, Any | None, bool]:
     """Show available languages."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     available = get_available_languages()
     current = state.language
 

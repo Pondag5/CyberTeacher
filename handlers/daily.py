@@ -1,21 +1,22 @@
-"""Обработчик команды /daily — ежедневные челленджи."""
+"""Daily challenge handler."""
 
 from typing import Any
 
 from daily_challenge import generate_daily_challenge, get_daily_status, get_hint, submit_daily_answer
-from state import get_state
+from di import get_context
 from ui import console
 
 
 def handle_daily(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Обработать команду /daily и её подкоманды."""
-    state = get_state()
+    """Handle /daily command and its subcommands."""
+    ctx = get_context()
+    state = ctx.state
     parts = action.split(maxsplit=1)
     subcmd = parts[0].lower() if len(parts) > 0 else ""
     arg = parts[1].strip() if len(parts) > 1 else ""
 
     if subcmd in ("", "daily", "challenge"):
-        # Показать текущий челлендж
+        # Show current challenge
         challenge = generate_daily_challenge()
         console.print(get_daily_status())
         console.print(f"\n[bold]Задание:[/bold] {challenge['desc']}")
@@ -32,7 +33,7 @@ def handle_daily(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         return True, None, None, True
 
     if subcmd == "force":
-        # Для тестирования — перегенерировать челлендж
+        # For testing — regenerate challenge
         import os
         from daily_challenge import CHALLENGE_FILE, _get_today_str
         if os.path.exists(CHALLENGE_FILE):
@@ -48,7 +49,7 @@ def handle_daily(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         console.print(f"\n[bold]Задание:[/bold] {challenge['desc']}")
         return True, None, None, True
 
-    # Всё остальное считаем ответом на челлендж
+    # Everything else is treated as an answer to the challenge
     result = submit_daily_answer(action)
     if result["correct"]:
         console.print(f"[green]✅ {result['feedback']}[/green]")

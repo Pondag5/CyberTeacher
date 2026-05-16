@@ -120,13 +120,15 @@ class TestHandlersQuiz(unittest.TestCase):
     """Tests for handlers/quiz module"""
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", False)
-    @patch("handlers.quiz.get_state")
-    def test_handle_quiz_action_no_generators(self, mock_get_state):
+    @patch("handlers.quiz.get_context")
+    def test_handle_quiz_action_no_generators(self, mock_get_context):
         """Test handle_quiz_action when generators unavailable"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch("handlers.quiz.console.print") as mock_print:
             result = quiz.handle_quiz_action()
@@ -135,19 +137,21 @@ class TestHandlersQuiz(unittest.TestCase):
         mock_print.assert_any_call("[yellow]Генератор квизов недоступен[/yellow]")
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("knowledge.get_current_vectordb")
     @patch("handlers.quiz.generate_quiz")
     @patch("builtins.input")
     @patch("handlers.quiz.console.print")
     def test_handle_quiz_action_multiple_choice_success(
-        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_state
+        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_context
     ):
         """Test quiz with multiple choice questions - correct answers"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         # Mock quiz data
         mock_generate_quiz.return_value = {
@@ -180,19 +184,21 @@ class TestHandlersQuiz(unittest.TestCase):
         self.assertTrue(mock_state.review_schedule.get("test_topic") is not None)
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("knowledge.get_current_vectordb")
     @patch("handlers.quiz.generate_quiz")
     @patch("builtins.input")
     @patch("handlers.quiz.console.print")
     def test_handle_quiz_action_with_skips_and_exit(
-        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_state
+        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_context
     ):
         """Test quiz with skip, empty, and exit commands"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_generate_quiz.return_value = {
             "questions": [
@@ -231,7 +237,7 @@ class TestHandlersQuiz(unittest.TestCase):
         self.assertTrue("test_topic" in mock_state.review_schedule)
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("knowledge.get_current_vectordb")
     @patch("handlers.quiz.generate_quiz")
     @patch("handlers.quiz.check_open_answer")
@@ -244,13 +250,15 @@ class TestHandlersQuiz(unittest.TestCase):
         mock_check_open,
         mock_generate_quiz,
         mock_vectordb,
-        mock_get_state,
+        mock_get_context,
     ):
         """Test quiz with open-ended questions"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_generate_quiz.return_value = {
             "questions": [
@@ -273,20 +281,22 @@ class TestHandlersQuiz(unittest.TestCase):
         self.assertEqual(mock_state.quizzes_taken, 1)
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("knowledge.get_current_vectordb")
     @patch("handlers.quiz.generate_quiz")
     @patch("builtins.input")
     @patch("handlers.quiz.console.print")
     def test_handle_quiz_action_risk_adjustment_low_score(
-        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_state
+        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_context
     ):
         """Test risk level increases when success rate < 50%"""
         from handlers import quiz
 
         mock_state = MockState()
         mock_state.risk_level = 10
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_generate_quiz.return_value = {
             "questions": [
@@ -313,20 +323,22 @@ class TestHandlersQuiz(unittest.TestCase):
         self.assertEqual(mock_state.risk_level, 20)  # increased by 10
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("knowledge.get_current_vectordb")
     @patch("handlers.quiz.generate_quiz")
     @patch("builtins.input")
     @patch("handlers.quiz.console.print")
     def test_handle_quiz_action_stealth_ops_low_risk(
-        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_state
+        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_context
     ):
         """Test stealth_ops increment when risk < 20 and success >= 50%"""
         from handlers import quiz
 
         mock_state = MockState()
         mock_state.risk_level = 10
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_generate_quiz.return_value = {
             "questions": [
@@ -347,13 +359,13 @@ class TestHandlersQuiz(unittest.TestCase):
         self.assertEqual(mock_state.stealth_ops, 1)
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("knowledge.get_current_vectordb")
     @patch("handlers.quiz.generate_quiz")
     @patch("builtins.input")
     @patch("handlers.quiz.console.print")
     def test_handle_quiz_action_with_weak_topic_focus(
-        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_state
+        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_context
     ):
         """Test that weak topic is passed to generator"""
         from handlers import quiz
@@ -368,7 +380,9 @@ class TestHandlersQuiz(unittest.TestCase):
                 "max_score": 200,
             }
         ]
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_generate_quiz.return_value = {
             "questions": [
@@ -386,19 +400,21 @@ class TestHandlersQuiz(unittest.TestCase):
         self.assertEqual(kwargs.get("topic"), "weak_topic")
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("knowledge.get_current_vectordb")
     @patch("handlers.quiz.generate_quiz")
     @patch("builtins.input")
     @patch("handlers.quiz.console.print")
     def test_handle_quiz_action_no_questions_generated(
-        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_state
+        self, mock_print, mock_input, mock_generate_quiz, mock_vectordb, mock_get_context
     ):
         """Test when generator returns empty questions list"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_generate_quiz.return_value = {"questions": [], "topic": "test"}
         mock_vectordb.return_value = MagicMock()
@@ -409,13 +425,15 @@ class TestHandlersQuiz(unittest.TestCase):
         mock_print.assert_any_call("[yellow]Не удалось сгенерировать вопросы[/yellow]")
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", False)
-    @patch("handlers.quiz.get_state")
-    def test_handle_task_action_no_generators(self, mock_get_state):
+    @patch("handlers.quiz.get_context")
+    def test_handle_task_action_no_generators(self, mock_get_context):
         """Test handle_task_action when generators unavailable"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch("handlers.quiz.console.print") as mock_print:
             result = quiz.handle_task_action()
@@ -424,19 +442,21 @@ class TestHandlersQuiz(unittest.TestCase):
         mock_print.assert_any_call("[yellow]Генератор заданий недоступен[/yellow]")
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("knowledge.get_current_vectordb")
     @patch("handlers.quiz.generate_task")
     @patch("builtins.input")
     @patch("handlers.quiz.console.print")
     def test_handle_task_action_success(
-        self, mock_print, mock_input, mock_generate_task, mock_vectordb, mock_get_state
+        self, mock_print, mock_input, mock_generate_task, mock_vectordb, mock_get_context
     ):
         """Test task action successful completion"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         # Create mock task object
         mock_task = MagicMock()
@@ -458,19 +478,21 @@ class TestHandlersQuiz(unittest.TestCase):
         self.assertIsNotNone(mock_state.last_writeup_activity)
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("knowledge.get_current_vectordb")
     @patch("handlers.quiz.generate_task")
     @patch("builtins.input")
     @patch("handlers.quiz.console.print")
     def test_handle_task_action_skip(
-        self, mock_print, mock_input, mock_generate_task, mock_vectordb, mock_get_state
+        self, mock_print, mock_input, mock_generate_task, mock_vectordb, mock_get_context
     ):
         """Test task action with skip command"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_task = MagicMock()
         mock_task.question = "Task?"
@@ -488,13 +510,15 @@ class TestHandlersQuiz(unittest.TestCase):
         self.assertTrue("crypto" in mock_state.review_schedule)
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", True)
-    @patch("handlers.quiz.get_state")
-    def test_handle_quiz_generation_with_generators(self, mock_get_state):
+    @patch("handlers.quiz.get_context")
+    def test_handle_quiz_generation_with_generators(self, mock_get_context):
         """Test handle_quiz_generation shows questions"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with (
             patch("handlers.quiz.generate_quiz") as mock_gen,
@@ -526,13 +550,15 @@ class TestHandlersQuiz(unittest.TestCase):
             self.assertTrue(any("Q2?" in c for c in calls))
 
     @patch("handlers.quiz.GENERATORS_AVAILABLE", False)
-    @patch("handlers.quiz.get_state")
-    def test_handle_quiz_generation_no_generators(self, mock_get_state):
+    @patch("handlers.quiz.get_context")
+    def test_handle_quiz_generation_no_generators(self, mock_get_context):
         """Test handle_quiz_generation when unavailable"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch("handlers.quiz.console.print") as mock_print:
             result = quiz.handle_quiz_generation("/smart_test", None)
@@ -540,14 +566,16 @@ class TestHandlersQuiz(unittest.TestCase):
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call("[yellow]Генератор квизов недоступен[/yellow]")
 
-    @patch("handlers.quiz.get_state")
+    @patch("handlers.quiz.get_context")
     @patch("handlers.quiz.console.print")
-    def test_handle_code_review_stub(self, mock_print, mock_get_state):
+    def test_handle_code_review_stub(self, mock_print, mock_get_context):
         """Test handle_code_review returns stub message"""
         from handlers import quiz
 
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = quiz.handle_code_review("code_review")
 

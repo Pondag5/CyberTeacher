@@ -1,5 +1,5 @@
-# handlers/ctf_flags.py — Динамические CTF-флаги (G-03)
-"""Генерация CTF-флагов на лету с hash-based проверкой."""
+# handlers/ctf_flags.py — Dynamic CTF flags (G-03)
+"""On-the-fly CTF flag generation with hash-based verification."""
 
 import hashlib
 import random
@@ -9,7 +9,7 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -81,8 +81,9 @@ def handle_ctf_flags(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
 
 def _generate(challenge_id: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Сгенерировать флаг для челленджа."""
-    state = get_state()
+    """Generate a flag for a challenge."""
+    ctx = get_context()
+    state = ctx.state
     user_id = getattr(state, "username", "default")
     flag = generate_flag(challenge_id, user_id)
 
@@ -99,14 +100,14 @@ def _generate(challenge_id: str) -> tuple[bool, Any | None, Any | None, bool]:
     ))
 
     state.ctf_flags_generated = getattr(state, "ctf_flags_generated", 0) + 1
-    state.save_to_file()
+    ctx.save_state()
 
     return True, None, None, True
 
 
 def _submit(submitted_flag: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Отправить флаг на проверку."""
-    # Извлечь challenge_id из флага: CTF{challenge_id_hash}
+    """Submit a flag for verification."""
+    # Extract challenge_id from flag: CTF{challenge_id_hash}
     if not submitted_flag.startswith(f"{FLAG_PREFIX}{") or not submitted_flag.endswith("}"):
         console.print("[red]❌ Неверный формат флага. Ожидается: CTF{...}[/red]")
         return True, None, None, True
@@ -117,7 +118,8 @@ def _submit(submitted_flag: str) -> tuple[bool, Any | None, Any | None, bool]:
         return True, None, None, True
 
     challenge_id = inner.split("_", 1)[0]
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     user_id = getattr(state, "username", "default")
 
     if verify_flag(submitted_flag, challenge_id, user_id):
@@ -135,7 +137,7 @@ def _submit(submitted_flag: str) -> tuple[bool, Any | None, Any | None, bool]:
         state.add_reputation(xp // 2)
         state.track_skill("ctf", True, xp)
         state.check_achievements()
-        state.save_to_file()
+        ctx.save_state()
     else:
         console.print(Panel(
             f"[bold red]❌ Флаг неверный или истёк[/bold red]\n\n"

@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from rich.console import Console
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -22,9 +22,10 @@ from utils.common import check_open_answer_heuristic as check_open_answer
 
 
 def handle_quiz_action() -> tuple[bool, Any | None, Any | None, bool]:
-    """Интерактивный квиз с оценкой ответов и адаптивным обучением"""
+    """Interactive quiz with answer evaluation and adaptive learning."""
     try:
-        state_obj = get_state()
+        ctx = get_context()
+        state_obj = ctx.state
         from knowledge import get_current_vectordb
 
         vectordb = get_current_vectordb()
@@ -236,8 +237,8 @@ def handle_quiz_action() -> tuple[bool, Any | None, Any | None, bool]:
                     f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points', 0)} XP[/bold magenta]"
                 )
 
-        # Сохранить состояние
-        state_obj.save_to_file()
+        # Save state
+        ctx.save_state()
 
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
@@ -248,9 +249,10 @@ def handle_quiz_action() -> tuple[bool, Any | None, Any | None, bool]:
 
 
 def handle_task_action() -> tuple[bool, Any | None, Any | None, bool]:
-    """Интерактивное практическое задание с оценкой ответа"""
+    """Interactive practical task with answer evaluation."""
     try:
-        state_obj = get_state()
+        ctx = get_context()
+        state_obj = ctx.state
         from knowledge import get_current_vectordb
 
         vectordb = get_current_vectordb()
@@ -342,7 +344,7 @@ def handle_task_action() -> tuple[bool, Any | None, Any | None, bool]:
                     f"  • {w['topic']}: {w['success_rate']:.1f}% ({w['attempts']} попыток)"
                 )
 
-        state_obj.save_to_file()
+        ctx.save_state()
 
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")

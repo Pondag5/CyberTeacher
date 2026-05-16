@@ -1,12 +1,12 @@
-# handlers/skills.py — Трекер навыков + репутация + глубина (L-02, L-10, L-05)
-"""Трекер практических навыков, система репутации, глубина объяснений."""
+# handlers/skills.py — Skill tracker + reputation + depth (L-02, L-10, L-05)
+"""Practical skill tracking, reputation system, explanation depth."""
 
 from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -47,12 +47,13 @@ def handle_skills(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
 
 def handle_reputation(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Показать репутацию и хэндл."""
-    state = get_state()
+    """Show reputation and handle."""
+    ctx = get_context()
+    state = ctx.state
     handle = state.get_handle()
     rep = state.reputation
 
-    # Найти следующий хэндл
+    # Find next handle
     next_handle = None
     next_threshold = None
     for threshold, name in state.HANDLES:
@@ -79,8 +80,9 @@ def handle_reputation(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
 
 def handle_depth(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Управление глубиной объяснений."""
-    state = get_state()
+    """Manage explanation depth."""
+    ctx = get_context()
+    state = ctx.state
     parts = action.split(maxsplit=1)
 
     if len(parts) == 1:
@@ -107,14 +109,15 @@ def handle_depth(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         return True, None, None, True
 
     state.set_explanation_depth(depth)
-    state.save_to_file()
+    ctx.save_state()
     console.print(f"[green]✅ Глубина установлена: {depth}[/green]")
     return True, None, None, True
 
 
 def _track_skill(skill: str, result: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Записать практику навыка."""
-    state = get_state()
+    """Record skill practice."""
+    ctx = get_context()
+    state = ctx.state
     success = result.lower() in ("ok", "yes", "true", "1", "success")
     xp = 15 if success else 5
 
@@ -127,8 +130,9 @@ def _track_skill(skill: str, result: str) -> tuple[bool, Any | None, Any | None,
 
 
 def handle_skills_list(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Показать все навыки."""
-    state = get_state()
+    """Show all skills."""
+    ctx = get_context()
+    state = ctx.state
     skills = state.get_all_skills()
 
     if not skills:

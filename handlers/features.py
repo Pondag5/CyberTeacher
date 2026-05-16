@@ -1,12 +1,12 @@
-# handlers/features.py — Система feature flags (M-32)
-"""Включение/выключение модулей через конфиг."""
+# handlers/features.py — Feature flags system (M-32)
+"""Enable/disable modules via config."""
 
 from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -31,13 +31,14 @@ DEFAULT_FEATURES = {
 
 
 def handle_features(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Управление feature flags."""
-    state = get_state()
+    """Manage feature flags."""
+    ctx = get_context()
+    state = ctx.state
 
-    # Инициализируем feature_flags если нет
+    # Initialize feature_flags if not present
     if not hasattr(state, "feature_flags"):
         state.feature_flags = {k: v["enabled"] for k, v in DEFAULT_FEATURES.items()}
-        state.save_to_file()
+        ctx.save_state()
 
     parts = action.split(maxsplit=2)
 
@@ -74,12 +75,12 @@ def handle_features(action: str) -> tuple[bool, Any | None, Any | None, bool]:
             status = "включён" if state.feature_flags[feature] else "отключён"
             console.print(f"[cyan]🔄 Модуль '{feature}' {status}[/cyan]")
 
-        state.save_to_file()
+        ctx.save_state()
         return True, None, None, True
 
     if subcommand == "reset":
         state.feature_flags = {k: v["enabled"] for k, v in DEFAULT_FEATURES.items()}
-        state.save_to_file()
+        ctx.save_state()
         console.print("[green]✅ Feature flags сброшены к дефолтным[/green]")
         return True, None, None, True
 
@@ -111,8 +112,9 @@ def _list_features(state) -> None:
 
 
 def is_feature_enabled(feature: str) -> bool:
-    """Проверить, включён ли модуль."""
-    state = get_state()
+    """Check if a feature is enabled."""
+    ctx = get_context()
+    state = ctx.state
     if not hasattr(state, "feature_flags"):
         return DEFAULT_FEATURES.get(feature, {}).get("enabled", True)
     return state.feature_flags.get(feature, DEFAULT_FEATURES.get(feature, {}).get("enabled", True))

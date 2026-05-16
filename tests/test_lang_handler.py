@@ -12,12 +12,14 @@ class TestLangHandler(unittest.TestCase):
     """Tests for /lang command handler."""
 
     @patch("handlers.lang.get_available_languages")
-    @patch("handlers.lang.get_state")
+    @patch("handlers.lang.get_context")
     @patch("handlers.lang.console")
-    def test_show_languages(self, mock_console, mock_get_state, mock_get_langs):
+    def test_show_languages(self, mock_console, mock_get_context, mock_get_langs):
         mock_state = MagicMock()
         mock_state.language = "ru"
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_get_langs.return_value = [
             {"code": "en", "name": "English"},
             {"code": "ru", "name": "Русский"},
@@ -30,12 +32,14 @@ class TestLangHandler(unittest.TestCase):
         mock_console.print.assert_called()
 
     @patch("handlers.lang.get_available_languages")
-    @patch("handlers.lang.get_state")
+    @patch("handlers.lang.get_context")
     @patch("handlers.lang.console")
-    def test_switch_to_english(self, mock_console, mock_get_state, mock_get_langs):
+    def test_switch_to_english(self, mock_console, mock_get_context, mock_get_langs):
         mock_state = MagicMock()
         mock_state.language = "ru"
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_get_langs.return_value = [
             {"code": "en", "name": "English"},
             {"code": "ru", "name": "Русский"},
@@ -45,15 +49,17 @@ class TestLangHandler(unittest.TestCase):
 
         self.assertTrue(success)
         self.assertEqual(mock_state.language, "en")
-        mock_state.save_to_file.assert_called_once()
+        mock_ctx.save_state.assert_called_once()
 
     @patch("handlers.lang.get_available_languages")
-    @patch("handlers.lang.get_state")
+    @patch("handlers.lang.get_context")
     @patch("handlers.lang.console")
-    def test_switch_to_russian(self, mock_console, mock_get_state, mock_get_langs):
+    def test_switch_to_russian(self, mock_console, mock_get_context, mock_get_langs):
         mock_state = MagicMock()
         mock_state.language = "en"
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_get_langs.return_value = [
             {"code": "en", "name": "English"},
             {"code": "ru", "name": "Русский"},
@@ -63,15 +69,17 @@ class TestLangHandler(unittest.TestCase):
 
         self.assertTrue(success)
         self.assertEqual(mock_state.language, "ru")
-        mock_state.save_to_file.assert_called_once()
+        mock_ctx.save_state.assert_called_once()
 
     @patch("handlers.lang.get_available_languages")
-    @patch("handlers.lang.get_state")
+    @patch("handlers.lang.get_context")
     @patch("handlers.lang.console")
-    def test_switch_to_unsupported_language(self, mock_console, mock_get_state, mock_get_langs):
+    def test_switch_to_unsupported_language(self, mock_console, mock_get_context, mock_get_langs):
         mock_state = MagicMock()
         mock_state.language = "ru"
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_get_langs.return_value = [
             {"code": "en", "name": "English"},
             {"code": "ru", "name": "Русский"},
@@ -80,7 +88,7 @@ class TestLangHandler(unittest.TestCase):
         success, _, _, continue_loop = handle_lang("/lang fr")
 
         self.assertTrue(success)
-        mock_state.save_to_file.assert_not_called()
+        mock_ctx.save_state.assert_not_called()
 
 
 if __name__ == "__main__":

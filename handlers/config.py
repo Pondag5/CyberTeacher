@@ -1,5 +1,5 @@
-# handlers/config.py — Интерактивный мастер настройки (M-28)
-"""Пошаговый wizard для настройки провайдера, модели, API ключа."""
+# handlers/config.py — Interactive configuration wizard (M-28)
+"""Step-by-step wizard for provider, model, API key setup."""
 
 import os
 from typing import Any
@@ -7,16 +7,17 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
 
 def handle_config(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Интерактивный мастер настройки."""
+    """Interactive configuration wizard."""
     import config
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
 
     if action == "config":
         console.print(Panel(
@@ -147,7 +148,7 @@ def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
 
 
 def _show_config() -> tuple[bool, Any | None, Any | None, bool]:
-    """Показать текущую конфигурацию."""
+    """Show current configuration."""
     import config
 
     provider = config.LLM_PROVIDER
@@ -165,7 +166,8 @@ def _show_config() -> tuple[bool, Any | None, Any | None, bool]:
     elif provider == "huggingface":
         has_key = "установлен" if os.environ.get("HF_TOKEN") or config.HF_TOKEN else "не установлен"
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     theme = state.current_theme if hasattr(state, "current_theme") else "default"
 
     console.print(Panel(
@@ -184,7 +186,7 @@ def _show_config() -> tuple[bool, Any | None, Any | None, bool]:
 
 
 def _reset_config() -> tuple[bool, Any | None, Any | None, bool]:
-    """Сбросить настройки к дефолтным."""
+    """Reset configuration to defaults."""
     import config
 
     console.print("[bold red]⚠️ Сбросить настройки к дефолтным?[/bold red]")
@@ -197,11 +199,12 @@ def _reset_config() -> tuple[bool, Any | None, Any | None, bool]:
         config.HF_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
         config.LazyLoader._llm = None
 
-        state = get_state()
+        ctx = get_context()
+        state = ctx.state
         state.current_theme = "default"
         state.voice_enabled = False
         state.hint_enabled = True
-        state.save_to_file()
+        ctx.save_state()
 
         console.print("[green]✅ Настройки сброшены к дефолтным[/green]")
     else:
