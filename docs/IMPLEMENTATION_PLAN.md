@@ -458,11 +458,13 @@
 | REF-05 | Устранить циклические импорты (Mode enum → `shared_types.py`) | 🟡 Medium | Низкая | ✅ Done |
 | REF-06 | Заменить `__getattr__` на явные property | 🟡 Medium | Средняя | ✅ Done |
 | REF-07 | Pydantic для валидации состояния | 🟡 Medium | Средняя | ✅ Done (все 10 модулей) |
-| REF-08 | Вынести `check_achievements` в `services/` | 🟡 Medium | Средняя | ⏳ Planned |
-| REF-09 | Валидация входных данных при загрузке JSON | 🟢 Low | Низкая | ⏳ Planned |
-| REF-10 | `.env` поддержка для всех секретов | 🟢 Low | Низкая | ⏳ Planned |
-| REF-12 | Вынести пути в конфигурацию | 🟢 Low | Низкая | ⏳ Planned |
-| REF-13 | Объединить мелкие state модули (10 → 4) | 🟢 Low | Низкая | ⏳ Planned |
+| REF-08 | Вынести `check_achievements` в `services/` | 🟡 Medium | Средняя | ✅ Done |
+| REF-09 | Валидация входных данных при загрузке JSON | 🟢 Low | Низкая | ✅ Done |
+| REF-10 | `.env` поддержка для всех секретов | 🟢 Low | Низкая | ✅ Done |
+| REF-12 | Вынести пути в конфигурацию | 🟢 Low | Низкая | ✅ Done |
+| REF-13 | Объединить мелкие state модули (10 → 4) | 🟢 Low | Низкая | ✅ Done |
+| REF-14 | Pydantic Settings для типизированной конфигурации | 🟢 Low | Низкая | ✅ Done |
+| REF-15 | Вынести бизнес-логику из state.py в сервисы | 🟢 Low | Средняя | ✅ Done |
 
 ---
 
