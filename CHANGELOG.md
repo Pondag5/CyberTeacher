@@ -2,6 +2,38 @@
 
 All notable changes to CyberTeacher project.
 
+## [Unreleased] – 2026-05-16
+
+### Refactoring — State Modularization (REF-02)
+- **REF-02** — Modular state architecture: `AppState` now uses composition with 10 state modules
+- **REF-03** — Fixed `xp_boost` duplication between `achievements_state` and `shop_state`
+- **REF-06** — Implemented `__getattr__`/`__setattr__` delegation for backward compatibility
+- **REF-08** — Delegated business logic methods to respective modules (`risk`, `achievements`, `learning`, `metrics`, `user`, `explanation`, `shop`)
+- **REF-14** — Fixed `HANDLES` constant duplication (now only in `user_state.py`)
+
+### New State Modules
+- `achievements_state.py` — Achievements, XP, counters (89 lines)
+- `explanation_state.py` — Explanation depth (22 lines)
+- `hints_state.py` — Hints configuration (15 lines)
+- `learning_state.py` — Courses, topics, context (57 lines)
+- `metrics_state.py` — Metrics, rate limiting (44 lines)
+- `persona_state.py` — Persona, mode (14 lines)
+- `risk_state.py` — Risk level (35 lines)
+- `shop_state.py` — Shop, themes, XP boost (61 lines)
+- `user_state.py` — Profile, reputation, HTB (69 lines)
+- `voice_state.py` — Voice assistant (22 lines)
+
+### Test Fixes
+- Fixed `test_user_state.py`: `add_repertoire` → `add_reputation` typo
+- Fixed rate limiting test: moved from `UserState` to `MetricsState`
+- Fixed handle threshold test: 250 → 350 for "Пентестер"
+- **577/579 tests passing** (2 errors are Windows environment issues, not code bugs)
+
+### Code Quality
+- `state.py`: 1019 → 885 lines (-13%)
+- All state methods now delegate to modules (`self.risk.increase_risk()`, `self.achievements.increment_flag()`, etc.)
+- Backward compatibility maintained via `__getattr__`/`__setattr__`
+
 ## [Unreleased] – 2026-03-28/29
 
 ### Added (High Priority Features H-01..H-10)

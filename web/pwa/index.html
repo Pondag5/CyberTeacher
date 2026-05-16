@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberTeacher Companion</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#16213e">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        h1 { color: #00ff88; }
+        .quiz-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        button {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #00cc6a; }
+        .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+        .stat { text-align: center; }
+        .stat-value { font-size: 2em; color: #00ff88; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 CyberTeacher</h1>
+        <p>Мобильное приложение для обучения кибербезопасности</p>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="xp">0</div>
+                <div>XP</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="level">1</div>
+                <div>Уровень</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="streak">0</div>
+                <div>Стрик</div>
+            </div>
+        </div>
+
+        <h2>📝 Быстрый квиз</h2>
+        <div class="quiz-card" id="quiz">
+            <p id="question">Загрузка...</p>
+            <div id="options"></div>
+        </div>
+
+        <h2>🔔 Уведомления</h2>
+        <div class="quiz-card">
+            <p>Напоминания о повторениях и ежедневных челленджах</p>
+            <button onclick="enableNotifications()">Включить уведомления</button>
+        </div>
+    </div>
+
+    <script>
+        // Quiz data
+        const quizzes = [
+            { q: "Что такое XSS?", options: ["Cross-Site Scripting", "XML Style Sheet", "Extra Security System"], a: 0 },
+            { q: "Какой порт использует HTTPS?", options: ["80", "443", "8080"], a: 1 },
+            { q: "Что делает фаервол?", options: ["Шифрует данные", "Фильтрует трафик", "Удаляет вирусы"], a: 1 },
+        ];
+
+        let currentQuiz = 0;
+
+        function loadQuiz() {
+            const quiz = quizzes[currentQuiz];
+            document.getElementById("question").textContent = quiz.q;
+            const optionsDiv = document.getElementById("options");
+            optionsDiv.innerHTML = "";
+            quiz.options.forEach((opt, i) => {
+                const btn = document.createElement("button");
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(i);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected) {
+            const quiz = quizzes[currentQuiz];
+            if (selected === quiz.a) {
+                alert("✅ Верно! +10 XP");
+                document.getElementById("xp").textContent = parseInt(document.getElementById("xp").textContent) + 10;
+            } else {
+                alert("❌ Неверно. Попробуйте ещё раз!");
+            }
+            currentQuiz = (currentQuiz + 1) % quizzes.length;
+            loadQuiz();
+        }
+
+        function enableNotifications() {
+            if ("Notification" in window) {
+                Notification.requestPermission().then(perm => {
+                    if (perm === "granted") {
+                        alert("Уведомления включены!");
+                        new Notification("CyberTeacher", { body: "Добро пожаловать!" });
+                    }
+                });
+            } else {
+                alert("Уведомления не поддерживаются в этом браузере.");
+            }
+        }
+
+        // Load service worker for PWA
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("sw.js").then(() => {
+                console.log("Service Worker registered");
+            });
+        }
+
+        // Initial load
+        loadQuiz();
+    </script>
+</body>
+</html>

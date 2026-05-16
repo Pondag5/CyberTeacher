@@ -13,10 +13,16 @@ from rich.panel import Panel
 from state import get_state
 from ui import Mode, show_help, show_help_detail, show_menu
 
+from .registry import registry
+
 from .achievements import handle_achievements
 from .code_scan import handle_code_scan
+from .config import handle_config
 from .cve import handle_cve
+from .docker_gen import handle_docker_gen
 from .equipment import handle_equip, handle_tools
+from .emotions import handle_emotions
+from .features import handle_features
 from .flags import handle_flag_check
 from .health import handle_health
 from .misc import (
@@ -28,6 +34,7 @@ from .misc import (
     handle_add_book,
     handle_backup,
     handle_course,
+    handle_export,
     handle_history,
     handle_model,
     handle_provider,
@@ -36,6 +43,7 @@ from .misc import (
     handle_set_api_key,
     handle_story_mode,
     handle_terminal_log,
+    handle_usage,
     handle_version,
     handle_writeup,
 )
@@ -55,6 +63,10 @@ from .exploit_submit import handle_exploit_submit
 from .hints import handle_hint
 from .tracks import handle_tracks
 from .analytics import handle_analytics
+from .phishing import handle_phishing
+from .profile import handle_profile
+from .mermaid import handle_mermaid
+from .skills import handle_depth, handle_reputation, handle_skills, handle_skills_list
 from .quiz import (
     handle_code_review,
     handle_quiz_action,
@@ -65,7 +77,9 @@ from .sandbox import handle_sandbox
 from .shop import handle_shop
 from .social import handle_social
 from .summary import handle_summary
+from .summarize import handle_summarize
 from .threats import handle_groups, handle_threat_summary, handle_threats
+from .theme import handle_theme
 from .writeup_auto import handle_auto_writeup
 
 console = Console()
@@ -188,80 +202,50 @@ def show_menu():
     ui_menu()
 
 
-def _ask_confirm(message: str) -> bool:
-    try:
-        from rich.prompt import Confirm
-
-        return Confirm.ask(message)
-    except Exception:
-        resp = input(f"{message} (yn): ").strip().lower()
-        return resp in ("y", "yes", "true", "1")
-
-
-def clear_chat_db(conn: Any) -> None:
-    try:
-        from memory import clear_chat as db_clear_chat
-
-        db_clear_chat(conn)
-    except Exception:
-        pass
-
-
-def extract_json_block(text: str) -> str | None:
-    if not text:
-        return None
-    stack = []
-    start = None
-    for i, ch in enumerate(text):
-        if ch == "{":
-            if start is None:
-                start = i
-            stack.append(ch)
-        elif ch == "}":
-            if stack:
-                stack.pop()
-                if not stack:
-                    end = i + 1
-                    return text[start:end]
-    return None
-
-
-def check_open_answer(
-    question: str,
-    user_ans: str,
-    key_points: list[str] | None = None,
-) -> dict[str, Any]:
-    score = 0
-    feedback = "Спасибо за ответ."
-    if user_ans and len(user_ans.strip()) > 0:
-        score = 6
-        if "правильно" in user_ans.lower() or "верно" in user_ans.lower():
-            score = 9
-            feedback = "Отлично!"
-    if key_points:
-        found = 0
-        upp = user_ans.lower() if user_ans else ""
-        for kp in key_points:
-            if kp.lower() in upp:
-                found += 1
-        if found >= max(1, len(key_points) // 2):
-            score = min(10, score + 2)
-            feedback = "Частично на ключевых моментах."
-    return {"score": score, "feedback": feedback}
-
-
 def handle_stats(conn):
     """Показать статистику пользователя."""
     from memory import get_stats
 
     stats = get_stats(conn)
     console.print(f"[bold cyan]📈 Статистика:[/bold cyan]")
-    console.print(f"  Сообщений: {stats.get('messages', 0)}")
     console.print(f"  Очков: {stats.get('points', 0)}")
-    console.print(f"  Флагов: {stats.get('flags', 0)}")
-    console.print(f"  Лабораторий: {stats.get('labs', 0)}")
-    console.print(f"  Курсов: {stats.get('courses', 0)}")
+    console.print(f"  Квизов пройдено: {stats.get('quizzes', 0)}")
+    console.print(f"  Задач решено: {stats.get('tasks', 0)}")
     console.print(f"  Кэш ответов: {_response_cache.stats()['size']} записей")
+    return True, None, None, True
+
+
+def handle_fixcode(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+    """Генерация безопасной версии кода (L-09)."""
+    from code_review import generate_secure_code
+
+    parts = action.split(maxsplit=2)
+
+    if len(parts) < 3:
+        console.print(Panel(
+            "[bold cyan]🔒 Генерация безопасного кода[/bold cyan]\n\n"
+            "Использование:\n"
+            "  /fixcode <язык> <код>  — сгенерировать безопасную версию\n\n"
+            "Языки: python, javascript, php, java, bash\n\n"
+            "Пример: /fixcode python query = f\"SELECT * FROM users WHERE id={user_id}\"",
+            title="FIXCODE",
+            border_style="cyan",
+        ))
+        return True, None, None, True
+
+    language = parts[1].lower()
+    code = parts[2]
+
+    console.print(f"[cyan]🔍 Анализирую код ({language})...[/cyan]")
+    secure = generate_secure_code(code, language)
+
+    if secure:
+        console.print(Panel(secure[:1500], title="🔒 БЕЗОПАСНАЯ ВЕРСИЯ", border_style="green"))
+        state = get_state()
+        state.track_skill("secure_coding", True, 20)
+    else:
+        console.print("[red]❌ Не удалось сгенерировать безопасный код[/red]")
+
     return True, None, None, True
 
 
@@ -282,6 +266,14 @@ def handle_extended_commands(
 ) -> tuple[bool, Any | None, Any | None, bool]:
     """Обработка всех команд. Если команда неизвестна — блокируем передачу в LLM."""
     state = get_state()
+
+    # Track command usage (M-31)
+    state.track_command_usage(action.split()[0] if action else "unknown")
+
+    # Try registry first for extensible commands
+    handler, remaining_args = registry.get_handler(action)
+    if handler is not None:
+        return handler(remaining_args, llm, conn)
 
     # ----- Simple commands -----
     if action in ("help", "menu"):
@@ -343,7 +335,23 @@ def handle_extended_commands(
         return True, None, None, True
 
     if action == "genassignment":
-        console.print("[yellow]Генератор заданий временно отключён[/yellow]")
+        from generators import generate_task
+
+        parts = action.split(maxsplit=1)
+        category = parts[1].strip() if len(parts) > 1 else None
+        console.print("[cyan]🎯 Генерирую задание...[/cyan]")
+        task = generate_task(vectordb=None, category=category)
+        if task:
+            console.print(Panel(
+                f"[bold]Категория:[/bold] {task.category}\n"
+                f"[bold]Сложность:[/bold] {task.difficulty}\n\n"
+                f"[bold]Задача:[/bold]\n{task.question}\n\n"
+                f"[bold]Подсказка:[/bold] {task.hint}",
+                title="ЗАДАНИЕ",
+                border_style="yellow",
+            ))
+        else:
+            console.print("[red]❌ Не удалось сгенерировать задание[/red]")
         return True, None, None, True
 
     if action == "cache stats":
@@ -508,6 +516,141 @@ def handle_extended_commands(
     # ----- Bug Bounty Simulation (M-31) -----
     if action == "bounty":
         return handle_bounty(action)
+
+    # ----- Export chat history (M-30) -----
+    if action == "export" or action.startswith("export "):
+        return handle_export(action)
+
+    # ----- Command usage statistics (M-31) -----
+    if action == "usage":
+        return handle_usage(action)
+
+    # ----- Config wizard (M-28) -----
+    if action == "config" or action.startswith("config "):
+        return handle_config(action)
+
+    # ----- Theme (M-29) -----
+    if action == "theme" or action.startswith("theme "):
+        return handle_theme(action)
+
+    # ----- Feature flags (M-32) -----
+    if action == "features" or action.startswith("features "):
+        return handle_features(action)
+
+    # ----- Chat summarization (M-22) -----
+    if action == "summarize":
+        return handle_summarize(action)
+
+    # ----- Phishing constructor (M-04) -----
+    if action == "phishing" or action.startswith("phishing "):
+        return handle_phishing(action)
+
+    # ----- Mermaid diagrams (M-09) -----
+    if action == "mermaid" or action.startswith("mermaid "):
+        return handle_mermaid(action)
+
+    # ----- Skills tracker (L-02) -----
+    if action == "skills" or action.startswith("skills "):
+        if action == "skills":
+            return handle_skills_list(action)
+        return handle_skills(action)
+
+    # ----- Reputation (L-10) -----
+    if action == "reputation" or action.startswith("reputation "):
+        return handle_reputation(action)
+
+    # ----- Explanation depth (L-05) -----
+    if action == "depth" or action.startswith("depth "):
+        return handle_depth(action)
+
+    # ----- Secure code generation (L-09) -----
+    if action == "fixcode" or action.startswith("fixcode "):
+        return handle_fixcode(action)
+
+    # ----- Assignment templates (L-17) -----
+    if action == "templates" or action.startswith("templates "):
+        from handlers.assignment_templates import handle_assignment_templates
+        return handle_assignment_templates(action)
+
+    # ----- Emotions (M-19) -----
+    if action == "emotions" or action.startswith("emotions "):
+        return handle_emotions(action)
+
+    # ----- Docker Compose generator (L-06) -----
+    if action == "dockergen" or action.startswith("dockergen "):
+        return handle_docker_gen(action)
+
+    # ----- CTF dynamic flags (G-03) -----
+    if action == "ctf" or action.startswith("ctf "):
+        from handlers.ctf_flags import handle_ctf_flags
+        return handle_ctf_flags(action)
+
+    # ----- User profile (G-09) -----
+    if action == "profile" or action.startswith("profile "):
+        return handle_profile(action)
+
+    # ----- Daily Challenge -----
+    if action == "daily" or action.startswith("daily "):
+        from handlers.daily import handle_daily
+        return handle_daily(action)
+
+    # ----- OSINT Module (M-03) -----
+    if action == "osint" or action.startswith("osint "):
+        from handlers.osint import handle_osint
+        return handle_osint(action)
+
+    # ----- Historical Mode (M-05) -----
+    if action == "timeline" or action.startswith("timeline "):
+        from handlers.history import handle_timeline
+        return handle_timeline(action)
+
+    # ----- Exploit Trainer (M-06) -----
+    if action == "exploits" or action.startswith("exploits "):
+        from handlers.exploit_trainer import handle_exploits
+        return handle_exploits(action)
+
+    # ----- Shodan / Censys Integration (M-07) -----
+    if action == "shodan" or action.startswith("shodan "):
+        from handlers.shodan_censys import handle_shodan
+        return handle_shodan(action)
+    if action == "censys" or action.startswith("censys "):
+        from handlers.shodan_censys import handle_censys
+        return handle_censys(action)
+
+    # ----- Malware Analysis Sandbox (M-08) -----
+    if action == "malware" or action.startswith("malware "):
+        from handlers.malware_analysis import handle_malware
+        return handle_malware(action)
+
+    # ----- Interactive Investigations (M-10) -----
+    if action == "investigation" or action.startswith("investigation "):
+        from handlers.investigation import handle_investigation
+        return handle_investigation(action)
+
+    # ----- Jupyter Notebook Support (M-12) -----
+    if action == "jupyter" or action.startswith("jupyter "):
+        from handlers.jupyter import handle_jupyter
+        return handle_jupyter(action)
+
+    # ----- Video/Podcasts Player (M-16) -----
+    if action == "media" or action.startswith("media "):
+        from handlers.media import handle_media
+        return handle_media(action)
+
+    # ----- Time Loop / Alternate Realities (M-18) -----
+    if action == "timeloop" or action.startswith("timeloop "):
+        from handlers.timeloop import handle_timeloop
+        return handle_timeloop(action)
+
+    # ----- Cross-platform Sync (M-20) -----
+    if action == "sync" or action.startswith("sync "):
+        from handlers.sync import handle_sync
+        return handle_sync(action)
+
+    # ----- Mobile Companion App PWA (M-32) -----
+    if action == "pwa" or action.startswith("pwa "):
+        from handlers.pwa import handle_pwa
+        return handle_pwa(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")

@@ -93,11 +93,29 @@ def show_menu():
   [yellow]48[/yellow] - Песочница (/sandbox <lang> <code>)
   [yellow]49[/yellow] - Подсказки в реальном времени (/hint)
   [yellow]50[/yellow] - Личный дашборд (/dashboard)
-   [yellow]51[/yellow] - Bug Bounty симуляция (/bounty)
-   [yellow]52[/yellow] - Продвинутая аналитика и AI рекомендации (/analytics)
-   [yellow]53[/yellow] - Голосовой помощник (/voice on/off/test)
+    [yellow]51[/yellow] - Bug Bounty симуляция (/bounty)
+    [yellow]52[/yellow] - Продвинутая аналитика и AI рекомендации (/analytics)
+    [yellow]53[/yellow] - Голосовой помощник (/voice on/off/test)
+    [yellow]54[/yellow] - Экспорт чата (/export [файл])
+    [yellow]55[/yellow] - Статистика команд (/usage)
+    [yellow]56[/yellow] - Мастер настройки (/config)
+    [yellow]57[/yellow] - Тема оформления (/theme)
+    [yellow]58[/yellow] - Управление модулями (/features)
+    [yellow]59[/yellow] - Суммаризация истории (/summarize)
+    [yellow]60[/yellow] - Конструктор фишинга (/phishing)
+    [yellow]61[/yellow] - Mermaid-диаграммы (/mermaid)
+    [yellow]62[/yellow] - Трекер навыков (/skills)
+    [yellow]63[/yellow] - Репутация (/reputation)
+    [yellow]64[/yellow] - Глубина объяснений (/depth)
+    [yellow]65[/yellow] - Безопасный код (/fixcode)
+    [yellow]66[/yellow] - Шаблоны заданий (/templates)
+    [yellow]67[/yellow] - Эмоции учителя (/emotions)
+    [yellow]68[/yellow] - Docker Compose (/dockergen)
+    [yellow]69[/yellow] - CTF-флаги (/ctf)
+    [yellow]70[/yellow] - Профиль (/profile)
+    [yellow]71[/yellow] - Ежедневный челлендж (/daily)
 
- [bold red]🚪 ВЫХОД[/bold red]
+  [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
 
 [dim]Примечание: Можно также вводить команды со / (например, /news, /provider)[/dim]
@@ -125,6 +143,10 @@ def show_help():
   /dashboard   - Личный дашборд (аналитика, слабые темы, XP)
   /bounty      - Bug Bounty симуляция (написание отчётов)
   /progress    - Прогресс по активному заданию
+  /timeline    - Исторический режим (эволюция взлома)
+  /investigation - Интерактивные расследования (кейсы, улики)
+  /media       - Видео и подкасты (встроенный плеер)
+  /timeloop    - Временная петля (ветвящиеся сюжеты)
 
 [bold magenta]📊 ИНФОРМАЦИЯ:[/bold magenta]
   /news        - Новости кибербезопасности
@@ -134,7 +156,8 @@ def show_help():
    /threat      - Сводка угроз (недельная)
    /stats       - Статистика (очки, курсы, флаги)
    /analytics   - Продвинутая аналитика и AI рекомендации (M-33)
-   /voice       - Голосовой помощник (TTS) (M-34)
+   /voice       - Голосовой помощник (TTS/STT) (M-34)
+    /voice listen - Распознавание речи (STT)
    /achievements- Достижения и XP
   /history     - История чата
   /guide       - Гайд по VM (Kali, HTB)
@@ -149,6 +172,8 @@ def show_help():
   /next        - Следующая тема курса
   /adaptive    - Показать слабые темы
   /repeat      - Интервальные повторения (SM-2)
+  /exploits    - Тренажёр написания эксплойтов
+  /jupyter     - Jupyter Notebooks (шаблоны для практики)
 
 [bold cyan]🛠️ ИНСТРУМЕНТЫ:[/bold cyan]
   /sandbox     - Песочница для кода (Docker)
@@ -156,6 +181,10 @@ def show_help():
   /log <cmd>   - Записать команду в лог
   /read_url    - Чтение URL
   /smart_test  - Умный тест
+  /osint       - OSINT разведка (симуляция: поиск, утечки, метаданные)
+  /shodan      - Поиск устройств в Shodan
+  /censys      - Поиск сервисов в Censys
+  /malware     - Анализ вредоносов (симуляция песочницы)
 
 [bold green]📝 ОТЧЁТЫ:[/bold green]
   /summary     - Генерация конспекта (Markdown)
@@ -176,8 +205,34 @@ def show_help():
   /version     - Версия приложения
   /clear       - Очистить чат
   /menu        - Показать цифровое меню
+  /usage       - Статистика использования команд
+  /export      - Экспорт истории чата (Markdown/JSON)
+  /config      - Интерактивный мастер настройки
+  /theme       - Смена цветовой схемы
+  /features    - Вкл/выкл модулей
+  /summarize   - Суммаризация истории диалога
+  /phishing    - Конструктор фишинговых писем
+  /mermaid     - Mermaid-инфографика
+  /skills      - Трекер практических навыков
+  /reputation  - Репутация и хэндлы
+  /depth       - Глубина объяснений (beginner/normal/expert)
+  /fixcode     - Генерация безопасной версии кода
+  /templates   - YAML шаблоны заданий
+  /emotions    - Эмоции учителя (sentiment-анализ)
+  /dockergen   - Генерация docker-compose для лаб
+  /ctf         - Динамические CTF-флаги
+  /profile     - Профиль пользователя (имя, аватар, статистика)
+  /daily       - Ежедневный челлендж со стриком
+  /sync        - Синхронизация прогресса между устройствами
+  /pwa         - Мобильное приложение (PWA)
+  /mindmap     - ASCII карта тем
+  /api         - REST API сервер
+  /kb          - Управление базой знаний
+  /vision      - Анализ изображений (LLaVA)
+  /telegram    - Telegram бот
+  /subscribe   - Подписка на угрозы
 
-[bold cyan]❓ СПРАВКА:[/bold cyan]
+  [bold cyan]❓ СПРАВКА:[/bold cyan]
   /help        - Краткая справка (эта команда)
   /help detail - Подробная справка с примерами
   /exit        - Выход из приложения

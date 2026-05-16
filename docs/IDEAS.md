@@ -67,24 +67,24 @@
 |----|------|--------|--------|-------------|--------|
 | M-01 | Docker Compose | 6 | 3 | B-01 | ❌ Not started |
 | M-02 | Система команд (Red vs Blue) | 8 | 6 | B-01, C-02 | ❌ Not started |
-| M-03 | Модуль OSINT | 8 | 6 | B-01 | ❌ Not started |
+| M-03 | Модуль OSINT | 8 | 6 | B-01 | ✅ Done |
 | M-04 | Конструктор фишинговых писем | 7 | 5 | B-01, C-02 | ❌ Not started |
-| M-05 | Исторический режим | 6 | 4 | B-01, story_mode.py | ❌ Not started |
-| M-06 | Тренажёр эксплойтов | 9 | 7 | C-08, B-01 | ❌ Not started |
-| M-07 | Shodan / Censys интеграция | 7 | 4 | B-01 | ❌ Not started |
-| M-08 | Анализ вредоносов (песочница) | 9 | 8 | C-08, B-01 | ❌ Not started |
+| M-05 | Исторический режим | 6 | 4 | B-01, story_mode.py | ✅ Done |
+| M-06 | Тренажёр эксплойтов | 9 | 7 | C-08, B-01 | ✅ Done |
+| M-07 | Shodan / Censys интеграция | 7 | 4 | B-01 | ✅ Done |
+| M-08 | Анализ вредоносов (песочница) | 9 | 8 | C-08, B-01 | ✅ Done |
 | M-09 | Инфографика (Mermaid) | 6 | 3 | B-01 | ❌ Not started |
-| M-10 | Интерактивные расследования | 8 | 5 | B-01 | ❌ Not started |
-| M-11 | Голосовой учитель (TTS/STT) | 6 | 6 | B-01 | ❌ Not started |
-| M-12 | Поддержка Jupyter Notebook | 7 | 4 | B-01 | ❌ Not started |
+| M-10 | Интерактивные расследования | 8 | 5 | B-01 | ✅ Done |
+| M-11 | Голосовой учитель (TTS/STT) | 6 | 6 | B-01 | ✅ Done |
+| M-12 | Поддержка Jupyter Notebook | 7 | 4 | B-01 | ✅ Done |
 | M-13 | SCORM / LTI поддержка | 6 | 5 | B-01 | ❌ Not started |
 | M-14 | Плагинная архитектура | 7 | 6 | B-01, A-03 | ❌ Not started |
 | M-15 | Курсы от экспертов | 5 | 3 | B-01, courses.py | ❌ Not started |
-| M-16 | Видео / подкасты внутри | 5 | 4 | B-01, Web UI | ❌ Not started |
+| M-16 | Видео / подкасты внутри | 5 | 4 | B-01, Web UI | ✅ Done |
 | M-17 | Новости с аналитикой | 7 | 3 | B-01, news_fetcher.py | ✅ Partially (база есть, нужен анализ от LLM) |
-| M-18 | Временная петля / альтернативные реальности | 6 | 5 | B-01, story_mode.py | ❌ Not started |
+| M-18 | Временная петля / альтернативные реальности | 6 | 5 | B-01, story_mode.py | ✅ Done |
 | M-19 | Учитель с эмоциями | 7 | 4 | B-01 | ❌ Not started |
-| M-20 | Кроссплатформенная синхронизация | 6 | 5 | B-01 | ❌ Not started |
+| M-20 | Кроссплатформенная синхронизация | 6 | 5 | B-01 | ✅ Done |
 | M-21 | Rate limiting | 6 | 3 | B-01, main.py | ❌ Not started |
 | M-22 | Summarization истории | 7 | 4 | B-01, memory.py | ❌ Not started |
 | M-23 | Расширение QUIZ_TOPICS | 5 | 2 | B-01, question_generation.py | ❌ Not started |
@@ -105,7 +105,7 @@
 |----|------|--------|--------|-------------|--------|
 | L-01 | Мультимодальность (LLaVA) | 8 | 7 | B-01 | ❌ Not started |
 | L-02 | Трекер практических навыков | 7 | 5 | B-01, state.py | ❌ Not started |
-| L-03 | Mind map визуализация (Mermaid) | 6 | 4 | B-01, Web UI | ❌ Not started |
+| L-03 | Mind map визуализация (Mermaid) | 6 | 4 | B-01, Web UI | ✅ Done (ASCII) |
 | L-04 | Поддержка мобильного приложения | 6 | 8 | M-20, B-01 | ❌ Not started |
 | L-05 | Gamification (уровни, бейджи) | 5 | 3 | C-13, B-01 | ❌ Not started |
 | L-06 | Dark mode для CLI | 4 | 2 | B-01, rich.py | ❌ Not started |
@@ -138,13 +138,13 @@
 |----|------|--------|--------|-----------|
 | G-01 | Интеграция с TryHackMe API | 8 | 5 | High |
 | G-02 | Поддержка VulnHub / HackInTheBox | 7 | 4 | High |
-| G-03 | Генерация CTF-флагов на лету (проверка через hash) | 8 | 3 | High |
+| G-03 | Генерация CTF-флагов на лету (проверка через hash) | 8 | 3 | High | ✅ Done |
 | G-04 | Мультиязычность (EN/RU) | 6 | 4 | Medium |
 | G-05 | Webhook уведомления (Telegram/Discord) | 6 | 4 | Medium |
 | G-06 | Docker lab templates (YAML) | 7 | 5 | High |
 | G-07 | Офлайн-режим (без LLM) | 5 | 3 | Medium |
 | G-08 | Mood translator (сленг → нормальный) | 4 | 2 | Low |
-| G-09 | Профили пользователей (смена имени) | 5 | 2 | Medium |
+| G-09 | Профили пользователей (смена имени) | 5 | 2 | Medium | ✅ Done |
 | G-10 | Интеграция с Wireshark (анализ pcap) | 8 | 6 | High |
 
 ---
@@ -205,5 +205,23 @@
 Долгосрочные идеи. В IDEAS.md много амбициозных фич (мультимодальность, голосовой учитель, метасплойт-интеграция). Чтобы не распыляться, можно держать их в "бэклоге" и возвращаться, когда будут закрыты базовые задачи. Ты уже это делаешь, судя по приоритетам.
 
 Сообщество. Упомянуто про "good first issue". Если выложишь проект на GitHub и повесишь такие ярлыки, есть шанс привлечь контрибьюторов. Это снизит нагрузку на тебя и ускорит развитие.
+
+## 🆕 Сессия 2026-05-16
+
+| ID | Идея | Impact | Effort | Статус |
+|----|------|--------|--------|--------|
+| D-01 | Daily Challenge со стриком | 8 | 2 | ✅ Done (`/daily`, 14 задач, XP бонусы) |
+| SEC-01 | HTB password encryption | 7 | 1 | ✅ Done (`utils/security.py`, XOR + migration) |
+| DEDUP-01 | Дедупликация кода | 6 | 3 | ✅ Done (`utils/common.py`, -230 строк) |
+| BUG-01 | Фикс 6 критических багов | 10 | 1 | ✅ Done (кэш, dead code, stats, courses, genassignment) |
+| L-03 | Mind Map ASCII | 7 | 2 | ✅ Done (`/mindmap`) |
+| L-14 | Extended Export | 6 | 3 | ✅ Done (`/export extended html/pdf`) |
+| L-16 | REST API | 8 | 4 | ✅ Done (`/api start`, FastAPI) |
+| H-16 | Async Handlers | 8 | 4 | ✅ Done (parallel RAG + LLM) |
+| REF-01 | Registry Pattern | 7 | 3 | ✅ Done (`handlers/registry.py`) |
+| L-01 | Мультимодальность (LLaVA) | 8 | 7 | ✅ Done (`/vision`) |
+| L-08 | KB Manager | 7 | 3 | ✅ Done (`/kb`) |
+| L-13 | Threat Subscriptions | 6 | 3 | ✅ Done (`/subscribe`) |
+| H-08 | Telegram Bot | 8 | 5 | ✅ Done (`/telegram`) |
 
 

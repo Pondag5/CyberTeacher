@@ -1,6 +1,6 @@
 # CyberTeacher - Текущие проблемы и решения
 
-*Последнее обновление: 2026-03-17*
+*Последнее обновление: 2026-05-16*
 
 ---
 
@@ -13,6 +13,47 @@
 5. [Производительность](#performance)
 6. [Документация](#documentation)
 7. [Пользовательский опыт](#ux)
+
+---
+
+## ✅ Решено 2026-05-16
+
+### BUG-01: CachedLLM.invoke() возвращал None
+**Проблема:** При cache hit функция не возвращала ответ — кэш не работал.
+**Решение:** Добавлен `return response` в `main.py:116`.
+
+### BUG-02: Dead code в knowledge.py
+**Проблема:** 70 строк unreachable кода после `return` в `load_knowledge_base()` и дубликат в `get_relevant_docs()`.
+**Решение:** Удалены unreachable блоки.
+
+### BUG-03: handle_stats() читал несуществующие ключи
+**Проблема:** `stats.get('messages')`, `stats.get('flags')` и т.д. — `get_stats()` возвращает только `points/quizzes/tasks`.
+**Решение:** Исправлены ключи в `handlers/core.py`.
+
+### BUG-04: /courses — "временно недоступны"
+**Проблема:** Заглушка вместо реальной функциональности.
+**Решение:** Подключено к `courses.py` — показывает список курсов и детали.
+
+### BUG-05: /genassignment — отключён
+**Проблема:** Команда показывала "временно отключён".
+**Решение:** Восстановлен через `generators.generate_task()`.
+
+### SEC-01: HTB пароль в plaintext
+**Проблема:** `state.htb_password` хранился в JSON файле без шифрования.
+**Решение:** XOR-based шифрование в `utils/security.py`. Поле `htb_password_enc` в state, автоматическая миграция старых plaintext паролей.
+
+### DEDUP-01: Дубликаты кода
+**Проблема:** `extract_json_block` (4 копии), `check_open_answer` (5 копий), `_ask_confirm` (2), `clear_chat_db` (2).
+**Решение:** Вынесены в `utils/common.py`. Все копии заменены на импорты.
+
+### DEAD-01: Мёртвый код
+**Удалено:**
+- `StudentLevel`, `AssessmentResult`, `ASSESSMENT_TOPICS`, `LevelAssessor` из `pedagogy.py` (~130 строк)
+- `is_cybersecurity_related()`, `Task` dataclass из `main.py` (~12 строк)
+- `downloader.py` — неиспользуемый файл
+
+### NEW-01: Daily Challenge
+**Добавлено:** `/daily` — ежедневные челленджи со стрик-системой, 14 задач, 3 уровня сложности, XP бонусы за стрик.
 
 ---
 

@@ -9,145 +9,182 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from utils.security import decrypt_value as _decrypt, encrypt_value as _encrypt, is_encrypted
 
-@dataclass
+# Импорты модульных компонентов состояния
+from achievements_state import AchievementsState
+from explanation_state import ExplanationState
+from hints_state import HintsState
+from learning_state import LearningState
+from metrics_state import MetricsState
+from persona_state import PersonaState
+from risk_state import RiskState
+from shop_state import ShopState
+from user_state import UserState
+from voice_state import VoiceState
+
+
 class AppState:
-    """Глобальное состояние приложения"""
+    """Глобальное состояние приложения с модульной архитектурой"""
 
-    # Курс
-    current_course: str | None = None
-    current_topic: int = 0
+    # Модули состояния
+    achievements: AchievementsState
+    explanation: ExplanationState
+    hints: HintsState
+    learning: LearningState
+    metrics: MetricsState
+    persona: PersonaState
+    risk: RiskState
+    shop: ShopState
+    user: UserState
+    voice: VoiceState
 
-    # Новости
-    last_news: str | None = None
+    # Оставшиеся атрибуты, которые ещё не вынесены в модули
+    last_news: str | None
+    active_assignment: dict[str, Any] | None
+    collected_flags: list[str]
+    weak_topics: list[dict[str, Any]]
+    review_schedule: dict[str, dict[str, Any]]
+    feature_flags: dict[str, bool]
+    last_writeup_activity: dict[str, Any] | None
+    writeup_history: list[dict[str, Any]]
+    exploit_success: list[dict]
+    tracks_enrolled: list[str]
+    track_progress: dict[str, dict[str, Any]]
+    bounty_reports: list[dict[str, Any]]
+    skill_tracker: dict[str, dict[str, Any]]
+    emotion_mode: str
 
-    # Статистика (float для поддержки XP multipliers)
-    points: float = 0.0
+    def __init__(self):
+        # Инициализация модульных компонентов
+        self.achievements = AchievementsState()
+        self.explanation = ExplanationState()
+        self.hints = HintsState()
+        self.learning = LearningState()
+        self.metrics = MetricsState()
+        self.persona = PersonaState()
+        self.risk = RiskState()
+        self.shop = ShopState()
+        self.user = UserState()
+        self.voice = VoiceState()
 
-    # Режим
-    current_mode: str = "teacher"
+        # Инициализация оставшихся атрибутов
+        self.last_news = None
+        self.active_assignment = None
+        self.collected_flags = []
+        self.weak_topics = []
+        self.review_schedule = {}
+        self.feature_flags = {}
+        self.last_writeup_activity = None
+        self.writeup_history = []
+        self.exploit_success = []
+        self.tracks_enrolled = []
+        self.track_progress = {}
+        self.bounty_reports = []
+        self.skill_tracker = {}
+        self.emotion_mode = "neutral"
 
-    # Контекст обучения
-    learning_context: dict[str, Any] = field(
-        default_factory=lambda: {
-            "current_course": None,
-            "current_topic": None,
-            "current_lab": None,
-            "last_action": None,
+    def __getattr__(self, name: str) -> Any:
+        """Делегирование доступа к атрибутам модулей для обратной совместимости"""
+        # Маппинг атрибутов к модулям
+        module_mapping = {
+            # learning_state
+            "current_course": "learning", "current_topic": "learning",
+            "course_progress": "learning", "learning_context": "learning",
+            # achievements_state
+            "total_flags_collected": "achievements", "assignments_completed": "achievements",
+            "labs_started": "achievements", "quizzes_taken": "achievements",
+            "news_checked": "achievements", "messages_sent": "achievements",
+            "earned_achievements": "achievements", "social_success": "achievements",
+            "apt_groups_viewed": "achievements", "stealth_ops": "achievements",
+            "threat_exposures": "achievements", "points": "achievements",
+            "xp_boost_multiplier": "achievements", "xp_boost_expiry": "achievements",
+            # metrics_state
+            "llm_call_count": "metrics", "llm_total_time": "metrics",
+            "llm_total_tokens": "metrics", "cache_hits": "metrics",
+            "cache_misses": "metrics", "start_time": "metrics",
+            "request_timestamps": "metrics", "command_usage": "metrics",
+            # user_state
+            "username": "user", "avatar": "user", "reputation": "user",
+            "handle": "user", "htb_email": "user", "htb_password": "user",
+            "htb_completed": "user",
+            # shop_state
+            "owned_themes": "shop", "current_theme": "shop",
+            "unlocked_topics": "shop", "hint_credits": "shop",
+            "selected_tools": "shop", "trace_deadline": "shop",
+            "trace_hint": "shop", "missions_completed": "shop",
+            "active_mission": "shop", "xp_boost_multiplier": "shop",
+            "xp_boost_expiry": "shop",
+            # risk_state
+            "risk_level": "risk",
+            # voice_state
+            "voice_enabled": "voice", "voice_engine": "voice", "voice_rate": "voice",
+            # persona_state
+            "current_persona": "persona", "current_mode": "persona",
+            # hints_state
+            "hint_enabled": "hints", "hints_used": "hints",
+            "last_hint_time": "hints", "hint_cooldown": "hints",
+            # explanation_state
+            "explanation_depth": "explanation",
         }
-    )
 
-    # Для курсов
-    course_progress: dict[str, int] = field(default_factory=dict)
+        if name in module_mapping:
+            module_name = module_mapping[name]
+            return getattr(getattr(self, module_name), name)
+        
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
-    # Персона (персистентная)
-    current_persona: str = "teacher"
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Делегирование записи атрибутов модулям для обратной совместимости"""
+        module_mapping = {
+            "current_course": "learning", "current_topic": "learning",
+            "course_progress": "learning", "learning_context": "learning",
+            "total_flags_collected": "achievements", "assignments_completed": "achievements",
+            "labs_started": "achievements", "quizzes_taken": "achievements",
+            "news_checked": "achievements", "messages_sent": "achievements",
+            "earned_achievements": "achievements", "social_success": "achievements",
+            "apt_groups_viewed": "achievements", "stealth_ops": "achievements",
+            "threat_exposures": "achievements", "points": "achievements",
+            "xp_boost_multiplier": "achievements", "xp_boost_expiry": "achievements",
+            "llm_call_count": "metrics", "llm_total_time": "metrics",
+            "llm_total_tokens": "metrics", "cache_hits": "metrics",
+            "cache_misses": "metrics", "start_time": "metrics",
+            "request_timestamps": "metrics", "command_usage": "metrics",
+            "username": "user", "avatar": "user", "reputation": "user",
+            "handle": "user", "htb_email": "user", "htb_password": "user",
+            "htb_completed": "user",
+            "owned_themes": "shop", "current_theme": "shop",
+            "unlocked_topics": "shop", "hint_credits": "shop",
+            "selected_tools": "shop", "trace_deadline": "shop",
+            "trace_hint": "shop", "missions_completed": "shop",
+            "active_mission": "shop", "xp_boost_multiplier": "shop",
+            "xp_boost_expiry": "shop",
+            "risk_level": "risk",
+            "voice_enabled": "voice", "voice_engine": "voice", "voice_rate": "voice",
+            "current_persona": "persona", "current_mode": "persona",
+            "hint_enabled": "hints", "hints_used": "hints",
+            "last_hint_time": "hints", "hint_cooldown": "hints",
+            "explanation_depth": "explanation",
+        }
 
-    # Уровень риска / компрометации (для CTF/story режимов)
-    risk_level: int = 0  # 0-100, увеличивается при ошибках, снижается при успехах
+        # Прямые атрибуты AppState
+        direct_attrs = {
+            "last_news", "active_assignment", "collected_flags", "weak_topics",
+            "review_schedule", "feature_flags", "last_writeup_activity",
+            "writeup_history", "exploit_success", "tracks_enrolled",
+            "track_progress", "bounty_reports", "skill_tracker", "emotion_mode",
+            # Модули
+            "achievements", "explanation", "hints", "learning", "metrics",
+            "persona", "risk", "shop", "user", "voice"
+        }
 
-    # Статистика для достижений
-    total_flags_collected: int = 0
-    assignments_completed: int = 0
-    labs_started: int = 0
-    quizzes_taken: int = 0
-    news_checked: int = 0
-    messages_sent: int = 0
-    earned_achievements: list[str] = field(default_factory=list)
-
-    # Новые счётчики для расширенных достижений (C-13)
-    social_success: int = 0  # Успешные сценарии социальной инженерии
-    apt_groups_viewed: int = 0  # Просмотренные досье APT-групп
-    stealth_ops: int = 0  # Стелс-операции (задания с низким уровнем риска)
-    threat_exposures: int = 0  # Изучение угроз (анализ сводок, новости)
-
-    # Метрики (Q-04)
-    llm_call_count: int = 0
-    llm_total_time: float = 0.0
-    llm_total_tokens: int = 0
-    cache_hits: int = 0
-    cache_misses: int = 0
-    start_time: float = field(default_factory=time.time)
-
-    # Rate limiting (Q-05): 10 req/min
-    request_timestamps: list[float] = field(default_factory=list)
-
-    # Активное задание (для story/ctf)
-    active_assignment: dict[str, Any] | None = None
-    collected_flags: list[str] = field(default_factory=list)
-
-    # Слабые темы (для адаптивного обучения)
-    weak_topics: list[dict[str, Any]] = field(
-        default_factory=list
-    )  # [{"topic": "SQLi", "success_rate": 45.0, "attempts": 3, "total_score": 135, "max_score": 300}]
-
-    # Магазин (C-14)
-    owned_themes: list[str] = field(default_factory=list)
-    current_theme: str = "default"
-    unlocked_topics: list[str] = field(default_factory=list)
-    hint_credits: int = 0
-    xp_boost_multiplier: float = 1.0
-    xp_boost_expiry: float = 0.0  # timestamp
-
-    # Экипировка (H-02) — выбранные инструменты и их использование RAM
-    selected_tools: list[str] = field(default_factory=list)
-
-    # Таймер Trace (H-03) — для лабораторий с ограничением времени
-    trace_deadline: float | None = None
-    trace_hint: str | None = None
-
-    # Прогресс миссий (H-05)
-    missions_completed: list[str] = field(default_factory=list)
-    active_mission: str | None = None
-
-    # HackTheBox интеграция (M-25)
-    htb_email: str | None = None
-    htb_password: str | None = None
-    htb_completed: list[int] = field(
-        default_factory=list
-    )  # список ID завершённых машин
-
-    # PoC Verification (M-27)
-    exploit_success: list[dict] = field(
-        default_factory=list
-    )  # [{"mission_id": "...", "step_order": 1}, ...]
-
-    # Path-based Tracks (M-29)
-    tracks_enrolled: list[str] = field(
-        default_factory=list
-    )  # ID треков, на которые записан пользователь
-    track_progress: dict[str, dict[str, Any]] = field(
-        default_factory=dict
-    )  # {track_id: {"current_topic_idx": 0, "completed_topics": [], "started_at": ts, "completed_at": None}}
-
-    # Bug Bounty Simulation (M-31)
-    bounty_reports: list[dict[str, Any]] = field(
-        default_factory=list
-    )  # Список отчётов с оценкой и XP
-
-    # Real-time Hints (M-30)
-    hint_enabled: bool = True  # automatic hints on/off
-    hint_credits: int = 3  # available manual hints
-    hints_used: int = 0  # used in current session/mission
-    last_hint_time: float = 0.0  # timestamp of last hint
-    hint_cooldown: int = 30  # seconds between auto-hints
-
-    # Voice Assistant (M-34)
-    voice_enabled: bool = False  # TTS for responses
-    voice_engine: str = "pyttsx3"  # TTS engine
-    voice_rate: int = 200  # words per minute (for pyttsx3)
-
-    # Расписание интервальных повторений (Spaced Repetition)
-    # Structure: {topic: {"next_review": timestamp, "interval": days, "repetitions": int, "ef": float}}
-    review_schedule: dict[str, dict[str, Any]] = field(default_factory=dict)
-
-    # Данные для автоматического writeup
-    last_writeup_activity: dict[str, Any] | None = (
-        None  # Последнее завершённое activity (quiz/task/episode)
-    )
-    writeup_history: list[dict[str, Any]] = field(
-        default_factory=list
-    )  # История сгенерированных writeup'ов
+        if name in direct_attrs:
+            object.__setattr__(self, name, value)
+        elif name in module_mapping:
+            module_name = module_mapping[name]
+            setattr(getattr(self, module_name), name, value)
+        else:
+            object.__setattr__(self, name, value)
 
     def update_weak_topic(self, topic: str, score: float, max_score: float = 10.0):
         """Обновить статистику по слабой теме.
@@ -296,36 +333,27 @@ class AppState:
 
     def reset_course(self):
         """Сбросить прогресс курса"""
-        self.current_course = None
-        self.current_topic = 0
+        self.learning.reset_course()
 
     def set_course(self, course_id: str):
         """Установить текущий курс"""
-        self.current_course = course_id
-        self.current_topic = 0
+        self.learning.set_course(course_id)
 
     def next_topic(self):
         """Следующая тема"""
-        self.current_topic += 1
+        self.learning.next_topic()
 
     def set_learning_context(self, course=None, topic=None, lab=None, action=None):
         """Установить контекст обучения"""
-        if course:
-            self.learning_context["current_course"] = course
-        if topic:
-            self.learning_context["current_topic"] = topic
-        if lab:
-            self.learning_context["current_lab"] = lab
-        if action:
-            self.learning_context["last_action"] = action
+        self.learning.set_learning_context(course=course, topic=topic, lab=lab, action=action)
 
     def get_learning_context(self) -> dict[str, Any]:
         """Получить контекст обучения"""
-        return self.learning_context
+        return self.learning.get_learning_context()
 
     def set_persona(self, persona: str):
         """Установить текущую персону (teacher, expert, ctf, review)"""
-        self.current_persona = persona
+        self.persona.set_persona(persona)
         # Также обновляем режим для совместимости
         from ui import Mode
 
@@ -336,7 +364,6 @@ class AppState:
             "review": Mode.CODE_REVIEW,
         }
         if persona in persona_to_mode:
-            # Сохраняем режим как строку, чтобы избежать циклического импорта
             self.current_mode = (
                 persona_to_mode[persona].value
                 if hasattr(persona_to_mode[persona], "value")
@@ -345,7 +372,7 @@ class AppState:
 
     def get_persona(self) -> str:
         """Получить текущую персону"""
-        return self.current_persona
+        return self.persona.current_persona
 
     def set_active_assignment(self, assignment: dict):
         """Установить активное задание и сбросить собранные флаги"""
@@ -391,95 +418,59 @@ class AppState:
     # === RISK LEVEL (CTF/Story mode) ===
     def increase_risk(self, amount: int = 10):
         """Увеличить уровень риска (при ошибке/срабатывании защиты)"""
-        self.risk_level = min(100, self.risk_level + amount)
+        self.risk.increase_risk(amount)
         self.check_achievements()
 
     def decrease_risk(self, amount: int = 5):
         """Уменьшить уровень риска (при успехе)"""
-        self.risk_level = max(0, self.risk_level - amount)
+        self.risk.decrease_risk(amount)
         self.check_achievements()
 
     def reset_risk(self):
         """Сбросить уровень риска"""
-        self.risk_level = 0
+        self.risk.reset_risk()
 
     def get_risk_status(self) -> str:
         """Получить текстовый статус риска"""
-        if self.risk_level < 20:
-            return "🟢 Низкий"
-        elif self.risk_level < 50:
-            return "🟡 Умеренный"
-        elif self.risk_level < 80:
-            return "🟠 Высокий"
-        else:
-            return "🔴 Критический"
+        return self.risk.get_risk_status()
 
     def get_xp_multiplier(self) -> float:
         """Возвращает текущий множитель XP с учетом активного буста."""
-        import time
-
-        now = time.time()
-        if self.xp_boost_expiry > 0 and now < self.xp_boost_expiry:
-            return self.xp_boost_multiplier
-        # Бонус истек или не установлен — сбрасываем
-        self.xp_boost_multiplier = 1.0
-        self.xp_boost_expiry = 0.0
-        return 1.0
+        return self.shop.get_xp_multiplier()
 
     def apply_item_effect(self, item: dict) -> None:
         """Применить эффект купленного предмета к состоянию."""
-        item_type = item.get("type")
-        if item_type == "theme":
-            theme_id = item.get("value")
-            if theme_id and theme_id not in self.owned_themes:
-                self.owned_themes.append(theme_id)
-                # Автоматически активировать? Оставим пользователю /theme
-        elif item_type == "unlock_topic":
-            topic = item.get("value")
-            if topic and topic not in self.unlocked_topics:
-                self.unlocked_topics.append(topic)
-        elif item_type == "consumable":
-            effect = item.get("effect")
-            qty = item.get("quantity", 1)
-            if effect == "hint_credit":
-                self.hint_credits += qty
-        elif item_type == "xp_boost":
-            multiplier = item.get("multiplier", 2.0)
-            duration_hours = item.get("duration_hours", 1)
-            import time
-
-            self.xp_boost_multiplier = multiplier
-            self.xp_boost_expiry = time.time() + duration_hours * 3600
+        self.shop.apply_item_effect(item)
 
     # === СТАТИСТИКА ===
     def increment_flag(self):
         """Увеличить счётчик собранных флагов"""
-        self.total_flags_collected += 1
+        self.achievements.increment_flag()
         self.check_achievements()
 
     def complete_assignment(self):
         """Отметить выполнение задания"""
-        self.assignments_completed += 1
+        self.achievements.complete_assignment()
         self.check_achievements()
 
     def start_lab(self):
         """Отметить запуск лаборатории"""
-        self.labs_started += 1
+        self.achievements.start_lab()
         self.check_achievements()
 
     def take_quiz(self):
         """Отметить прохождение квиза"""
-        self.quizzes_taken += 1
+        self.achievements.take_quiz()
         self.check_achievements()
 
     def check_news(self):
         """Отметить проверку новостей"""
-        self.news_checked += 1
+        self.achievements.check_news()
         # Не вызываем check_achievements здесь — вызываем в обработчике
 
     def send_message(self):
         """Увеличить счётчик отправленных сообщений"""
-        self.messages_sent += 1
+        self.achievements.send_message()
         # Не проверяем достижения для каждого сообщения (слишком часто)
 
     # === Алиасы для обратной совместимости с тестами ===
@@ -503,22 +494,22 @@ class AppState:
 
     def increment_social_success(self):
         """Увеличить счётчик успешных сценариев социальной инженерии"""
-        self.social_success += 1
+        self.achievements.increment_social_success()
         self.check_achievements()
 
     def increment_apt_groups_viewed(self):
         """Увеличить счётчик просмотренных досье APT-групп"""
-        self.apt_groups_viewed += 1
+        self.achievements.increment_apt_groups_viewed()
         self.check_achievements()
 
     def increment_stealth_ops(self):
         """Увеличить счётчик стелс-операций (задания с низким риском)"""
-        self.stealth_ops += 1
+        self.achievements.increment_stealth_ops()
         self.check_achievements()
 
     def increment_threat_exposures(self):
-        """Увеличить счётpicker изучения угроз (сводки, анализ)"""
-        self.threat_exposures += 1
+        """Увеличить счётчик изучения угроз (сводки, анализ)"""
+        self.achievements.increment_threat_exposures()
         self.check_achievements()
 
     def check_achievements(self):
@@ -585,15 +576,79 @@ class AppState:
         self, window_seconds: int = 60, max_requests: int = 10
     ) -> bool:
         """Check if a new request is allowed within the rate limit."""
-        now = time.time()
-        self.request_timestamps = [
-            ts for ts in self.request_timestamps if now - ts < window_seconds
-        ]
-        return len(self.request_timestamps) < max_requests
+        return self.metrics.can_make_request(window_seconds, max_requests)
 
     def record_request(self) -> None:
         """Record that a request was made."""
-        self.request_timestamps.append(time.time())
+        self.metrics.record_request()
+
+    def track_command_usage(self, command: str) -> None:
+        """Отслеживать использование команды (M-31)."""
+        self.metrics.track_command_usage(command)
+
+    # === REPUTATION & HANDLES (L-10) ===
+
+    def add_reputation(self, amount: int) -> None:
+        """Добавить очки репутации и обновить хэндл."""
+        self.user.add_reputation(amount)
+
+    def get_handle(self) -> str:
+        """Получить текущий хэндл."""
+        return self.user.get_handle()
+
+    # === EXPLANATION DEPTH (L-05) ===
+
+    def set_explanation_depth(self, depth: str) -> str:
+        """Установить глубину объяснений: beginner, normal, expert."""
+        return self.explanation.set_explanation_depth(depth)
+
+    def get_explanation_depth(self) -> str:
+        """Получить текущую глубину объяснений."""
+        return self.explanation.get_explanation_depth()
+
+    # === SKILL TRACKER (L-02) ===
+
+    def track_skill(self, skill: str, success: bool, xp: int = 10) -> None:
+        """Отследить использование навыка."""
+        if skill not in self.skill_tracker:
+            self.skill_tracker[skill] = {
+                "level": 0,
+                "xp": 0,
+                "last_practice": time.time(),
+                "attempts": 0,
+                "successes": 0,
+            }
+        s = self.skill_tracker[skill]
+        s["xp"] += xp
+        s["attempts"] += 1
+        s["last_practice"] = time.time()
+        if success:
+            s["successes"] += 1
+        # Level up: каждые 50 XP = +1 уровень (макс 5)
+        new_level = min(5, s["xp"] // 50)
+        if new_level > s["level"]:
+            s["level"] = new_level
+        self.save_to_file()
+
+    def get_skill_level(self, skill: str) -> int:
+        """Получить уровень навыка (0-5)."""
+        if skill in self.skill_tracker:
+            return self.skill_tracker[skill]["level"]
+        return 0
+
+    def get_all_skills(self) -> list[dict[str, Any]]:
+        """Получить все навыки с прогрессом."""
+        result = []
+        for name, data in self.skill_tracker.items():
+            result.append({
+                "name": name,
+                "level": data["level"],
+                "xp": data["xp"],
+                "attempts": data["attempts"],
+                "successes": data["successes"],
+                "success_rate": round(data["successes"] / data["attempts"] * 100, 1) if data["attempts"] > 0 else 0,
+            })
+        return sorted(result, key=lambda x: x["level"], reverse=True)
 
     # === BACKUP (Q-06) ===
 
@@ -639,125 +694,85 @@ class AppState:
         import json
 
         state_dict = {
+            # Learning
             "current_course": self.current_course,
             "current_topic": self.current_topic,
-            "last_news": self.last_news,
-            "points": self.points,
-            "current_mode": self.current_mode,
-            "current_persona": self.current_persona,
-            "risk_level": self.risk_level,
             "learning_context": self.learning_context,
             "course_progress": self.course_progress,
-            "active_assignment": self.active_assignment,
-            "collected_flags": self.collected_flags,
+            # User
+            "username": self.username,
+            "avatar": self.avatar,
+            "reputation": self.reputation,
+            "handle": self.handle,
+            "htb_email": self.htb_email,
+            "htb_password_enc": _encrypt(self.htb_password) if self.htb_password else None,
+            "htb_completed": self.htb_completed,
+            # Achievements
+            "points": self.points,
             "total_flags_collected": self.total_flags_collected,
             "assignments_completed": self.assignments_completed,
             "labs_started": self.labs_started,
             "quizzes_taken": self.quizzes_taken,
             "news_checked": self.news_checked,
             "messages_sent": self.messages_sent,
-            "earned_achievements": self.earned_achievements
-            if hasattr(self, "earned_achievements")
-            else [],
-            "weak_topics": self.weak_topics,
-            "review_schedule": self.review_schedule,
-            "last_writeup_activity": self.last_writeup_activity,
-            "writeup_history": self.writeup_history,
-            # Новые счётчики (C-13)
-            "social_success": self.social_success
-            if hasattr(self, "social_success")
-            else 0,
-            "apt_groups_viewed": self.apt_groups_viewed
-            if hasattr(self, "apt_groups_viewed")
-            else 0,
-            "stealth_ops": self.stealth_ops if hasattr(self, "stealth_ops") else 0,
-            "threat_exposures": self.threat_exposures
-            if hasattr(self, "threat_exposures")
-            else 0,
-            # Метрики (Q-04)
+            "earned_achievements": self.earned_achievements,
+            "social_success": self.social_success,
+            "apt_groups_viewed": self.apt_groups_viewed,
+            "stealth_ops": self.stealth_ops,
+            "threat_exposures": self.threat_exposures,
+            "xp_boost_multiplier": self.xp_boost_multiplier,
+            "xp_boost_expiry": self.xp_boost_expiry,
+            # Metrics
             "llm_call_count": self.llm_call_count,
             "llm_total_time": self.llm_total_time,
             "llm_total_tokens": self.llm_total_tokens,
             "cache_hits": self.cache_hits,
             "cache_misses": self.cache_misses,
             "start_time": self.start_time,
-            # Магазин (C-14)
-            "owned_themes": self.owned_themes if hasattr(self, "owned_themes") else [],
-            "current_theme": self.current_theme
-            if hasattr(self, "current_theme")
-            else "default",
-            "unlocked_topics": self.unlocked_topics
-            if hasattr(self, "unlocked_topics")
-            else [],
-            "hint_credits": self.hint_credits if hasattr(self, "hint_credits") else 3,
-            "xp_boost_multiplier": self.xp_boost_multiplier
-            if hasattr(self, "xp_boost_multiplier")
-            else 1.0,
-            "xp_boost_expiry": self.xp_boost_expiry
-            if hasattr(self, "xp_boost_expiry")
-            else 0.0,
+            "request_timestamps": self.request_timestamps,
+            "command_usage": self.command_usage,
+            # Persona
+            "current_persona": self.current_persona,
+            "current_mode": self.current_mode,
+            # Risk
+            "risk_level": self.risk_level,
+            # Shop
+            "owned_themes": self.owned_themes,
+            "current_theme": self.current_theme,
+            "unlocked_topics": self.unlocked_topics,
+            "hint_credits": self.hint_credits,
             "selected_tools": self.selected_tools,
             "trace_deadline": self.trace_deadline,
             "trace_hint": self.trace_hint,
             "missions_completed": self.missions_completed,
             "active_mission": self.active_mission,
-            # HackTheBox (M-25)
-            "htb_email": self.htb_email if hasattr(self, "htb_email") else None,
-            "htb_password": self.htb_password
-            if hasattr(self, "htb_password")
-            else None,
-            "htb_completed": self.htb_completed
-            if hasattr(self, "htb_completed")
-            else [],
-            # PoC Verification (M-27)
-            "exploit_success": self.exploit_success
-            if hasattr(self, "exploit_success")
-            else [],
-            # Path-based Tracks (M-29)
-            "tracks_enrolled": self.tracks_enrolled
-            if hasattr(self, "tracks_enrolled")
-            else [],
-            "track_progress": self.track_progress
-            if hasattr(self, "track_progress")
-            else {},
-            # Bug Bounty Simulation (M-31)
-            "bounty_reports": self.bounty_reports
-            if hasattr(self, "bounty_reports")
-            else [],
-            # Real-time Hints (M-30)
-            "hint_enabled": self.hint_enabled
-            if hasattr(self, "hint_enabled")
-            else True,
-            # "hint_credits": self.hint_credits if hasattr(self, "hint_credits") else 3,  # DUPLICATE - already set in shop section
-            "hints_used": self.hints_used if hasattr(self, "hints_used") else 0,
-            "last_hint_time": self.last_hint_time
-            if hasattr(self, "last_hint_time")
-            else 0.0,
-            "hint_cooldown": self.hint_cooldown
-            if hasattr(self, "hint_cooldown")
-            else 30,
-            # Voice Assistant (M-34)
-            "voice_enabled": self.voice_enabled
-            if hasattr(self, "voice_enabled")
-            else False,
-            "voice_engine": self.voice_engine
-            if hasattr(self, "voice_engine")
-            else "pyttsx3",
-            "voice_rate": self.voice_rate if hasattr(self, "voice_rate") else 200,
+            # Hints
+            "hint_enabled": self.hint_enabled,
+            "hints_used": self.hints_used,
+            "last_hint_time": self.last_hint_time,
+            "hint_cooldown": self.hint_cooldown,
+            # Voice
+            "voice_enabled": self.voice_enabled,
+            "voice_engine": self.voice_engine,
+            "voice_rate": self.voice_rate,
+            # Explanation
+            "explanation_depth": self.explanation_depth,
+            # Direct AppState attributes
+            "last_news": self.last_news,
+            "active_assignment": self.active_assignment,
+            "collected_flags": self.collected_flags,
+            "weak_topics": self.weak_topics,
+            "review_schedule": self.review_schedule,
+            "feature_flags": self.feature_flags,
+            "last_writeup_activity": self.last_writeup_activity,
+            "writeup_history": self.writeup_history,
+            "exploit_success": self.exploit_success,
+            "tracks_enrolled": self.tracks_enrolled,
+            "track_progress": self.track_progress,
+            "bounty_reports": self.bounty_reports,
+            "skill_tracker": self.skill_tracker,
+            "emotion_mode": self.emotion_mode,
         }
-        # Add metric fields (Q-04)
-        state_dict.update(
-            {
-                "llm_call_count": self.llm_call_count,
-                "llm_total_time": self.llm_total_time,
-                "llm_total_tokens": self.llm_total_tokens,
-                "cache_hits": self.cache_hits,
-                "cache_misses": self.cache_misses,
-                "start_time": self.start_time,
-            }
-        )
-        # Add rate limiting timestamps (Q-05)
-        state_dict["request_timestamps"] = self.request_timestamps
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(state_dict, f, ensure_ascii=False, indent=2)
@@ -773,19 +788,26 @@ class AppState:
             if os.path.exists(path):
                 with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
+                
+                # Learning
                 self.current_course = data.get("current_course")
                 self.current_topic = data.get("current_topic", 0)
-                self.last_news = data.get("last_news")
-                self.points = data.get("points", 0)
-                self.current_mode = data.get("current_mode", "teacher")
-                self.current_persona = data.get("current_persona", "teacher")
-                self.risk_level = data.get("risk_level", 0)
-                self.learning_context = data.get(
-                    "learning_context", self.learning_context
-                )
+                self.learning_context = data.get("learning_context", self.learning_context)
                 self.course_progress = data.get("course_progress", {})
-                self.active_assignment = data.get("active_assignment")
-                self.collected_flags = data.get("collected_flags", [])
+                # User
+                self.username = data.get("username", "Аноним")
+                self.avatar = data.get("avatar", "🧑‍💻")
+                self.reputation = data.get("reputation", 0)
+                self.handle = data.get("handle", "Новичок")
+                self.htb_email = data.get("htb_email")
+                pwd_enc = data.get("htb_password_enc")
+                if pwd_enc:
+                    self.htb_password = _decrypt(pwd_enc)
+                else:
+                    self.htb_password = data.get("htb_password")
+                self.htb_completed = data.get("htb_completed", [])
+                # Achievements
+                self.points = data.get("points", 0)
                 self.total_flags_collected = data.get("total_flags_collected", 0)
                 self.assignments_completed = data.get("assignments_completed", 0)
                 self.labs_started = data.get("labs_started", 0)
@@ -793,49 +815,13 @@ class AppState:
                 self.news_checked = data.get("news_checked", 0)
                 self.messages_sent = data.get("messages_sent", 0)
                 self.earned_achievements = data.get("earned_achievements", [])
-                self.weak_topics = data.get("weak_topics", [])
-                self.review_schedule = data.get("review_schedule", {})
-                self.last_writeup_activity = data.get("last_writeup_activity")
-                self.writeup_history = data.get("writeup_history", [])
-                # Новые счётчики (C-13)
                 self.social_success = data.get("social_success", 0)
                 self.apt_groups_viewed = data.get("apt_groups_viewed", 0)
                 self.stealth_ops = data.get("stealth_ops", 0)
                 self.threat_exposures = data.get("threat_exposures", 0)
-                # Магазин (C-14)
-                self.owned_themes = data.get("owned_themes", [])
-                self.current_theme = data.get("current_theme", "default")
-                self.unlocked_topics = data.get("unlocked_topics", [])
-                self.hint_credits = data.get("hint_credits", 0)
                 self.xp_boost_multiplier = data.get("xp_boost_multiplier", 1.0)
                 self.xp_boost_expiry = data.get("xp_boost_expiry", 0.0)
-                self.selected_tools = data.get("selected_tools", [])
-                self.trace_deadline = data.get("trace_deadline")
-                self.trace_hint = data.get("trace_hint")
-                self.missions_completed = data.get("missions_completed", [])
-                self.active_mission = data.get("active_mission")
-                # HackTheBox (M-25)
-                self.htb_email = data.get("htb_email")
-                self.htb_password = data.get("htb_password")
-                self.htb_completed = data.get("htb_completed", [])
-                # PoC Verification (M-27)
-                self.exploit_success = data.get("exploit_success", [])
-                # Path-based Tracks (M-29)
-                self.tracks_enrolled = data.get("tracks_enrolled", [])
-                self.track_progress = data.get("track_progress", {})
-                # Bug Bounty Simulation (M-31)
-                self.bounty_reports = data.get("bounty_reports", [])
-                # Real-time Hints (M-30)
-                self.hint_enabled = data.get("hint_enabled", True)
-                self.hint_credits = data.get("hint_credits", 3)
-                self.hints_used = data.get("hints_used", 0)
-                self.last_hint_time = data.get("last_hint_time", 0.0)
-                self.hint_cooldown = data.get("hint_cooldown", 30)
-                # Voice Assistant (M-34)
-                self.voice_enabled = data.get("voice_enabled", False)
-                self.voice_engine = data.get("voice_engine", "pyttsx3")
-                self.voice_rate = data.get("voice_rate", 200)
-                # Метрики (Q-04)
+                # Metrics
                 self.llm_call_count = data.get("llm_call_count", 0)
                 self.llm_total_time = data.get("llm_total_time", 0.0)
                 self.llm_total_tokens = data.get("llm_total_tokens", 0)
@@ -843,6 +829,48 @@ class AppState:
                 self.cache_misses = data.get("cache_misses", 0)
                 self.start_time = data.get("start_time", time.time())
                 self.request_timestamps = data.get("request_timestamps", [])
+                self.command_usage = data.get("command_usage", {})
+                # Persona
+                self.current_persona = data.get("current_persona", "teacher")
+                self.current_mode = data.get("current_mode", "teacher")
+                # Risk
+                self.risk_level = data.get("risk_level", 0)
+                # Shop
+                self.owned_themes = data.get("owned_themes", [])
+                self.current_theme = data.get("current_theme", "default")
+                self.unlocked_topics = data.get("unlocked_topics", [])
+                self.hint_credits = data.get("hint_credits", 3)
+                self.selected_tools = data.get("selected_tools", [])
+                self.trace_deadline = data.get("trace_deadline")
+                self.trace_hint = data.get("trace_hint")
+                self.missions_completed = data.get("missions_completed", [])
+                self.active_mission = data.get("active_mission")
+                # Hints
+                self.hint_enabled = data.get("hint_enabled", True)
+                self.hints_used = data.get("hints_used", 0)
+                self.last_hint_time = data.get("last_hint_time", 0.0)
+                self.hint_cooldown = data.get("hint_cooldown", 30)
+                # Voice
+                self.voice_enabled = data.get("voice_enabled", False)
+                self.voice_engine = data.get("voice_engine", "pyttsx3")
+                self.voice_rate = data.get("voice_rate", 200)
+                # Explanation
+                self.explanation_depth = data.get("explanation_depth", "normal")
+                # Direct AppState attributes
+                self.last_news = data.get("last_news")
+                self.active_assignment = data.get("active_assignment")
+                self.collected_flags = data.get("collected_flags", [])
+                self.weak_topics = data.get("weak_topics", [])
+                self.review_schedule = data.get("review_schedule", {})
+                self.feature_flags = data.get("feature_flags", {})
+                self.last_writeup_activity = data.get("last_writeup_activity")
+                self.writeup_history = data.get("writeup_history", [])
+                self.exploit_success = data.get("exploit_success", [])
+                self.tracks_enrolled = data.get("tracks_enrolled", [])
+                self.track_progress = data.get("track_progress", {})
+                self.bounty_reports = data.get("bounty_reports", [])
+                self.skill_tracker = data.get("skill_tracker", {})
+                self.emotion_mode = data.get("emotion_mode", "neutral")
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Не удалось загрузить состояние: {e}")

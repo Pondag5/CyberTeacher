@@ -461,18 +461,25 @@ python -m unittest tests.test_social tests.test_threat_summary tests.test_threat
 
 См. `docs/IMPLEMENTATION_PLAN.md` — полный план с приоритетами.
 
-**Выполнено (28 задач):**
+**Выполнено (105 задач):**
 - Blocker: B-01..B-05 (интеграция state.py, циклические импорты, generators, Docker check, Docker exec validation)
-- Critical: C-01 (risk_level), C-02 (social engineering), C-03 (threat summary)
-- High: H-13..H-15 (мульти-провайдер, `/model`, `/set-api-key`)
-- Medium: M-24..M-29 (help detail, graceful degradation, LLM length check, model switching, API key)
-- Encoding fix для Windows
+- Critical: C-01..C-14 (risk_level, social engineering, threat summary, APT досье, RAG, sandbox, adaptive, spaced repetition, summary, writeup, achievements, shop)
+- High: H-01..H-10, H-13..H-16 (ASCII network, RAM equipment, trace timer, story, missions, CVE, scanner, metrics, web UI, docs, мульти-провайдер, async)
+- Medium: M-01..M-34 (Docker Compose, OSINT, historical, exploits, shodan, malware, mermaid, investigations, voice, jupyter, video, news, timeloop, emotions, sync, и др.)
+- Low: L-01..L-17 (multimodality, skills, mindmap, logging, depth, docker-compose, i18n, incremental, code review, reputation, subscriptions, export, deployment, API, templates)
+- Infrastructure: Q-01..Q-08 (tests, CI/CD, lint, metrics, rate limit, backups, ADRs, pip-audit)
+- **Refactoring: REF-02** (модульная архитектура state.py, 10 модулей, обратная совместимость)
 
-**В работе (4 задачи):**
-- C-04: APT досье (7/27 групп)
-- C-05: Умный RAG с реранкингом
-- C-07: SQLite кэш с TTL
-- M-17: Анализ новостей учителем
+**В работе (9 задач):**
+- REF-05: Устранить циклические импорты (Mode enum)
+- REF-06: Заменить `__getattr__` на явные property
+- REF-07: Pydantic для валидации состояния
+- REF-08: Вынести `check_achievements` в `services/`
+- REF-09: Валидация входных данных
+- REF-10: `.env` поддержка
+- REF-12: Конфигурация путей
+- REF-13: Объединить мелкие state модули
+- REF-04: Dependency Injection
 
 ---
 
@@ -491,10 +498,12 @@ MIT
 ## 🔗 Полезные ссылки
 
 - [План реализации](docs/IMPLEMENTATION_PLAN.md)
+- [Аудит рефакторинга](docs/REFACTORING_AUDIT.md) — критика, проблемы, план улучшений
 - [Идеи и приоритеты](docs/IDEAS.md)
 - [Отслеживание проблем](docs/PROBLEMS.md)
 - [Гайд по VM](docs/ГАЙД_VM.md)
+- [Future Vision](docs/FUTURE_VISION.md)
 
 ---
 
-**CyberTeacher v3.2** — учитесь кибербезопасности в интерактивном режиме! 🛡️💻
+**CyberTeacher v3.3** — учитесь кибербезопасности в интерактивном режиме! 🛡️💻

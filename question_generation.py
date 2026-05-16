@@ -30,6 +30,41 @@ QUIZ_TOPICS = {
         "answer": "rwx для владельца/группы/остальных",
         "key_points": ["read write execute", "chmod", "владелец файл"],
     },
+    "cloud": {
+        "question": "Что такое модель ответственности в облаке (Shared Responsibility Model)?",
+        "answer": "Провайдер отвечает за инфраструктуру, клиент — за данные и конфигурацию",
+        "key_points": ["провайдер инфраструктура", "клиент данные", "IAM конфигурация", "S3 публичный доступ"],
+    },
+    "mobile": {
+        "question": "Какие основные угрозы для мобильных приложений (OWASP Mobile Top 10)?",
+        "answer": "Небезопасное хранение данных, слабая криптография, improper platform usage",
+        "key_points": ["хранилище данных", "кейлоггинг", "jailbreak root", "SSL pinning", "deep links"],
+    },
+    "iot": {
+        "question": "Почему IoT устройства уязвимы по умолчанию?",
+        "answer": "Дефолтные пароли, отсутствие обновлений, незащищённые протоколы",
+        "key_points": ["дефолтные пароли", "нет обновлений", "telnet", "hardcoded credentials", "ботнеты"],
+    },
+    "blockchain": {
+        "question": "Какие уязвимости характерны для смарт-контрактов?",
+        "answer": "Reentrancy, integer overflow, access control flaws",
+        "key_points": ["reentrancy", "overflow underflow", "access control", "flash loan", "front-running"],
+    },
+    "api": {
+        "question": "Что такое BOLA/IDOR в API безопасности?",
+        "answer": "Broken Object Level Authorization — доступ к объектам другого пользователя через изменение ID",
+        "key_points": ["авторизация", "ID пользователя", "горизонтальный доступ", "OWASP API1"],
+    },
+    "phishing": {
+        "question": "Какие признаки фишингового письма?",
+        "answer": "Поддельный отправитель, срочность, подозрительные ссылки, вложения",
+        "key_points": ["spoofing", "срочность угроза", "ссылка домен", "вложения макросы", "social engineering"],
+    },
+    "forensics": {
+        "question": "Что такое цепочка сохранности (Chain of Custody) в цифровой криминалистике?",
+        "answer": "Документированная история обработки доказательств от изъятия до суда",
+        "key_points": ["документирование", "хеш образ", "неизменность", "кто когда доступ"],
+    },
 }
 
 

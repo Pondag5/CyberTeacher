@@ -168,19 +168,17 @@ class TestHandleStats(unittest.TestCase):
         self, mock_get_stats, mock_cache, mock_print, mock_get_state
     ):
         mock_get_stats.return_value = {
-            "messages": 10,
             "points": 100,
-            "flags": 2,
-            "labs": 1,
-            "courses": 3,
+            "quizzes": 5,
+            "tasks": 10,
         }
         mock_conn = MagicMock()
         handle_stats(mock_conn)
         mock_get_stats.assert_called_once_with(mock_conn)
-        # Check that various prints happened
         mock_print.assert_any_call("[bold cyan]📈 Статистика:[/bold cyan]")
-        mock_print.assert_any_call("  Сообщений: 10")
         mock_print.assert_any_call("  Очков: 100")
+        mock_print.assert_any_call("  Квизов пройдено: 5")
+        mock_print.assert_any_call("  Задач решено: 10")
 
 
 if __name__ == "__main__":

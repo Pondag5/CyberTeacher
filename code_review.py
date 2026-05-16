@@ -88,3 +88,46 @@ def code_review_function(code: str, language: str = "python"):
         console.print(f"[red]Ошибка: {e}[/red]")
 
     return None
+
+
+def generate_secure_code(code: str, language: str = "python") -> str | None:
+    """Сгенерировать безопасную версию кода (L-09)."""
+    from config import LazyLoader
+
+    llm = LazyLoader.get_llm()
+    if llm is None:
+        return None
+
+    lang_desc = {
+        "python": "Python (используй prepared statements, input validation, secure defaults)",
+        "javascript": "JavaScript/Node.js (используй parameterized queries, escape output, helmet)",
+        "php": "PHP (используй PDO prepared statements, htmlspecialchars, password_hash)",
+        "java": "Java (используй PreparedStatement, OWASP ESAPI, input validation)",
+        "bash": "Bash (используй quoting, set -euo pipefail, validation)",
+    }.get(language, language)
+
+    prompt = f"""Ты — эксперт по кибербезопасности. Перепиши следующий код, устранив ВСЕ уязвимости.
+
+Язык: {lang_desc}
+
+Исходный код:
+```{language}
+{code}
+```
+
+Требования к безопасной версии:
+1. Устрани все уязвимости (SQLi, XSS, command injection, path traversal, etc.)
+2. Добавь валидацию входных данных
+3. Используй безопасные функции и библиотеки
+4. Добавь комментарии, объясняющие изменения
+5. Сохрани функциональность исходного кода
+
+Верни ТОЛЬКО исправленный код в markdown блоке, без пояснений."""
+
+    try:
+        response = llm.invoke(prompt)
+        content = response.content if hasattr(response, "content") else str(response)
+        return content
+    except Exception as e:
+        console.print(f"[red]Ошибка генерации безопасного кода: {e}[/red]")
+        return None

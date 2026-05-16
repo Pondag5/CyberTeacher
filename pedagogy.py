@@ -8,8 +8,6 @@ import json
 import os
 import random
 import re
-from dataclasses import dataclass
-from enum import Enum
 from typing import ClassVar
 
 TEACHER_PROMPTS_PATH = os.path.join(
@@ -35,93 +33,6 @@ def get_teacher_prompts():
     if _TEACHER_PROMPTS is None:
         _TEACHER_PROMPTS = load_teacher_prompts()
     return _TEACHER_PROMPTS
-
-
-# === ENUMS ===
-class StudentLevel(Enum):
-    BEGINNER = "beginner"
-    INTERMEDIATE = "intermediate"
-    ADVANCED = "advanced"
-    EXPERT = "expert"
-
-
-@dataclass
-class AssessmentResult:
-    level: StudentLevel
-    strengths: list[str]
-    weaknesses: list[str]
-    recommended_topics: list[str]
-    overall_score: float
-
-
-# === ТЕМЫ ДЛЯ ОЦЕНКИ ===
-ASSESSMENT_TOPICS = {
-    "basics": {
-        "name": "Основы",
-        "questions": [
-            {"q": "Что такое IP-адрес?", "type": "open", "depth": 1},
-            {
-                "q": "TCP vs UDP?",
-                "type": "choice",
-                "options": ["Надёжность", "Скорость", "Оба"],
-                "correct": "Оба",
-            },
-            {"q": "Что такое DNS?", "type": "open", "depth": 2},
-        ],
-    },
-    "web": {
-        "name": "Веб",
-        "questions": [
-            {"q": "Что такое SQL-инъекция?", "type": "open", "depth": 1},
-            {
-                "q": "HTTP методы?",
-                "type": "choice",
-                "options": ["GET", "POST", "PUT/DELETE", "HEAD"],
-                "correct": "PUT/DELETE",
-            },
-            {"q": "Типы XSS?", "type": "open", "depth": 2},
-        ],
-    },
-    "crypto": {
-        "name": "Крипто",
-        "questions": [
-            {"q": "Симметричное vs Асимметричное?", "type": "open", "depth": 1},
-            {
-                "q": "Что такое хеширование?",
-                "type": "choice",
-                "options": ["Шифрование", "Односторонняя", "Сжатие"],
-                "correct": "Односторонняя",
-            },
-            {"q": "Зачем salt?", "type": "open", "depth": 2},
-        ],
-    },
-    "practice": {
-        "name": "Практика",
-        "questions": [
-            {"q": "Инструменты nmap?", "type": "open", "depth": 1},
-            {
-                "q": "Что такое CTF?",
-                "type": "choice",
-                "options": ["Язык", "Соревнования", "Протокол"],
-                "correct": "Соревнования",
-            },
-            {"q": "OWASP процесс?", "type": "open", "depth": 3},
-        ],
-    },
-    "social": {
-        "name": "Социнжен",
-        "questions": [
-            {"q": "Что такое фишинг?", "type": "open", "depth": 1},
-            {
-                "q": "Типы фишинга?",
-                "type": "choice",
-                "options": ["Email", "SMS", "Голосовой", "Все"],
-                "correct": "Все",
-            },
-            {"q": "Как распознать фишинг?", "type": "open", "depth": 2},
-        ],
-    },
-}
 
 
 # === ЛИЧНОСТЬ УЧИТЕЛЯ ===
@@ -189,52 +100,6 @@ class ThinkingVisualizer:
         for k, v in template_vars.items():
             thought = thought.replace(f"{{{k}}}", v)
         return thought
-
-
-# === ОЦЕНКА УРОВНЯ ===
-class LevelAssessor:
-    def __init__(self):
-        self.current_questions = []
-        self.scores = []
-
-    def generate_assessment(self):
-        questions = []
-        for topic_id, topic_data in ASSESSMENT_TOPICS.items():
-            for q in topic_data["questions"][:2]:
-                questions.append(
-                    {"topic": topic_id, "topic_name": topic_data["name"], **q}
-                )
-        random.shuffle(questions)
-        self.current_questions = questions[:10]
-        return self.current_questions
-
-    def analyze_results(self):
-        if not self.scores:
-            return AssessmentResult(StudentLevel.BEGINNER, [], [], ["basics"], 0.0)
-
-        topic_scores = {}
-        for i, score in enumerate(self.scores):
-            if i < len(self.current_questions):
-                topic = self.current_questions[i]["topic"]
-                if topic not in topic_scores:
-                    topic_scores[topic] = []
-                topic_scores[topic].append(score)
-
-        overall = sum(self.scores) / len(self.scores)
-
-        if overall >= 80:
-            level = StudentLevel.EXPERT
-        elif overall >= 60:
-            level = StudentLevel.ADVANCED
-        elif overall >= 40:
-            level = StudentLevel.INTERMEDIATE
-        else:
-            level = StudentLevel.BEGINNER
-
-        strengths = [t for t, s in topic_scores.items() if sum(s) / len(s) >= 50]
-        weaknesses = [t for t, s in topic_scores.items() if sum(s) / len(s) < 50]
-
-        return AssessmentResult(level, strengths, weaknesses, weaknesses[:3], overall)
 
 
 # === MEREAD ===

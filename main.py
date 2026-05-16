@@ -23,8 +23,6 @@ import logging
 # ===== НАСТРОЙКА ЛОГИРОВАНИЯ ЧТОБЫ УБРАТЬ ШУМ =====
 import os
 import sqlite3
-from dataclasses import dataclass
-from enum import Enum
 
 from config import NUMERIC_MENU
 from handlers.core import _response_cache, handle_commands
@@ -113,6 +111,7 @@ class CachedLLM:
 
         # Сохраняем в кэш с TTL 1 день (актуальные данные)
         cache_response(self.conn, query_hash, text, ttl_seconds=86400)
+        return response
 
     def stream(self, prompt):
         """Стриминг с кэшированием полного ответа в SQLite."""
@@ -245,22 +244,8 @@ except Exception:
     speak_if_enabled = None
 
 
-def is_cybersecurity_related(query: str) -> bool:
-    return True  # Всегда пропускаем
-
-
 # === КОНСТАНТЫ ===
 MODEL_NAME = "qwen2.5:3b"
-
-
-@dataclass
-class Task:
-    id: int
-    question: str
-    answer: str
-    hint: str
-    category: str
-    difficulty: str
 
 
 # === ПРОМПТЫ ===

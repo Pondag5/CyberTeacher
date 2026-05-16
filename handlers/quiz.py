@@ -18,16 +18,7 @@ except ImportError:
     GENERATORS_AVAILABLE = False
 
 # Import check_open_answer for evaluating open-ended responses
-try:
-    from .misc import check_open_answer
-except ImportError:
-    # Fallback: define locally if misc not available
-    def check_open_answer(question, user_ans, key_points=None):
-        score = 0
-        feedback = "Спасибо за ответ."
-        if user_ans and len(user_ans.strip()) > 0:
-            score = 6
-        return {"score": score, "feedback": feedback}
+from utils.common import check_open_answer_heuristic as check_open_answer
 
 
 def handle_quiz_action() -> tuple[bool, Any | None, Any | None, bool]:

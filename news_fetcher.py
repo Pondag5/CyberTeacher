@@ -24,30 +24,46 @@ SOURCES = [
 ]
 
 
+def _get_parser():
+    """Выбрать лучший доступный парсер (M-27)."""
+    try:
+        import lxml
+
+        return "lxml"
+    except ImportError:
+        return "html.parser"
+
+
 def fetch_news(force=False):
     """Получить новости"""
     cache = {"news": [], "last": None}
 
     if os.path.exists(NEWS_CACHE):
         try:
-            with open(NEWS_CACHE, "r") as f:
+            with open(NEWS_CACHE, "r", encoding="utf-8") as f:
                 cache = json.load(f)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Ошибка чтения кэша новостей: {e}")
+            cache = {"news": [], "last": None}
 
     # Проверить кэш (1 час)
     if not force and cache.get("last"):
-        last_time = datetime.fromisoformat(cache["last"]).replace(tzinfo=UTC)
-        if (datetime.now(UTC) - last_time).seconds < 3600:
-            return cache["news"]
+        try:
+            last_time = datetime.fromisoformat(cache["last"]).replace(tzinfo=UTC)
+            if (datetime.now(UTC) - last_time).seconds < 3600:
+                return cache["news"]
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Ошибка парсинга времени кэша: {e}")
 
     news = []
+    parser = _get_parser()
     for src in SOURCES:
         try:
             r = requests.get(
-                src["url"], timeout=10, headers={"User-Agent": "Mozilla/5.0"}
+                src["url"], timeout=10, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CyberTeacher/3.2"}
             )
-            soup = BeautifulSoup(r.content, "xml")
+            r.raise_for_status()
+            soup = BeautifulSoup(r.content, parser)
             items = soup.find_all("item")
             for item in items[:5]:
                 title = item.find("title")
@@ -64,15 +80,20 @@ def fetch_news(force=False):
                             "source": src["name"],
                         }
                     )
-        except Exception:
-            pass
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Ошибка загрузки {src['name']}: {e}")
+        except Exception as e:
+            logger.error(f"Неожиданная ошибка при парсинге {src['name']}: {e}")
 
     cache["news"] = news[:10]
     cache["last"] = datetime.now(UTC).isoformat()
 
-    os.makedirs(NEWS_DIR, exist_ok=True)
-    with open(NEWS_CACHE, "w") as f:
-        json.dump(cache, f)
+    try:
+        os.makedirs(NEWS_DIR, exist_ok=True)
+        with open(NEWS_CACHE, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка сохранения кэша новостей: {e}")
 
     return news
 

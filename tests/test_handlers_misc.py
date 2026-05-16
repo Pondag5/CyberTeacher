@@ -77,15 +77,24 @@ class TestMiscFunctions(unittest.TestCase):
         # Check that the first print is the version line
         mock_print.assert_any_call("[bold cyan]CyberTeacher v3.2[/bold cyan]")
 
-    # handle_course stub
+    # handle_course - lists courses
     @patch("handlers.misc.get_state")
     @patch("handlers.misc.console.print")
-    def test_handle_course_stub(self, mock_print, mock_get_state):
+    def test_handle_course_lists_courses(self, mock_print, mock_get_state):
         from handlers.misc import handle_course
 
-        result = handle_course("anything")
+        result = handle_course("course")
         self.assertEqual(result, (True, None, None, True))
-        mock_print.assert_any_call("[yellow]Курсы временно недоступны[/yellow]")
+        self.assertTrue(mock_print.called)
+
+    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.console.print")
+    def test_handle_course_details(self, mock_print, mock_get_state):
+        from handlers.misc import handle_course
+
+        result = handle_course("course web-basics")
+        self.assertEqual(result, (True, None, None, True))
+        self.assertTrue(mock_print.called)
 
     # handle_history tests
     @patch("handlers.misc.get_state")

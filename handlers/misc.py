@@ -6,6 +6,9 @@ from rich.console import Console
 from rich.panel import Panel
 
 from state import get_state
+from utils.common import ask_confirm as _ask_confirm
+from utils.common import check_open_answer_heuristic as check_open_answer
+from utils.common import clear_chat_db, extract_json_block
 
 console = Console()
 
@@ -16,68 +19,6 @@ def handle_backup(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     state.maybe_auto_backup()
     console.print("[green]✅ Бэкап создан (или актуальный уже существует).[/green]")
     return True, None, None, True
-
-
-def _ask_confirm(message: str) -> bool:
-    try:
-        from rich.prompt import Confirm
-
-        return Confirm.ask(message)
-    except Exception:
-        resp = input(f"{message} (yn): ").strip().lower()
-        return resp in ("y", "yes", "true", "1")
-
-
-def clear_chat_db(conn: Any) -> None:
-    try:
-        from memory import clear_chat as db_clear_chat
-
-        db_clear_chat(conn)
-    except Exception:
-        pass
-
-
-def extract_json_block(text: str) -> str | None:
-    if not text:
-        return None
-    stack = []
-    start = None
-    for i, ch in enumerate(text):
-        if ch == "{":
-            if start is None:
-                start = i
-            stack.append(ch)
-        elif ch == "}":
-            if stack:
-                stack.pop()
-                if not stack:
-                    end = i + 1
-                    return text[start:end]
-    return None
-
-
-def check_open_answer(
-    question: str,
-    user_ans: str,
-    key_points: list[str] | None = None,
-) -> dict[str, Any]:
-    score = 0
-    feedback = "Спасибо за ответ."
-    if user_ans and len(user_ans.strip()) > 0:
-        score = 6
-        if "правильно" in user_ans.lower() or "верно" in user_ans.lower():
-            score = 9
-            feedback = "Отлично!"
-    if key_points:
-        found = 0
-        upp = user_ans.lower() if user_ans else ""
-        for kp in key_points:
-            if kp.lower() in upp:
-                found += 1
-        if found >= max(1, len(key_points) // 2):
-            score = min(10, score + 2)
-            feedback = "Частично на ключевых моментах."
-    return {"score": score, "feedback": feedback}
 
 
 def handle_story_mode(action: str) -> tuple[bool, Any | None, Any | None, bool]:
@@ -669,3 +610,58 @@ def handle_repeat(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
         traceback.print_exc()
         return True, None, None, True
+
+def handle_export(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+    from datetime import datetime
+    from memory import get_chat_history
+    try:
+        parts = action.split(maxsplit=1)
+        filename = parts[1].strip() if len(parts) >= 2 else None
+        if not filename:
+            filename = f"chat_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+        history = get_chat_history(conn=None, limit=1000)
+        if not history:
+            console.print("[yellow]История пуста[/yellow]")
+            return True, None, None, True
+        if filename.endswith(".json"):
+            import json
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(history, f, ensure_ascii=False, indent=2)
+        else:
+            md = "# CyberTeacher - Экспорт чата\n\n"
+            md += f"Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\nСообщений: {len(history)}\n\n---\n\n"
+            for msg in history:
+                role = msg.get("role", "?")
+                content = msg.get("content", "")
+                mode = msg.get("mode", "")
+                md += f"### {'👤' if role == 'user' else '🤖'} {role.capitalize()}"
+                if mode: md += f" ({mode})"
+                md += f"\n\n{content}\n\n---\n\n"
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(md)
+        console.print(f"[green]✅ Экспортирован: {filename}[/green]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True
+
+
+def handle_usage(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+    try:
+        cmd_stats = get_state().command_usage
+        if not cmd_stats:
+            console.print("[yellow]Статистика пуста[/yellow]")
+            return True, None, None, True
+        sorted_cmds = sorted(cmd_stats.items(), key=lambda x: x[1], reverse=True)
+        total = sum(cmd_stats.values())
+        console.print("[bold cyan]📊 Статистика команд[/bold cyan]")
+        console.print(f"[dim]Всего: {total}[/dim]\n")
+        top_15 = sorted_cmds[:15]
+        for cmd, count in top_15:
+            bar_len = int((count / top_15[0][1]) * 20) if top_15[0][1] > 0 else 0
+            pct = (count / total * 100) if total > 0 else 0
+            console.print(f"  [cyan]{cmd:<20}[/cyan] {count:>4} ({pct:.1f}%) [dim]{'█' * bar_len}[/dim]")
+        if len(sorted_cmds) > 15:
+            console.print(f"\n[dim]... и ещё {len(sorted_cmds) - 15} команд[/dim]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True

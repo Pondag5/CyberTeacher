@@ -8,6 +8,7 @@ from config import LazyLoader
 from knowledge import get_relevant_docs
 from pedagogy import MermaidGenerator
 from ui import Prompt, console, print_panel
+from utils.common import parse_json_response
 
 
 def get_llm():
@@ -15,21 +16,8 @@ def get_llm():
     return LazyLoader.get_llm()
 
 
-def extract_json_block(message: Any) -> dict:
-    """Извлечь JSON из текста или AIMessage"""
-    # Поддержка как строк, так и AIMessage объектов
-    if hasattr(message, "content"):
-        text = str(message.content)
-    else:
-        text = str(message)
-
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            return {}
-    return {}
+# Alias для обратной совместимости
+extract_json_block = parse_json_response
 
 
 ALLOWED_TOPICS = [

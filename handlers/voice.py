@@ -6,14 +6,34 @@ Currently supports TTS using pyttsx3 (cross-platform, offline).
 """
 
 import logging
+import random
 from typing import Any
 
 from rich.console import Console
+from rich.panel import Panel
 
 from state import get_state
 
 logger = logging.getLogger(__name__)
 console = Console()
+
+# Попытка импорта speech_recognition
+try:
+    import speech_recognition as sr
+    STT_AVAILABLE = True
+except ImportError:
+    STT_AVAILABLE = False
+
+SIMULATED_PHRASES: list[str] = [
+    "Расскажи про SQL-инъекции",
+    "Как защитить сервер от DDoS?",
+    "Что такое XSS?",
+    "Покажи последние новости",
+    "Запусти викторину по сетям",
+    "Объясни разницу между симметричным и асимметричным шифрованием",
+    "Как работает фаервол?",
+    "Что такое MITRE ATT&CK?",
+]
 
 
 def handle_voice(action: str, args: str = "") -> tuple[bool, str, Any]:
@@ -39,11 +59,15 @@ def handle_voice(action: str, args: str = "") -> tuple[bool, str, Any]:
 
     elif action == "voice status":
         status = "enabled" if state.voice_enabled else "disabled"
+        stt_status = "✅ STT доступен" if STT_AVAILABLE else "⚠️ STT симуляция"
         return (
             True,
-            f"🔊 Voice status: {status}. Engine: {state.voice_engine}, Rate: {state.voice_rate} wpm",
+            f"🔊 Voice status: {status}. Engine: {state.voice_engine}, Rate: {state.voice_rate} wpm\n{stt_status}",
             None,
         )
+
+    elif action == "voice listen":
+        return _handle_voice_listen()
 
     else:
         return False, "Usage: /voice on, /voice off, /voice test, /voice status", None
@@ -115,3 +139,24 @@ def speak_if_enabled(text: str):
     if not get_state().voice_enabled:
         return
     _speak(text)
+
+
+def _handle_voice_listen() -> tuple[bool, str, Any]:
+    """Listen for voice input using STT or simulate."""
+    if STT_AVAILABLE:
+        try:
+            recognizer = sr.Recognizer()
+            with sr.Microphone() as source:
+                console.print("[bold cyan]🎤 Говорите... (5 сек)[/bold cyan]")
+                audio = recognizer.listen(source, timeout=5)
+                text = recognizer.recognize_google(audio, language="ru-RU")
+                console.print(Panel(f"[bold]Распознано:[/bold] {text}", border_style="green"))
+                return True, text, None
+        except Exception as e:
+            logger.warning(f"STT error: {e}")
+
+    # Симуляция
+    text = random.choice(SIMULATED_PHRASES)
+    console.print(Panel(f"[bold]Симуляция STT:[/bold] {text}", border_style="yellow"))
+    console.print("[dim]Для реального STT: pip install SpeechRecognition pyaudio[/dim]")
+    return True, text, None

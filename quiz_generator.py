@@ -4,27 +4,13 @@
 
 import json
 import logging
-import re
 from typing import Any, Optional
 
 from config import get_llm
 from state import get_state
+from utils.common import extract_json_block
 
 logger = logging.getLogger(__name__)
-
-
-def extract_json_block(text: str) -> str | None:
-    """Извлечь JSON блок из текста (мерез ```json ... ```)."""
-    match = re.search(
-        r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL | re.IGNORECASE
-    )
-    if match:
-        return match.group(1).strip()
-    # Fallback: ищем первый JSON-объект
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if match:
-        return match.group(0).strip()
-    return None
 
 
 def generate_quiz_question(
