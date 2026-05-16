@@ -30,14 +30,6 @@ logger = logging.getLogger(__name__)
 if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["COLORTERM"] = "truecolor"
-    # Отключаем форсирование цветов - используем простой вывод
-    # os.environ["TERM"] = "dumb"
-
-# === ПУТИ ===
-PERSIST_DIR = "./embeddings"
-DB_FILE = "./memory/chat_history.db"
-KNOWLEDGE_DIR = "./knowledge_base"
-METADATA_FILE = "./embeddings/metadata.json"
 
 # === LLM ПРОВАЙДЕР ===
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
