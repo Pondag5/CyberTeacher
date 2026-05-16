@@ -521,57 +521,19 @@ class AppState:
             object.__setattr__(self, name, value)
 
     def update_weak_topic(self, topic: str, score: float, max_score: float = 10.0):
-        """Обновить статистику по слабой теме.
-
-        Args:
-            topic: Название темы (например, "sql", "xss")
-            score: Полученный балл
-            max_score: Максимальный возможный балл (по умолчанию 10)
-        """
-        # Найти существующую запись
-        for entry in self.weak_topics:
-            if entry["topic"] == topic:
-                # Обновить: добавить новый результат к совокупной статистике
-                entry["attempts"] += 1
-                entry["total_score"] += score
-                entry["max_score"] += max_score
-                entry["success_rate"] = (
-                    (entry["total_score"] / entry["max_score"]) * 100
-                    if entry["max_score"] > 0
-                    else 0
-                )
-                return
-
-        # Создать новую запись
-        self.weak_topics.append(
-            {
-                "topic": topic,
-                "attempts": 1,
-                "total_score": score,
-                "max_score": max_score,
-                "success_rate": (score / max_score) * 100 if max_score > 0 else 0,
-            }
-        )
+        """Обновить статистику по слабой теме."""
+        from services.weak_topics_service import update_weak_topic as _update
+        _update(self.weak_topics, topic, score, max_score)
 
     def get_weak_topics(self, threshold: float = 70.0) -> list[dict[str, Any]]:
-        """Получить список тем с успешностью ниже threshold%.
-
-        Returns:
-            list[dict] с полями topic, success_rate, attempts, отсортированный по возрастанию success_rate
-        """
-        weak = [t for t in self.weak_topics if t["success_rate"] < threshold]
-        return sorted(weak, key=lambda x: x["success_rate"])
+        """Получить список тем с успешностью ниже threshold%."""
+        from services.weak_topics_service import get_weak_topics as _get
+        return _get(self.weak_topics, threshold)
 
     def get_next_weak_topic(self, threshold: float = 70.0) -> str | None:
-        """Получить следующую тему для фокуса (самую слабую).
-
-        Returns:
-            topic ID (str) или None если всё хорошо
-        """
-        weak = self.get_weak_topics(threshold)
-        if weak:
-            return weak[0]["topic"]
-        return None
+        """Получить следующую тему для фокуса."""
+        from services.weak_topics_service import get_next_weak_topic as _get
+        return _get(self.weak_topics, threshold)
 
     def clear_weak_topics(self):
         """Очистить статистику слабых тем."""
@@ -579,90 +541,22 @@ class AppState:
 
     # === SPACED REPETITION (SuperMemo-like) ===
 
-    def _compute_next_review(self, interval_days: int) -> float:
-        """Вычислить timestamp следующего повторения."""
-        import time
-
-        return time.time() + interval_days * 86400
-
     def schedule_review(self, topic: str, grade: float, max_grade: float = 10.0):
-        """Запланировать следующее повторение для темы на основе оценки (SM-2 algorithm simplified).
-
-        Args:
-            topic: Название темы
-            grade: Полученный балл (0..max_grade)
-            max_grade: Максимальный балл (по умолчанию 10)
-        """
-        quality = (grade / max_grade) * 5  # Преобразуем в шкалу 0-5
-
-        if topic not in self.review_schedule:
-            # Первое изучение: первое повторение через 1 день
-            entry = {
-                "repetitions": 0,
-                "interval": 1,
-                "next_review": self._compute_next_review(1),
-                "last_grade": grade,
-                "ef": 2.5,  # ease factor
-            }
-        else:
-            entry = self.review_schedule[topic]
-            repetitions = entry.get("repetitions", 0)
-            interval = entry.get("interval", 1)
-            ef = entry.get("ef", 2.5)
-
-            if quality < 3:
-                # Плохое запоминание - начать заново
-                repetitions = 0
-                interval = 1
-                ef = 2.5
-            else:
-                repetitions += 1
-                if repetitions == 1:
-                    interval = 1
-                elif repetitions == 2:
-                    interval = 3
-                else:
-                    # Увеличить интервал на основе коэффициента легкости (EF)
-                    new_ef = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
-                    new_ef = max(1.3, new_ef)
-                    entry["ef"] = new_ef
-                    interval = max(1, int(interval * new_ef))
-                entry["repetitions"] = repetitions
-                entry["interval"] = interval
-
-            entry["next_review"] = self._compute_next_review(interval)
-            entry["last_grade"] = grade
-
-        self.review_schedule[topic] = entry
+        """Запланировать повторение для темы (SM-2)."""
+        from services.spaced_repetition_service import schedule_review as _schedule
+        _schedule(self.review_schedule, topic, grade, max_grade)
 
     def get_due_reviews(self) -> list[dict[str, Any]]:
-        """Получить список тем, готовых к повторению (next_review <= сейчас).
-
-        Returns:
-            list[dict] с полями: topic, interval, repetitions, отсортированный по дате
-        """
-        import time
-
-        now = time.time()
-        due = []
-        for topic, entry in self.review_schedule.items():
-            if entry.get("next_review", 0) <= now:
-                due.append(
-                    {
-                        "topic": topic,
-                        "interval": entry.get("interval", 0),
-                        "repetitions": entry.get("repetitions", 0),
-                    }
-                )
-        due.sort(key=lambda x: self.review_schedule[x["topic"]]["next_review"])
-        return due
+        """Получить темы, готовые к повторению."""
+        from services.spaced_repetition_service import get_due_reviews as _get
+        return _get(self.review_schedule)
 
     def mark_reviewed(self, topic: str, grade: float, max_grade: float = 10.0):
-        """Отметить повторение как завершённое и запланировать следующее."""
+        """Отметить повторение и запланировать следующее."""
         self.schedule_review(topic, grade, max_grade)
 
     def clear_review_schedule(self):
-        """Очистить всё расписание повторений."""
+        """Очистить расписание повторений."""
         self.review_schedule = {}
 
     def reset_course(self):
@@ -899,49 +793,19 @@ class AppState:
 
     def track_skill(self, skill: str, success: bool, xp: int = 10) -> None:
         """Отследить использование навыка."""
-        if skill not in self.skill_tracker:
-            self.skill_tracker[skill] = {
-                "level": 0,
-                "xp": 0,
-                "last_practice": time.time(),
-                "attempts": 0,
-                "successes": 0,
-            }
-        s = self.skill_tracker[skill]
-        s["xp"] += xp
-        s["attempts"] += 1
-        s["last_practice"] = time.time()
-        if success:
-            s["successes"] += 1
-        # Level up: каждые 50 XP = +1 уровень (макс 5)
-        new_level = min(5, s["xp"] // 50)
-        if new_level > s["level"]:
-            s["level"] = new_level
+        from services.skill_tracker_service import track_skill as _track
+        _track(self.skill_tracker, skill, success, xp)
         self.save_to_file()
 
     def get_skill_level(self, skill: str) -> int:
         """Получить уровень навыка (0-5)."""
-        if skill in self.skill_tracker:
-            return self.skill_tracker[skill]["level"]
-        return 0
+        from services.skill_tracker_service import get_skill_level as _get
+        return _get(self.skill_tracker, skill)
 
     def get_all_skills(self) -> list[dict[str, Any]]:
         """Получить все навыки с прогрессом."""
-        result = []
-        for name, data in self.skill_tracker.items():
-            result.append(
-                {
-                    "name": name,
-                    "level": data["level"],
-                    "xp": data["xp"],
-                    "attempts": data["attempts"],
-                    "successes": data["successes"],
-                    "success_rate": round(data["successes"] / data["attempts"] * 100, 1)
-                    if data["attempts"] > 0
-                    else 0,
-                }
-            )
-        return sorted(result, key=lambda x: x["level"], reverse=True)
+        from services.skill_tracker_service import get_all_skills as _get
+        return _get(self.skill_tracker)
 
     # === BACKUP (Q-06) ===
 

@@ -1,0 +1,56 @@
+"""
+Skill tracking service.
+"""
+
+import time
+from typing import Any
+
+
+def track_skill(
+    skill_tracker: dict[str, Any],
+    skill: str,
+    success: bool,
+    xp: int = 10,
+) -> None:
+    """Отследить использование навыка."""
+    if skill not in skill_tracker:
+        skill_tracker[skill] = {
+            "level": 0,
+            "xp": 0,
+            "last_practice": time.time(),
+            "attempts": 0,
+            "successes": 0,
+        }
+    s = skill_tracker[skill]
+    s["xp"] += xp
+    s["attempts"] += 1
+    s["last_practice"] = time.time()
+    if success:
+        s["successes"] += 1
+    new_level = min(5, s["xp"] // 50)
+    if new_level > s["level"]:
+        s["level"] = new_level
+
+
+def get_skill_level(skill_tracker: dict[str, Any], skill: str) -> int:
+    """Получить уровень навыка (0-5)."""
+    if skill in skill_tracker:
+        return skill_tracker[skill]["level"]
+    return 0
+
+
+def get_all_skills(skill_tracker: dict[str, Any]) -> list[dict[str, Any]]:
+    """Получить все навыки с прогрессом."""
+    result = []
+    for name, data in skill_tracker.items():
+        result.append({
+            "name": name,
+            "level": data["level"],
+            "xp": data["xp"],
+            "attempts": data["attempts"],
+            "successes": data["successes"],
+            "success_rate": round(
+                data["successes"] / data["attempts"] * 100, 1
+            ) if data["attempts"] > 0 else 0,
+        })
+    return sorted(result, key=lambda x: x["level"], reverse=True)
