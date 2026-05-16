@@ -24,6 +24,9 @@ class SettingsState(BaseModel):
     # Explanation
     explanation_depth: str = Field(default="normal")  # beginner, normal, expert
 
+    # Language (i18n)
+    language: str = Field(default="ru")  # ru, en
+
     def set_explanation_depth(self, depth: str) -> str:
         if depth in ("beginner", "normal", "expert"):
             self.explanation_depth = depth

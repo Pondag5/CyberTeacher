@@ -1,0 +1,69 @@
+{
+  "language_name": "English",
+  "ui": {
+    "welcome": "🔐 Welcome to CyberTeacher!",
+    "prompt": "Enter a command or question",
+    "unknown_command": "❌ Unknown command. Type /help for a list of commands.",
+    "exit": "👋 See you later!",
+    "save_state": "💾 State saved.",
+    "error": "⚠️ An error occurred: {error}",
+    "loading": "⏳ Loading...",
+    "menu": {
+      "title": "📋 MENU",
+      "courses": "Courses",
+      "topics": "Topics",
+      "labs": "Labs",
+      "quiz": "Quiz",
+      "ctf": "CTF",
+      "story": "Story Mode",
+      "help": "Help"
+    },
+    "health": {
+      "title": "Health Metrics",
+      "uptime": "Uptime",
+      "llm_requests": "LLM Requests",
+      "cache_hits": "Cache Hits",
+      "cache_misses": "Cache Misses",
+      "cache_rate": "Cache Hit Rate"
+    },
+    "profile": {
+      "title": "Profile",
+      "name_changed": "✅ Name changed: {old} → {new}",
+      "name_empty": "❌ Name cannot be empty",
+      "name_long": "❌ Name too long (max 30 characters)",
+      "avatar_set": "✅ Avatar set: {avatar}",
+      "reset_confirm": "⚠️ Reset profile? Name and avatar will be deleted.",
+      "reset_done": "✅ Profile reset",
+      "reset_cancelled": "Cancelled"
+    },
+    "theme": {
+      "title": "Themes",
+      "current": "← current",
+      "changed": "✅ Theme changed!",
+      "not_found": "❌ Theme '{theme}' not found",
+      "usage": "Usage: /theme <name>"
+    },
+    "hints": {
+      "enabled": "✅ Automatic hints enabled",
+      "disabled": "⚠️ Automatic hints disabled",
+      "no_credits": "❌ No credits available",
+      "cooldown": "⏳ Wait {seconds} sec before next hint",
+      "cleared": "✅ Hint counters cleared",
+      "stats_title": "Hint Statistics",
+      "auto": "Automatic",
+      "credits": "Credits",
+      "used": "Used",
+      "limit": "Session limit",
+      "cooldown_label": "Cooldown",
+      "last_hint": "Last hint"
+    },
+    "lang": {
+      "title": "Interface Language",
+      "current": "Current language: {lang}",
+      "changed": "✅ Language changed to {lang_name}",
+      "not_found": "❌ Language '{lang_code}' is not supported",
+      "available": "Available languages",
+      "usage": "Usage: /lang <code>"
+    }
+  }
+}

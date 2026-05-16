@@ -39,19 +39,24 @@ def get_teacher_prompts():
 class TeacherPersona:
     @staticmethod
     def get_system_prompt(
-        _include_socratic=False, _include_thinking=False, style="hybrid"
+        _include_socratic=False, _include_thinking=False, style="hybrid", language="ru"
     ) -> str:
         # Загружаем из JSON
         prompts = get_teacher_prompts()
+
+        # Если язык английский, используем английский промпт
+        if language == "en":
+            base = prompts.get("system_prompt_en", prompts.get("system_prompt", "You are a cybersecurity teacher."))
+        else:
+            base = prompts.get("system_prompt", "Ты - учитель кибербезопасности.")
 
         if style == "hybrid":
             persona = (
                 prompts.get("personas", {}).get("hybrid", {}).get("instructions", [])
             )
-            base = prompts.get("system_prompt", "Ты - учитель кибербезопасности.")
-            return f"{base}\n\nПравила:\n" + "\n".join([f"- {p}" for p in persona])
+            return f"{base}\n\nRules:\n" + "\n".join([f"- {p}" for p in persona])
 
-        return prompts.get("system_prompt", "Ты - учитель кибербезопасности.")
+        return base
 
 
 # === РАЗМЫШЛЕНИЯ ===
