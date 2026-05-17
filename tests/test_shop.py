@@ -74,81 +74,105 @@ class TestShopHandler(unittest.TestCase):
         self.console_patcher.stop()
         self.temp_dir.cleanup()
 
-    def test_shop_list_items(self):
+    @patch("handlers.shop.get_context")
+    def test_shop_list_items(self, mock_get_context):
         """Тест отображения списка товаров"""
-        with patch.object(shop_handler, "get_state", return_value=self.state):
-            result = shop_handler.handle_shop("")
-            self.assertTrue(result[0])
-            self.assertEqual(self.state.points, 200)
+        mock_ctx = MagicMock()
+        mock_ctx.state = self.state
+        mock_get_context.return_value = mock_ctx
+        result = shop_handler.handle_shop("")
+        self.assertTrue(result[0])
+        self.assertEqual(self.state.points, 200)
 
-    def test_handle_shop_show_with_no_items(self):
+    @patch("handlers.shop.get_context")
+    def test_handle_shop_show_with_no_items(self, mock_get_context):
         """Тест пустого магазина"""
         empty_shop = {"items": []}
         with open(self.shop_file, "w", encoding="utf-8") as f:
             import json
 
             json.dump(empty_shop, f)
-        with patch.object(shop_handler, "get_state", return_value=self.state):
-            result = shop_handler.handle_shop("")
-            self.assertTrue(result[0])
+        mock_ctx = MagicMock()
+        mock_ctx.state = self.state
+        mock_get_context.return_value = mock_ctx
+        result = shop_handler.handle_shop("")
+        self.assertTrue(result[0])
 
-    def test_purchase_theme(self):
+    @patch("handlers.shop.get_context")
+    def test_purchase_theme(self, mock_get_context):
         """Тест покупки темы"""
         self.state.points = 200
-        with patch.object(shop_handler, "get_state", return_value=self.state):
-            result = shop_handler.handle_shop("shop theme_test")
-            self.assertTrue(result[0])
-            self.assertEqual(self.state.points, 150)
-            self.assertIn("test", self.state.owned_themes)
+        mock_ctx = MagicMock()
+        mock_ctx.state = self.state
+        mock_get_context.return_value = mock_ctx
+        result = shop_handler.handle_shop("shop theme_test")
+        self.assertTrue(result[0])
+        self.assertEqual(self.state.points, 150)
+        self.assertIn("test", self.state.owned_themes)
 
-    def test_purchase_insufficient_funds(self):
+    @patch("handlers.shop.get_context")
+    def test_purchase_insufficient_funds(self, mock_get_context):
         """Тест покупки без достаточного XP"""
         self.state.points = 10
-        with patch.object(shop_handler, "get_state", return_value=self.state):
-            result = shop_handler.handle_shop("shop theme_test")
-            self.assertTrue(result[0])
-            self.assertEqual(self.state.points, 10)
-            self.assertNotIn("test", self.state.owned_themes)
+        mock_ctx = MagicMock()
+        mock_ctx.state = self.state
+        mock_get_context.return_value = mock_ctx
+        result = shop_handler.handle_shop("shop theme_test")
+        self.assertTrue(result[0])
+        self.assertEqual(self.state.points, 10)
+        self.assertNotIn("test", self.state.owned_themes)
 
-    def test_purchase_duplicate_theme(self):
+    @patch("handlers.shop.get_context")
+    def test_purchase_duplicate_theme(self, mock_get_context):
         """Тест повторной покупки темы"""
         self.state.points = 200
         self.state.owned_themes = ["test"]
-        with patch.object(shop_handler, "get_state", return_value=self.state):
-            result = shop_handler.handle_shop("shop theme_test")
-            self.assertTrue(result[0])
-            self.assertEqual(self.state.points, 200)
-            self.assertEqual(self.state.owned_themes.count("test"), 1)
+        mock_ctx = MagicMock()
+        mock_ctx.state = self.state
+        mock_get_context.return_value = mock_ctx
+        result = shop_handler.handle_shop("shop theme_test")
+        self.assertTrue(result[0])
+        self.assertEqual(self.state.points, 200)
+        self.assertEqual(self.state.owned_themes.count("test"), 1)
 
-    def test_purchase_consumable(self):
+    @patch("handlers.shop.get_context")
+    def test_purchase_consumable(self, mock_get_context):
         """Тест покупки расходника"""
         self.state.points = 100
-        with patch.object(shop_handler, "get_state", return_value=self.state):
-            result = shop_handler.handle_shop("shop hint_1")
-            self.assertTrue(result[0])
-            self.assertEqual(self.state.points, 80)
-            self.assertEqual(self.state.hint_credits, 1)
+        mock_ctx = MagicMock()
+        mock_ctx.state = self.state
+        mock_get_context.return_value = mock_ctx
+        result = shop_handler.handle_shop("shop hint_1")
+        self.assertTrue(result[0])
+        self.assertEqual(self.state.points, 80)
+        self.assertEqual(self.state.hint_credits, 1)
 
-    def test_purchase_xp_boost(self):
+    @patch("handlers.shop.get_context")
+    def test_purchase_xp_boost(self, mock_get_context):
         """Тест покупки XP буста"""
         self.state.points = 200
         import time
 
         before = time.time()
-        with patch.object(shop_handler, "get_state", return_value=self.state):
-            result = shop_handler.handle_shop("shop xp_2x_1h")
-            self.assertTrue(result[0])
-            self.assertEqual(self.state.points, 100)
-            self.assertEqual(self.state.xp_boost_multiplier, 2.0)
-            self.assertGreater(self.state.xp_boost_expiry, before)
+        mock_ctx = MagicMock()
+        mock_ctx.state = self.state
+        mock_get_context.return_value = mock_ctx
+        result = shop_handler.handle_shop("shop xp_2x_1h")
+        self.assertTrue(result[0])
+        self.assertEqual(self.state.points, 100)
+        self.assertEqual(self.state.xp_boost_multiplier, 2.0)
+        self.assertGreater(self.state.xp_boost_expiry, before)
 
-    def test_purchase_unknown_item(self):
+    @patch("handlers.shop.get_context")
+    def test_purchase_unknown_item(self, mock_get_context):
         """Тест покупки несуществующего товара"""
         self.state.points = 200
-        with patch.object(shop_handler, "get_state", return_value=self.state):
-            result = shop_handler.handle_shop("shop unknown_item")
-            self.assertTrue(result[0])
-            self.assertEqual(self.state.points, 200)
+        mock_ctx = MagicMock()
+        mock_ctx.state = self.state
+        mock_get_context.return_value = mock_ctx
+        result = shop_handler.handle_shop("shop unknown_item")
+        self.assertTrue(result[0])
+        self.assertEqual(self.state.points, 200)
 
     def test_apply_item_effect_theme(self):
         """Тест применения эффекта темы"""

@@ -66,11 +66,13 @@ class TestDailyHandler(unittest.TestCase):
 class TestNetworkHandler(unittest.TestCase):
     """Tests for /network command handler."""
 
-    @patch("handlers.network.get_state")
+    @patch("handlers.network.get_context")
     @patch("handlers.network.console")
-    def test_network_display(self, mock_console, mock_get_state):
+    def test_network_display(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_docker_labs = {"dvwa": {"name": "DVWA", "ports": ["8080:80"]}}
         mock_container_status = {"running": False}
@@ -95,12 +97,14 @@ class TestNetworkHandler(unittest.TestCase):
 class TestEquipmentHandler(unittest.TestCase):
     """Tests for /tools and /equip commands."""
 
-    @patch("handlers.equipment.get_state")
+    @patch("handlers.equipment.get_context")
     @patch("handlers.equipment.console")
-    def test_tools_list(self, mock_console, mock_get_state):
+    def test_tools_list(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.selected_tools = []
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 2, "sqlmap": 3}):
             with patch("handlers.equipment.MAX_RAM", 10):
@@ -110,12 +114,14 @@ class TestEquipmentHandler(unittest.TestCase):
                 self.assertTrue(success)
                 mock_console.print.assert_called()
 
-    @patch("handlers.equipment.get_state")
+    @patch("handlers.equipment.get_context")
     @patch("handlers.equipment.console")
-    def test_equip_tool(self, mock_console, mock_get_state):
+    def test_equip_tool(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.selected_tools = []
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 2, "sqlmap": 3}):
             with patch("handlers.equipment.MAX_RAM", 10):
@@ -124,14 +130,16 @@ class TestEquipmentHandler(unittest.TestCase):
 
                 self.assertTrue(success)
                 self.assertIn("nmap", mock_state.selected_tools)
-                mock_state.save_to_file.assert_called_once()
+                mock_ctx.save_state.assert_called_once()
 
-    @patch("handlers.equipment.get_state")
+    @patch("handlers.equipment.get_context")
     @patch("handlers.equipment.console")
-    def test_equip_unknown_tool(self, mock_console, mock_get_state):
+    def test_equip_unknown_tool(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.selected_tools = []
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 2}):
             with patch("handlers.equipment.MAX_RAM", 10):
@@ -139,14 +147,16 @@ class TestEquipmentHandler(unittest.TestCase):
                 success, _, _, continue_loop = handle_equip("/equip unknown")
 
                 self.assertTrue(success)
-                mock_state.save_to_file.assert_not_called()
+                mock_ctx.save_state.assert_not_called()
 
-    @patch("handlers.equipment.get_state")
+    @patch("handlers.equipment.get_context")
     @patch("handlers.equipment.console")
-    def test_equip_exceeds_ram(self, mock_console, mock_get_state):
+    def test_equip_exceeds_ram(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.selected_tools = ["nmap"]
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 5, "sqlmap": 6}):
             with patch("handlers.equipment.MAX_RAM", 10):
@@ -156,12 +166,14 @@ class TestEquipmentHandler(unittest.TestCase):
                 self.assertTrue(success)
                 self.assertNotIn("sqlmap", mock_state.selected_tools)
 
-    @patch("handlers.equipment.get_state")
+    @patch("handlers.equipment.get_context")
     @patch("handlers.equipment.console")
-    def test_equip_toggle_off(self, mock_console, mock_get_state):
+    def test_equip_toggle_off(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.selected_tools = ["nmap"]
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 2}):
             with patch("handlers.equipment.MAX_RAM", 10):

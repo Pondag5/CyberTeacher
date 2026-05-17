@@ -48,9 +48,11 @@ class TestHTBHandler(unittest.TestCase):
         mock_session_cls.return_value = mock_session
 
         from handlers.htb import handle_htb_login
-        with patch("handlers.htb.get_state") as mock_get_state:
+        with patch("handlers.htb.get_context") as mock_get_context:
             mock_state = MagicMock()
-            mock_get_state.return_value = mock_state
+            mock_ctx = MagicMock()
+            mock_ctx.state = mock_state
+            mock_get_context.return_value = mock_ctx
 
             success, _, _, continue_loop = handle_htb_login("/htb login test@test.com pass123")
 
@@ -99,12 +101,14 @@ class TestHTBHandler(unittest.TestCase):
         mock_console.print.assert_called()
 
     @patch("handlers.htb.console")
-    @patch("handlers.htb.get_state")
-    def test_htb_status(self, mock_get_state, mock_console):
+    @patch("handlers.htb.get_context")
+    def test_htb_status(self, mock_get_context, mock_console):
         mock_state = MagicMock()
         mock_state.htb_completed = [1, 2, 3]
         mock_state.htb_email = "test@test.com"
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         from handlers.htb import handle_htb_status
         success, _, _, continue_loop = handle_htb_status("/htb status")

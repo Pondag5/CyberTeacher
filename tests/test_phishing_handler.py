@@ -77,12 +77,14 @@ class TestPhishingHandler(unittest.TestCase):
         self.assertTrue(success)
         mock_console.print.assert_called()
 
-    @patch("handlers.phishing.get_state")
+    @patch("handlers.phishing.get_context")
     @patch("handlers.phishing.console")
-    def test_handle_phishing_generate_llm_unavailable(self, mock_console, mock_get_state):
+    def test_handle_phishing_generate_llm_unavailable(self, mock_console, mock_get_context):
         import config
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch.object(config.LazyLoader, "get_llm", return_value=None):
             success, _, _, continue_loop = handle_phishing("/phishing generate bank")
