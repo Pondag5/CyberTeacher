@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from config import get_llm
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -83,7 +83,8 @@ def generate_contextual_hint(user_input: str, context: dict[str, Any]) -> str | 
     Returns:
         Hint string or None if no hint applicable
     """
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     patterns = _load_patterns()
 
     # Convert to lowercase for matching (but keep case in regex where needed)
@@ -114,7 +115,8 @@ def handle_hint(action: str) -> tuple[bool, None, None, bool]:
     parts = action.split(maxsplit=1)
     subcmd = parts[1].lower() if len(parts) > 1 else "status"
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
 
     # Initialize hint fields if not present
     if not hasattr(state, "hint_enabled"):
@@ -130,11 +132,13 @@ def handle_hint(action: str) -> tuple[bool, None, None, bool]:
 
     if subcmd in ("on", "enable", "вкл"):
         state.hint_enabled = True
+        ctx.save_state()
         console.print("[green]✅ Автоматические подсказки включены[/green]")
         return True, None, None, True
 
     elif subcmd in ("off", "disable", "выкл"):
         state.hint_enabled = False
+        ctx.save_state()
         console.print("[yellow]⚠️ Автоматические подсказки выключены[/yellow]")
         return True, None, None, True
 
@@ -191,6 +195,7 @@ def handle_hint(action: str) -> tuple[bool, None, None, bool]:
         state.hints_used += 1
         state.last_hint_time = time.time()
         state.points = max(0, state.points * 0.95)  # 5% penalty for manual hint
+        ctx.save_state()
 
         console.print(Panel(hint, title="Ручная подсказка", border_style="yellow"))
         console.print(f"[dim]Осталось кредитов: {state.hint_credits}[/dim]")
@@ -198,6 +203,7 @@ def handle_hint(action: str) -> tuple[bool, None, None, bool]:
 
     elif subcmd in ("clear", "сброс"):
         state.hints_used = 0
+        ctx.save_state()
         console.print("[green]✅ Счётчики подсказок сброшены[/green]")
         return True, None, None, True
 

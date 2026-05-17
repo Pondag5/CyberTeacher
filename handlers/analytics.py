@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from config import get_llm
-from state import get_state
+from di import get_context
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -81,7 +81,8 @@ def handle_analytics(
     action: str = "analytics", args: str = ""
 ) -> tuple[bool, str, Any]:
     """Display advanced analytics and AI tutor insights."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     metrics = _compute_learning_metrics(state)
 
     # Build output

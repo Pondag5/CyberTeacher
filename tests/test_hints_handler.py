@@ -48,16 +48,18 @@ class TestHintsHandler(unittest.TestCase):
         hint = generate_contextual_hint("hello world", {})
         self.assertIsNone(hint)
 
-    @patch("handlers.hints.get_state")
+    @patch("handlers.hints.get_context")
     @patch("handlers.hints.console")
-    def test_hint_status(self, mock_console, mock_get_state):
+    def test_hint_status(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.hint_enabled = True
         mock_state.hint_credits = 3
         mock_state.hints_used = 1
         mock_state.hint_cooldown = 30
         mock_state.last_hint_time = 0
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         success, _, _, continue_loop = handle_hint("/hint status")
 
@@ -65,59 +67,69 @@ class TestHintsHandler(unittest.TestCase):
         self.assertTrue(continue_loop)
         mock_console.print.assert_called()
 
-    @patch("handlers.hints.get_state")
+    @patch("handlers.hints.get_context")
     @patch("handlers.hints.console")
-    def test_hint_enable(self, mock_console, mock_get_state):
+    def test_hint_enable(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.hint_enabled = False
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         handle_hint("/hint on")
 
         self.assertTrue(mock_state.hint_enabled)
 
-    @patch("handlers.hints.get_state")
+    @patch("handlers.hints.get_context")
     @patch("handlers.hints.console")
-    def test_hint_disable(self, mock_console, mock_get_state):
+    def test_hint_disable(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.hint_enabled = True
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         handle_hint("/hint off")
 
         self.assertFalse(mock_state.hint_enabled)
 
-    @patch("handlers.hints.get_state")
+    @patch("handlers.hints.get_context")
     @patch("handlers.hints.console")
-    def test_hint_get_no_credits(self, mock_console, mock_get_state):
+    def test_hint_get_no_credits(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.hint_credits = 0
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         handle_hint("/hint get")
 
         mock_console.print.assert_called()
 
-    @patch("handlers.hints.get_state")
+    @patch("handlers.hints.get_context")
     @patch("handlers.hints.console")
-    def test_hint_get_cooldown(self, mock_console, mock_get_state):
+    def test_hint_get_cooldown(self, mock_console, mock_get_context):
         import time
         mock_state = MagicMock()
         mock_state.hint_credits = 2
         mock_state.last_hint_time = time.time() - 5
         mock_state.hint_cooldown = 30
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         handle_hint("/hint get")
 
         mock_console.print.assert_called()
 
-    @patch("handlers.hints.get_state")
+    @patch("handlers.hints.get_context")
     @patch("handlers.hints.console")
-    def test_hint_clear(self, mock_console, mock_get_state):
+    def test_hint_clear(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.hints_used = 5
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         handle_hint("/hint clear")
 

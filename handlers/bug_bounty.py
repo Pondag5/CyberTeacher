@@ -16,7 +16,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 
 from config import get_llm
-from state import get_state
+from di import get_context
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -141,7 +141,8 @@ def _get_llm_review(report: dict) -> dict:
 
 def handle_bounty(action: str = "bounty", args: str = "") -> tuple[bool, str, Any]:
     """Bug bounty simulation command"""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
 
     # For now, only interactive start; subcommands could be added later
     if action != "bounty" and not action.startswith("bounty "):
@@ -204,7 +205,7 @@ def handle_bounty(action: str = "bounty", args: str = "") -> tuple[bool, str, An
     if not hasattr(state, "bounty_reports"):
         state.bounty_reports = []
     state.bounty_reports.append(report)
-    state.save_to_file()
+    ctx.save_state()
 
     # Display results
     result_lines = [

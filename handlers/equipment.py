@@ -3,7 +3,7 @@
 from rich.console import Console
 from rich.table import Table
 
-from state import get_state
+from di import get_context
 from tools_ram import MAX_RAM, TOOL_RAM_COSTS
 
 console = Console()
@@ -11,7 +11,8 @@ console = Console()
 
 def handle_tools(action: str):
     """Показать доступные инструменты и текущую экипировку."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     selected = set(state.selected_tools)
 
     table = Table(title="Инструменты (RAM)")
@@ -31,7 +32,8 @@ def handle_tools(action: str):
 
 def handle_equip(action: str):
     """Экипировать/снять инструмент: /equip <tool>."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     parts = action.split()
     if len(parts) < 2:
         console.print("[red]Укажите инструмент: /equip <tool>[/red]")
@@ -63,6 +65,6 @@ def handle_equip(action: str):
         state.selected_tools.append(tool)
         console.print(f"[green]{tool} экипирован.[/green]")
 
-    # Persist?
-    state.save_to_file()
+    # Persist
+    ctx.save_state()
     return True, None, None, True

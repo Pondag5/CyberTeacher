@@ -6,14 +6,15 @@ from typing import Any
 
 from rich.console import Console
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
 
 def handle_dashboard(action: str, args: str = "") -> tuple[bool, str, Any]:
     """Display learner dashboard with stats and insights"""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
 
     # Overview metrics
     metrics = [

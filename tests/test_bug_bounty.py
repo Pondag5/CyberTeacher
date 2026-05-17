@@ -11,13 +11,15 @@ from handlers.bug_bounty import handle_bounty, _select_scenario, _get_llm_review
 class TestBugBounty(unittest.TestCase):
     """Test bug bounty simulation"""
 
-    @patch("handlers.bug_bounty.get_state")
-    def test_handle_bounty_runs_interactive(self, mock_get_state):
+    @patch("handlers.bug_bounty.get_context")
+    def test_handle_bounty_runs_interactive(self, mock_get_context):
         """Basic interaction: connection to LLM and report creation"""
         mock_state = MagicMock(spec=AppState)
         mock_state.points = 0.0
         mock_state.bounty_reports = []
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         # Mock the LLM
         mock_llm = MagicMock()
@@ -58,13 +60,15 @@ class TestBugBounty(unittest.TestCase):
             self.assertEqual(report["title"], "My Report")
             self.assertEqual(report["review"]["score"], 85)
 
-    @patch("handlers.bug_bounty.get_state")
-    def test_handle_bounty_llm_failure(self, mock_get_state):
+    @patch("handlers.bug_bounty.get_context")
+    def test_handle_bounty_llm_failure(self, mock_get_context):
         """If LLM fails, still saves with low score"""
         mock_state = MagicMock(spec=AppState)
         mock_state.points = 0.0
         mock_state.bounty_reports = []
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_llm = MagicMock()
         mock_llm.invoke.side_effect = Exception("LLM down")

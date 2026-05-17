@@ -29,12 +29,14 @@ class TestDashboard(unittest.TestCase):
         mock_state.get_weak_topics = MagicMock(return_value=[])
         return mock_state
 
-    @patch("handlers.dashboard.get_state")
-    def test_dashboard_shows_overview(self, mock_get_state):
+    @patch("handlers.dashboard.get_context")
+    def test_dashboard_shows_overview(self, mock_get_context):
         """Dashboard displays key metrics"""
         mock_state = self._make_state()
         mock_state.points = 1234.5
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         success, msg, _ = handle_dashboard("dashboard", "")
         self.assertTrue(success)
@@ -42,13 +44,15 @@ class TestDashboard(unittest.TestCase):
         self.assertIn("Total XP", msg)
         self.assertIn("1234", msg)
 
-    @patch("handlers.dashboard.get_state")
-    def test_dashboard_shows_weak_topics(self, mock_get_state):
+    @patch("handlers.dashboard.get_context")
+    def test_dashboard_shows_weak_topics(self, mock_get_context):
         """Dashboard displays weak topics when present"""
         mock_state = self._make_state()
         weak = [{"topic": "SQLi", "success_rate": 45.0, "attempts": 3}]
         mock_state.get_weak_topics = MagicMock(return_value=weak)
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         success, msg, _ = handle_dashboard("dashboard", "")
         self.assertTrue(success)
@@ -56,8 +60,8 @@ class TestDashboard(unittest.TestCase):
         self.assertIn("SQLi", msg)
         self.assertIn("45.0%", msg)
 
-    @patch("handlers.dashboard.get_state")
-    def test_dashboard_shows_tracks_progress(self, mock_get_state):
+    @patch("handlers.dashboard.get_context")
+    def test_dashboard_shows_tracks_progress(self, mock_get_context):
         """Dashboard includes track progress summary"""
         mock_state = self._make_state()
         mock_state.tracks_enrolled = ["test-track"]
@@ -65,7 +69,9 @@ class TestDashboard(unittest.TestCase):
             "test-track": {"completed_topics": ["t1"], "current_topic_idx": 1}
         }
         mock_state.get_weak_topics = MagicMock(return_value=[])
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         with patch("track_engine.get_track_engine") as mock_engine_func:
             from track_engine import Track, TrackTopic
@@ -87,12 +93,14 @@ class TestDashboard(unittest.TestCase):
             self.assertIn("test-track", msg)
             self.assertIn("1/2", msg)
 
-    @patch("handlers.dashboard.get_state")
-    def test_dashboard_no_weak_topics_message(self, mock_get_state):
+    @patch("handlers.dashboard.get_context")
+    def test_dashboard_no_weak_topics_message(self, mock_get_context):
         """Dashboard shows positive message when no weak topics"""
         mock_state = self._make_state()
         mock_state.get_weak_topics = MagicMock(return_value=[])
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         success, msg, _ = handle_dashboard("dashboard", "")
         self.assertTrue(success)

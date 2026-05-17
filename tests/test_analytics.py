@@ -14,8 +14,7 @@ from handlers.analytics import (
 class TestAnalytics(unittest.TestCase):
     """Test analytics handler"""
 
-    @patch("handlers.analytics.get_state")
-    def test_compute_metrics_basic(self, mock_get_state):
+    def test_compute_metrics_basic(self):
         """Metrics computed from state"""
         mock_state = MagicMock(spec=AppState)
         mock_state.points = 1234.5
@@ -27,7 +26,6 @@ class TestAnalytics(unittest.TestCase):
         mock_state.tracks_enrolled = ["t1", "t2"]
         mock_state.weak_topics = []  # raw list
         mock_state.get_weak_topics = MagicMock(return_value=[])
-        mock_get_state.return_value = mock_state
 
         metrics = _compute_learning_metrics(mock_state)
         self.assertEqual(metrics["total_xp"], 1234.5)
@@ -36,8 +34,7 @@ class TestAnalytics(unittest.TestCase):
         self.assertEqual(metrics["weak_topics_count"], 0)
         self.assertIsNone(metrics["avg_weak_success"])
 
-    @patch("handlers.analytics.get_state")
-    def test_compute_metrics_with_weak_topics(self, mock_get_state):
+    def test_compute_metrics_with_weak_topics(self):
         """Weak topics are processed correctly"""
         mock_state = MagicMock(spec=AppState)
         mock_state.points = 100
@@ -53,7 +50,6 @@ class TestAnalytics(unittest.TestCase):
         ]
         mock_state.get_weak_topics = MagicMock(return_value=weak)
         mock_state.weak_topics = weak  # raw list count
-        mock_get_state.return_value = mock_state
 
         metrics = _compute_learning_metrics(mock_state)
         self.assertEqual(metrics["weak_topics_count"], 2)
@@ -61,8 +57,7 @@ class TestAnalytics(unittest.TestCase):
         self.assertAlmostEqual(metrics["avg_weak_success"], 52.5, places=1)
 
     @patch("handlers.analytics.get_llm")
-    @patch("handlers.analytics.get_state")
-    def test_generate_ai_recommendation(self, mock_get_state, mock_get_llm):
+    def test_generate_ai_recommendation(self, mock_get_llm):
         """AI recommendation calls LLM with proper prompt"""
         mock_llm = MagicMock()
         mock_response = MagicMock()
@@ -92,8 +87,7 @@ class TestAnalytics(unittest.TestCase):
         self.assertIn("SQLi", call_args)
 
     @patch("handlers.analytics.get_llm")
-    @patch("handlers.analytics.get_state")
-    def test_generate_ai_recommendation_failure(self, mock_get_state, mock_get_llm):
+    def test_generate_ai_recommendation_failure(self, mock_get_llm):
         """If LLM fails, returns warning"""
         mock_get_llm.return_value.invoke.side_effect = Exception("LLM down")
         metrics = {
@@ -112,9 +106,9 @@ class TestAnalytics(unittest.TestCase):
         rec = _generate_ai_recommendation(metrics)
         self.assertIn("⚠️", rec)
 
+    @patch("handlers.analytics.get_context")
     @patch("handlers.analytics.get_llm")
-    @patch("handlers.analytics.get_state")
-    def test_handle_analytics_returns_output(self, mock_get_state, mock_get_llm):
+    def test_handle_analytics_returns_output(self, mock_get_llm, mock_get_context):
         """/analytics returns a formatted output"""
         mock_state = MagicMock(spec=AppState)
         mock_state.points = 500.0
@@ -127,7 +121,9 @@ class TestAnalytics(unittest.TestCase):
         mock_state.weak_topics = []
         mock_state.get_weak_topics = MagicMock(return_value=[])
         mock_state.bounty_reports = []  # should be list, not int
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         # Mock LLM response
         mock_response = MagicMock()
