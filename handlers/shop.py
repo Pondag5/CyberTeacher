@@ -7,7 +7,7 @@ from typing import Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -31,7 +31,8 @@ def handle_shop(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     Без аргументов — показать список товаров.
     С item_id — попытаться купить.
     """
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     parts = action.split(maxsplit=1)
     item_id = parts[1].strip() if len(parts) > 1 else None
 
@@ -80,7 +81,7 @@ def handle_shop(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     # Выполняем покупку
     state.points -= cost
     state.apply_item_effect(item)
-    state.save_to_file()
+    ctx.save_state()
 
     console.print(f"[green]✅ Куплено: {item['name']}![/green]")
     if item["type"] == "theme":

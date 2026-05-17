@@ -56,69 +56,81 @@ class TestMissionsHandler(unittest.TestCase):
         result = _load_mission("nonexistent")
         self.assertIsNone(result)
 
-    @patch("handlers.missions.get_state")
+    @patch("handlers.missions.get_context")
     @patch("handlers.missions.console")
-    def test_list_missions(self, mock_console, mock_get_state):
+    def test_list_missions(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.missions_completed = []
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         _list_missions()
         mock_console.print.assert_called()
 
-    @patch("handlers.missions.get_state")
+    @patch("handlers.missions.get_context")
     @patch("handlers.missions.console")
-    def test_start_mission(self, mock_console, mock_get_state):
+    def test_start_mission(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.missions_completed = []
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _start_mission("test_mission")
 
         self.assertEqual(mock_state.active_mission, "test_mission")
         self.assertEqual(mock_state.hints_used, 0)
 
-    @patch("handlers.missions.get_state")
+    @patch("handlers.missions.get_context")
     @patch("handlers.missions.console")
-    def test_start_mission_not_found(self, mock_console, mock_get_state):
+    def test_start_mission_not_found(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _start_mission("nonexistent")
 
         self.assertIn("не найдена", result)
 
-    @patch("handlers.missions.get_state")
+    @patch("handlers.missions.get_context")
     @patch("handlers.missions.console")
-    def test_submit_mission_success(self, mock_console, mock_get_state):
+    def test_submit_mission_success(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.missions_completed = []
         mock_state.exploit_success = []
         mock_state.points = 0
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _submit_mission("test_mission")
 
         self.assertIn("завершена", result)
         self.assertIn("test_mission", mock_state.missions_completed)
-        mock_state.save_to_file.assert_called_once()
+        mock_ctx.save_state.assert_called_once()
 
-    @patch("handlers.missions.get_state")
+    @patch("handlers.missions.get_context")
     @patch("handlers.missions.console")
-    def test_submit_mission_already_completed(self, mock_console, mock_get_state):
+    def test_submit_mission_already_completed(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.missions_completed = ["test_mission"]
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _submit_mission("test_mission")
 
         self.assertIn("уже завершена", result)
 
-    @patch("handlers.missions.get_state")
+    @patch("handlers.missions.get_context")
     @patch("handlers.missions.console")
-    def test_submit_mission_not_found(self, mock_console, mock_get_state):
+    def test_submit_mission_not_found(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = _submit_mission("nonexistent")
 

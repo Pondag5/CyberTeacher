@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from config import LLM
-from state import get_state
+from di import get_context
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -39,7 +39,8 @@ class HTBAPIError(Exception):
 
 def _get_htb_session() -> requests.Session:
     """Get or create authenticated HTB session."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     session = requests.Session()
 
     # Check if we have stored credentials
@@ -147,7 +148,8 @@ def handle_htb_login(action: str) -> tuple[bool, None, None, bool]:
             HTB_LOGIN_URL, json={"email": email, "password": password}, timeout=10
         )
         if resp.status_code == 200 and resp.json().get("success"):
-            state = get_state()
+            ctx = get_context()
+            state = ctx.state
             state.htb_email = email
             state.htb_password = password
             console.print("[green]✅ Учётные данные HTB сохранены[/green]")
@@ -302,7 +304,8 @@ def handle_htb_submit(action: str) -> tuple[bool, None, None, bool]:
                 console.print("[green]✅ Флаг принят! Машина пройдена![/green]")
 
                 # Update state to mark machine as completed
-                state = get_state()
+                ctx = get_context()
+                state = ctx.state
                 if not hasattr(state, "htb_completed"):
                     state.htb_completed = []
                 if machine_id not in state.htb_completed:
@@ -364,7 +367,8 @@ def handle_htb_sync(action: str) -> tuple[bool, None, None, bool]:
             return True, None, None, True
 
         completed = activity.get("machines", [])
-        state = get_state()
+        ctx = get_context()
+        state = ctx.state
 
         # Update local progress
         if not hasattr(state, "htb_completed"):
@@ -392,7 +396,8 @@ def handle_htb_sync(action: str) -> tuple[bool, None, None, bool]:
 
 def handle_htb_status(action: str) -> tuple[bool, None, None, bool]:
     """Handle /htb status - show HTB progress."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
 
     # Load progress if not loaded
     _load_htb_progress(state)
@@ -435,7 +440,8 @@ def handle_htb_walkthrough(action: str) -> tuple[bool, None, None, bool]:
             return True, None, None, True
 
         # Check if user has completed this machine
-        state = get_state()
+        ctx = get_context()
+        state = ctx.state
         completed = getattr(state, "htb_completed", [])
         if machine_id not in completed:
             console.print(

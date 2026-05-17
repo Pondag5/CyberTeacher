@@ -7,7 +7,7 @@ from typing import Any
 from rich.console import Console
 from rich.table import Table
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -35,7 +35,7 @@ def _list_missions() -> str:
     table.add_column("XP", justify="right")
     table.add_column("Лаб", style="yellow")
 
-    state = get_state()
+    state = get_context().state
     completed = set(
         state.missions_completed if hasattr(state, "missions_completed") else []
     )
@@ -64,7 +64,8 @@ def _start_mission(mission_id: str) -> str:
     if not data:
         return f"[red]Миссия '{mission_id}' не найдена[/red]"
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     # Check if already completed
     if mission_id in (getattr(state, "missions_completed", [])):
         return f"[yellow]Миссия '{mission_id}' уже пройдена[/yellow]"
@@ -99,6 +100,7 @@ def _start_mission(mission_id: str) -> str:
 
         state.trace_deadline = _time.time() + data["time_limit_minutes"] * 60
         state.trace_hint = "⏰ Время миссии истекло!"
+    ctx.save_state()
     return ""
 
 
@@ -107,7 +109,8 @@ def _submit_mission(mission_id: str) -> str:
     if not data:
         return f"[red]Миссия '{mission_id}' не найдена[/red]"
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     if mission_id in (getattr(state, "missions_completed", [])):
         return f"[yellow]Миссия '{mission_id}' уже завершена[/yellow]"
 
@@ -136,7 +139,7 @@ def _submit_mission(mission_id: str) -> str:
     state.missions_completed.append(mission_id)
     xp = data.get("xp_reward", 0)
     state.points += xp
-    state.save_to_file()
+    ctx.save_state()
     return f"[green]✅ Миссия '{mission_id}' завершена! +{xp} XP[/green]"
 
 

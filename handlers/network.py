@@ -3,7 +3,7 @@
 from rich.console import Console
 from rich.tree import Tree
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -12,7 +12,8 @@ def handle_network(action: str):
     """Обработка команды /network — отображение сети лабораторий."""
     from practice import DOCKER_LABS, get_container_status
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     tree = Tree("[bold]Host (CyberTeacher)[/bold]")
 
     # Count running for summary

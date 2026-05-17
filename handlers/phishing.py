@@ -8,7 +8,7 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -161,9 +161,10 @@ def _generate_phishing(template_type: str | None) -> tuple[bool, Any | None, Any
             border_style="yellow",
         ))
         # Track usage
-        state = get_state()
+        ctx = get_context()
+        state = ctx.state
         state.phishing_generated = getattr(state, "phishing_generated", 0) + 1
-        state.save_to_file()
+        ctx.save_state()
     except Exception as e:
         console.print(f"[red]Ошибка генерации: {e}[/red]")
 
