@@ -15,11 +15,11 @@ from typing import Any, Dict, List, Optional, Tuple
 from rich.panel import Panel
 from rich.table import Table
 
-from state import get_state
+from di import get_context
 from ui import console
 
 
-def _simulate_social_media(username: str) -> List[Dict[str, str]]:
+def _simulate_social_media(username: str) -> list[dict[str, str]]:
     """Симуляция поиска аккаунтов в социальных сетях."""
     platforms = [
         {"name": "GitHub", "url": f"https://github.com/{username}", "found": random.choice([True, True, False])},
@@ -32,7 +32,7 @@ def _simulate_social_media(username: str) -> List[Dict[str, str]]:
     return [p for p in platforms if p["found"]]
 
 
-def _simulate_breaches(email: str) -> List[Dict[str, str]]:
+def _simulate_breaches(email: str) -> list[dict[str, str]]:
     """Симуляция проверки email по базам утечек."""
     breaches = [
         {"name": "Adobe (2013)", "data": "Email, Password (MD5), Hint"},
@@ -47,7 +47,7 @@ def _simulate_breaches(email: str) -> List[Dict[str, str]]:
     return random.sample(breaches, count)
 
 
-def _simulate_phone_info(phone: str) -> Dict[str, Any]:
+def _simulate_phone_info(phone: str) -> dict[str, Any]:
     """Симуляция поиска информации по номеру телефона."""
     carriers = ["MTS", "Beeline", "Megafon", "Tele2", "Yota"]
     regions = ["Москва", "Санкт-Петербург", "Новосибирск", "Екатеринбург", "Казань"]
@@ -60,7 +60,7 @@ def _simulate_phone_info(phone: str) -> Dict[str, Any]:
     }
 
 
-def _simulate_metadata(filepath: str) -> Dict[str, str]:
+def _simulate_metadata(filepath: str) -> dict[str, str]:
     """Симуляция извлечения метаданных из файла."""
     cameras = ["Canon EOS 5D Mark IV", "iPhone 13 Pro", "Samsung Galaxy S21", "Sony A7 III"]
     software = ["Adobe Photoshop 2024", "GIMP 2.10", "Microsoft Office 365", "Preview (macOS)"]
@@ -96,7 +96,7 @@ def _display_osint_help() -> None:
     console.print(Panel(help_text, title="OSINT HELP", border_style="yellow"))
 
 
-def handle_osint_search(username: str) -> Tuple[str, bool]:
+def handle_osint_search(username: str) -> tuple[str, bool]:
     """Обработать команду поиска по никнейму."""
     if not username or len(username) < 3:
         console.print("[red]Ошибка:[/red] Никнейм должен содержать минимум 3 символа.")
@@ -125,13 +125,13 @@ def handle_osint_search(username: str) -> Tuple[str, bool]:
     ))
 
     # Обновляем XP за OSINT активность
-    state = get_state()
+    state = get_context().state
     if hasattr(state, "xp"):
         state.xp += 10
     return "", True
 
 
-def handle_osint_email(email: str) -> Tuple[str, bool]:
+def handle_osint_email(email: str) -> tuple[str, bool]:
     """Обработать команду проверки email."""
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         console.print("[red]Ошибка:[/red] Неверный формат email.")
@@ -157,13 +157,13 @@ def handle_osint_email(email: str) -> Tuple[str, bool]:
         border_style="blue",
     ))
 
-    state = get_state()
+    state = get_context().state
     if hasattr(state, "xp"):
         state.xp += 15
     return "", True
 
 
-def handle_osint_phone(phone: str) -> Tuple[str, bool]:
+def handle_osint_phone(phone: str) -> tuple[str, bool]:
     """Обработать команду поиска по телефону."""
     clean_phone = re.sub(r"[^\d+]", "", phone)
     if len(clean_phone) < 10:
@@ -186,13 +186,13 @@ def handle_osint_phone(phone: str) -> Tuple[str, bool]:
         border_style="blue",
     ))
 
-    state = get_state()
+    state = get_context().state
     if hasattr(state, "xp"):
         state.xp += 10
     return "", True
 
 
-def handle_osint_metadata(filepath: str) -> Tuple[str, bool]:
+def handle_osint_metadata(filepath: str) -> tuple[str, bool]:
     """Обработать команду анализа метаданных."""
     if not filepath:
         console.print("[red]Ошибка:[/red] Укажите путь к файлу.")
@@ -216,13 +216,13 @@ def handle_osint_metadata(filepath: str) -> Tuple[str, bool]:
         border_style="blue",
     ))
 
-    state = get_state()
+    state = get_context().state
     if hasattr(state, "xp"):
         state.xp += 15
     return "", True
 
 
-def handle_osint(args: str) -> Tuple[str, bool]:
+def handle_osint(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /osint."""
     parts = args.strip().split(maxsplit=1)
     if not parts:

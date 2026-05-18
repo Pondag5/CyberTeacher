@@ -6,7 +6,7 @@ from typing import Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -14,7 +14,8 @@ console = Console()
 def handle_auto_writeup(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     """Автоматическая генерация writeup на основе последней завершённой активности (квиз/задание/эпизод)."""
     try:
-        state = get_state()
+        ctx = get_context()
+        state = ctx.state
         activity = state.last_writeup_activity
 
         if not activity:

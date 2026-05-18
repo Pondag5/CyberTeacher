@@ -1,0 +1,67 @@
+# Command Injection detection
+rules:
+  - id: python-command-injection
+    pattern-either:
+      - patterns:
+          - pattern: os.system("..." % ...)
+      - patterns:
+          - pattern: os.system("..." .format(...))
+      - patterns:
+          - pattern: os.system(f"...{...}...")
+      - patterns:
+          - pattern: os.system("..." + ... + "...")
+      - patterns:
+          - pattern: subprocess.call("..." % ..., shell=True, ...)
+      - patterns:
+          - pattern: subprocess.call("..." .format(...), shell=True, ...)
+      - patterns:
+          - pattern: subprocess.call(f"...{...}...", shell=True, ...)
+      - patterns:
+          - pattern: subprocess.run("..." % ..., shell=True, ...)
+      - patterns:
+          - pattern: subprocess.run("..." .format(...), shell=True, ...)
+      - patterns:
+          - pattern: subprocess.run(f"...{...}...", shell=True, ...)
+      - patterns:
+          - pattern: subprocess.Popen("..." % ..., shell=True, ...)
+      - patterns:
+          - pattern: subprocess.Popen("..." .format(...), shell=True, ...)
+      - patterns:
+          - pattern: subprocess.Popen(f"...{...}...", shell=True, ...)
+      - patterns:
+          - pattern: eval($USER_INPUT)
+      - patterns:
+          - pattern: exec($USER_INPUT)
+      - patterns:
+          - pattern: os.popen("..." % ...)
+      - patterns:
+          - pattern: os.popen("..." .format(...))
+      - patterns:
+          - pattern: os.popen(f"...{...}...")
+    message: "Command Injection: выполнение команды с пользовательским вводом. Избегайте shell=True, используйте subprocess с list аргументов."
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      owasp: "A03:2021 – Injection"
+      cwe: "CWE-78: OS Command Injection"
+      confidence: HIGH
+      impact: CRITICAL
+
+  - id: js-command-injection
+    pattern-either:
+      - pattern: child_process.exec($CMD)
+      - pattern: require("child_process").exec($CMD)
+      - pattern: child_process.execSync($CMD)
+      - pattern: require("child_process").execSync($CMD)
+      - pattern: eval($USER_INPUT)
+    message: "Command Injection: выполнение команды с пользовательским вводом. Используйте execFile вместо exec."
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      owasp: "A03:2021 – Injection"
+      cwe: "CWE-78: OS Command Injection"
+      confidence: HIGH
+      impact: CRITICAL

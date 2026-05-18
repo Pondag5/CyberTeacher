@@ -6,7 +6,8 @@ import json
 import os
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 
 # ── Daily Handler ──────────────────────────────────────────────
 class TestDailyHandler(unittest.TestCase):
@@ -84,6 +85,7 @@ class TestNetworkHandler(unittest.TestCase):
 
             # Re-import to get patched version
             import importlib
+
             import handlers.network
             importlib.reload(handlers.network)
 
@@ -205,12 +207,14 @@ class TestMermaidHandler(unittest.TestCase):
         self.assertTrue(success)
         mock_console.print.assert_called()
 
-    @patch("handlers.mermaid.get_state")
+    @patch("handlers.mermaid.get_context")
     @patch("handlers.mermaid.console")
-    def test_mermaid_show_valid(self, mock_console, mock_get_state):
+    def test_mermaid_show_valid(self, mock_console, mock_get_context):
         mock_state = MagicMock()
         mock_state.mermaid_views = 0
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         from handlers.mermaid import handle_mermaid
         success, _, _, continue_loop = handle_mermaid("/mermaid show sqli")
@@ -218,11 +222,13 @@ class TestMermaidHandler(unittest.TestCase):
         self.assertTrue(success)
         self.assertEqual(mock_state.mermaid_views, 1)
 
-    @patch("handlers.mermaid.get_state")
+    @patch("handlers.mermaid.get_context")
     @patch("handlers.mermaid.console")
-    def test_mermaid_show_invalid(self, mock_console, mock_get_state):
+    def test_mermaid_show_invalid(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         from handlers.mermaid import handle_mermaid
         success, _, _, continue_loop = handle_mermaid("/mermaid show nonexistent")

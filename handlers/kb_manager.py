@@ -33,7 +33,7 @@ def _get_file_hash(file_path: str) -> str:
     return h.hexdigest()
 
 
-def _get_kb_status() -> Dict[str, Any]:
+def _get_kb_status() -> dict[str, Any]:
     """Получить статус базы знаний."""
     if not os.path.exists(KNOWLEDGE_DIR):
         return {"status": "empty", "files": 0, "size": "0 KB"}
@@ -139,7 +139,7 @@ def _reindex() -> bool:
     return True
 
 
-def handle_kb(args: str) -> Tuple[str, bool]:
+def handle_kb(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /kb."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""

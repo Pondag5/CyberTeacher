@@ -11,8 +11,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from di import get_context
 from track_engine import get_track_engine, Track
-from state import get_state
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ def cmd_tracks_list() -> tuple[bool, str, None]:
     engine = get_track_engine()
     tracks = engine.list_tracks()
     completed_tracks = (
-        get_state().tracks_enrolled
+        get_context().state.tracks_enrolled
     )  # используем tracks_enrolled как completed
 
     if not tracks:
@@ -125,7 +125,7 @@ def cmd_track_start(track_id: str) -> tuple[bool, str, None]:
             None,
         )
 
-    state = get_state()
+    state = get_context().state
 
     # Проверить prerequisites
     if track.prerequisites:
@@ -195,7 +195,7 @@ def cmd_track_start(track_id: str) -> tuple[bool, str, None]:
 
 def cmd_track_progress(track_id: str = "") -> tuple[bool, str, None]:
     """Показать прогресс по треку (или по всем трекам)"""
-    state = get_state()
+    state = get_context().state
     if not state.tracks_enrolled:
         return (
             False,
@@ -290,7 +290,7 @@ def _render_track_progress(track: Track, prog: dict) -> tuple[bool, str, None]:
 
 def cmd_track_next() -> tuple[bool, str, None]:
     """Получить следующую тему текущего трека или указанного трека"""
-    state = get_state()
+    state = get_context().state
     if not state.tracks_enrolled:
         return (
             False,
@@ -370,7 +370,7 @@ def cmd_track_complete_topic(topic_id: str) -> tuple[bool, str, None]:
             None,
         )
 
-    state = get_state()
+    state = get_context().state
     if not state.tracks_enrolled:
         return False, "❌ Нет активных треков.", None
 
@@ -424,7 +424,7 @@ def cmd_track_complete_topic(topic_id: str) -> tuple[bool, str, None]:
 
 def cmd_track_recommend() -> tuple[bool, str, None]:
     """Получить персональные рекомендации по трекам"""
-    state = get_state()
+    state = get_context().state
     engine = get_track_engine()
 
     weak_topics = state.get_weak_topics(threshold=70.0)
@@ -462,7 +462,7 @@ def cmd_track_recommend() -> tuple[bool, str, None]:
 
 def cmd_track_reset(track_id: str = "") -> tuple[bool, str, None]:
     """Сбросить прогресс трека (или всех треков)"""
-    state = get_state()
+    state = get_context().state
     if not track_id:
         # Сбросить все треки
         confirm = (
@@ -486,7 +486,7 @@ def cmd_track_reset(track_id: str = "") -> tuple[bool, str, None]:
 
 def cmd_track_status() -> tuple[bool, str, None]:
     """Показать текущий активный трек"""
-    state = get_state()
+    state = get_context().state
     current = state.learning_context.get("current_track")
 
     if not current:

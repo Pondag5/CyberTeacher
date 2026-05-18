@@ -5,7 +5,8 @@ Tests for api_handler, async_handler, registry, export_extended, and summarize h
 import os
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 
 # ── API Handler ───────────────────────────────────────────────
 class TestAPIHandler(unittest.TestCase):
@@ -14,7 +15,7 @@ class TestAPIHandler(unittest.TestCase):
     @patch("handlers.api_handler.console")
     def test_api_start(self, mock_console):
         from handlers.api_handler import handle_api
-        response, should_continue = handle_api("/api start")
+        _, _, _, should_continue = handle_api("api start")
 
         self.assertTrue(should_continue)
         mock_console.print.assert_called()
@@ -22,7 +23,7 @@ class TestAPIHandler(unittest.TestCase):
     @patch("handlers.api_handler.console")
     def test_api_stop(self, mock_console):
         from handlers.api_handler import handle_api
-        response, should_continue = handle_api("/api stop")
+        _, _, _, should_continue = handle_api("api stop")
 
         self.assertTrue(should_continue)
         mock_console.print.assert_called()
@@ -30,7 +31,7 @@ class TestAPIHandler(unittest.TestCase):
     @patch("handlers.api_handler.console")
     def test_api_status(self, mock_console):
         from handlers.api_handler import handle_api
-        response, should_continue = handle_api("/api status")
+        _, _, _, should_continue = handle_api("api status")
 
         self.assertTrue(should_continue)
         mock_console.print.assert_called()
@@ -38,7 +39,15 @@ class TestAPIHandler(unittest.TestCase):
     @patch("handlers.api_handler.console")
     def test_api_help(self, mock_console):
         from handlers.api_handler import handle_api
-        response, should_continue = handle_api("/api help")
+        _, _, _, should_continue = handle_api("api help")
+
+        self.assertTrue(should_continue)
+        mock_console.print.assert_called()
+
+    @patch("handlers.api_handler.console")
+    def test_api_empty(self, mock_console):
+        from handlers.api_handler import handle_api
+        _, _, _, should_continue = handle_api("api")
 
         self.assertTrue(should_continue)
         mock_console.print.assert_called()
@@ -46,7 +55,7 @@ class TestAPIHandler(unittest.TestCase):
     @patch("handlers.api_handler.console")
     def test_api_unknown(self, mock_console):
         from handlers.api_handler import handle_api
-        response, should_continue = handle_api("/api unknown")
+        _, _, _, should_continue = handle_api("api unknown")
 
         self.assertTrue(should_continue)
         mock_console.print.assert_called()
@@ -57,8 +66,9 @@ class TestAsyncHandler(unittest.TestCase):
     """Tests for async handler functions."""
 
     def test_async_rag_search_error(self):
-        from handlers.async_handler import async_rag_search
         import asyncio
+
+        from handlers.async_handler import async_rag_search
 
         mock_kb = MagicMock()
         mock_kb.get_relevant_docs.side_effect = Exception("test error")
@@ -67,8 +77,9 @@ class TestAsyncHandler(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_async_llm_call_error(self):
-        from handlers.async_handler import async_llm_call
         import asyncio
+
+        from handlers.async_handler import async_llm_call
 
         mock_llm = MagicMock()
         mock_llm.invoke.side_effect = Exception("test error")
@@ -77,8 +88,9 @@ class TestAsyncHandler(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_async_combined_query_both_fail(self):
-        from handlers.async_handler import async_combined_query
         import asyncio
+
+        from handlers.async_handler import async_combined_query
 
         mock_llm = MagicMock()
         mock_llm.invoke.side_effect = Exception("llm error")
@@ -91,8 +103,9 @@ class TestAsyncHandler(unittest.TestCase):
         self.assertEqual(result["combined_response"], "")
 
     def test_async_combined_query_rag_success(self):
-        from handlers.async_handler import async_combined_query
         import asyncio
+
+        from handlers.async_handler import async_combined_query
 
         mock_llm = MagicMock()
         mock_llm.invoke.side_effect = Exception("llm error")
@@ -190,11 +203,13 @@ class TestExportExtendedHandler(unittest.TestCase):
         mock_console.print.assert_called()
 
     @patch("handlers.export_extended.console")
-    @patch("handlers.export_extended.get_state")
-    def test_export_extended_html(self, mock_get_state, mock_console):
+    @patch("handlers.export_extended.get_context")
+    def test_export_extended_html(self, mock_get_context, mock_console):
         mock_state = MagicMock()
         mock_state.conn = None
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.db_conn = None
+        mock_get_context.return_value = mock_ctx
 
         with patch("handlers.export_extended.get_chat_history", return_value=[]):
             from handlers.export_extended import handle_export_extended

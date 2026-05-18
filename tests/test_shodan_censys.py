@@ -4,11 +4,11 @@ import unittest
 from unittest.mock import patch
 
 from handlers.shodan_censys import (
-    handle_shodan,
-    handle_censys,
-    _simulate_shodan_search,
-    _simulate_shodan_host,
     _simulate_censys_search,
+    _simulate_shodan_host,
+    _simulate_shodan_search,
+    handle_censys,
+    handle_shodan,
 )
 
 

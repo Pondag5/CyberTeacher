@@ -523,19 +523,20 @@ class TestHandlersQuiz(unittest.TestCase):
         with (
             patch("handlers.quiz.generate_quiz") as mock_gen,
             patch("handlers.quiz.console.print") as mock_print,
+            patch("builtins.input", side_effect=["A", "B", "/exit"]),
         ):
             mock_gen.return_value = {
                 "questions": [
                     {
                         "question": "Q1?",
-                        "options": ["A", "B"],
-                        "correct": 0,
+                        "options": {"A": "opt1", "B": "opt2"},
+                        "correct": "A",
                         "explanation": "",
                     },
                     {
                         "question": "Q2?",
-                        "options": ["A", "B"],
-                        "correct": 1,
+                        "options": {"A": "opt1", "B": "opt2"},
+                        "correct": "B",
                         "explanation": "",
                     },
                 ],

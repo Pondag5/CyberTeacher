@@ -4,11 +4,11 @@ import unittest
 from unittest.mock import patch
 
 from handlers.history import (
-    handle_timeline,
-    _display_era_details,
-    _run_history_quiz,
     ERAS,
     QUIZ_QUESTIONS,
+    _display_era_details,
+    _run_history_quiz,
+    handle_timeline,
 )
 
 

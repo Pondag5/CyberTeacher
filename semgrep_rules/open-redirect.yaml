@@ -1,0 +1,41 @@
+# Open Redirect detection
+rules:
+  - id: python-open-redirect
+    pattern-either:
+      - pattern: redirect(request.$GET)
+      - pattern: redirect(request.$POST)
+      - pattern: |
+          from django.shortcuts import redirect
+          ...
+          redirect(request.$GET)
+      - pattern: |
+          from flask import redirect
+          ...
+          redirect(request.$GET)
+      - pattern: return HttpResponseRedirect(request.$GET)
+      - pattern: return redirect(request.$GET)
+    message: "Open Redirect: редирект на URL из пользовательского ввода. Валидируйте URL и используйте allowlist."
+    severity: WARNING
+    languages:
+      - python
+    metadata:
+      owasp: "A01:2021 – Broken Access Control"
+      cwe: "CWE-601: Open Redirect"
+      confidence: HIGH
+      impact: MEDIUM
+
+  - id: js-open-redirect
+    pattern-either:
+      - pattern: res.redirect(req.$PARAM)
+      - pattern: window.location = $USER_INPUT
+      - pattern: window.location.href = $USER_INPUT
+    message: "Open Redirect: редирект на URL из пользовательского ввода. Валидируйте URL."
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      owasp: "A01:2021 – Broken Access Control"
+      cwe: "CWE-601: Open Redirect"
+      confidence: HIGH
+      impact: MEDIUM

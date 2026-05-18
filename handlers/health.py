@@ -3,9 +3,10 @@
 import time
 from typing import Any
 
-from di import get_context
 from rich.console import Console
 from rich.table import Table
+
+from di import get_context
 
 console = Console()
 

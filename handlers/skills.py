@@ -1,6 +1,9 @@
 # handlers/skills.py — Skill tracker + reputation + depth (L-02, L-10, L-05)
 """Practical skill tracking, reputation system, explanation depth."""
 
+import os
+import time
+from datetime import datetime
 from typing import Any
 
 from rich.console import Console
@@ -152,4 +155,67 @@ def handle_skills_list(action: str) -> tuple[bool, Any | None, Any | None, bool]
         title="🎯 ПРАКТИЧЕСКИЕ НАВЫКИ",
         border_style="cyan",
     ))
+    return True, None, None, True
+
+
+def handle_certificates(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+    """SKL-03: Show skill mastery certificates."""
+    ctx = get_context()
+    state = ctx.state
+    skills = state.get_all_skills()
+
+    if not skills:
+        console.print("[yellow]Нет навыков для сертификатов[/yellow]")
+        return True, None, None, True
+
+    mastered = [s for s in skills if s["level"] >= 5]
+    if not mastered:
+        console.print("[yellow]Пока нет освоенных навыков (нужен lvl 5). Продолжайте практику![/yellow]")
+        return True, None, None, True
+
+    parts = action.split()
+    subcmd = parts[1] if len(parts) > 1 else "list"
+
+    if subcmd == "list":
+        console.print("[bold cyan]🏆 Сертификаты мастерства[/bold cyan]")
+        console.print(f"[dim]Всего: {len(mastered)}[/dim]\n")
+        for s in mastered:
+            console.print(f"  ✅ {s['name']} — L{s['level']} ({s['xp']} XP, {s['success_rate']}% success)")
+        console.print("\n[yellow]Просмотр: /certificates <навык>[/yellow]")
+
+    else:
+        # Find skill
+        skill_name = " ".join(parts[1:])
+        skill = next((s for s in mastered if s["name"].lower() == skill_name.lower()), None)
+        if not skill:
+            console.print(f"[red]Навык '{skill_name}' не освоен (нужен lvl 5)[/red]")
+            return True, None, None, True
+
+        # Generate certificate
+        now = datetime.now().strftime("%Y-%m-%d")
+        cert = f"""
+╔══════════════════════════════════════════════════════════╗
+║                                                          ║
+║              🏆  CERTIFICATE OF MASTERY  🏆              ║
+║                                                          ║
+║   Навык: {skill['name'].upper():<42}║
+║   Уровень: {skill['level']}/5{' ' * 42}║
+║   XP: {skill['xp']:<48}║
+║   Успешность: {skill['success_rate']}%{' ' * 38}║
+║   Попыток: {skill['attempts']:<44}║
+║                                                          ║
+║   Дата: {now:<46}║
+║                                                          ║
+║          CyberTeacher — Learning Platform                ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝"""
+        console.print(cert)
+
+        # Save to file
+        os.makedirs("certificates", exist_ok=True)
+        filename = f"certificates/{skill['name']}_{now}.txt"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(cert)
+        console.print(f"\n[dim]Сохранено: {filename}[/dim]")
+
     return True, None, None, True

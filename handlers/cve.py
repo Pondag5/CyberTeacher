@@ -6,7 +6,7 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -42,7 +42,6 @@ def handle_cve(action: str):
         return True, None, None, True
 
     cve_id = parts[1].upper()
-    state = get_state()
 
     # Check cache
     cached = _cve_cache.get(cve_id)

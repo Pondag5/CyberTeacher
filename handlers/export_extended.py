@@ -10,8 +10,8 @@ from typing import Tuple
 
 from rich.panel import Panel
 
+from di import get_context
 from memory import get_chat_history
-from state import get_state
 from ui import console
 
 
@@ -125,7 +125,7 @@ def _export_pdf(conn, filepath: str = None) -> bool:
         return False
 
 
-def handle_export_extended(args: str) -> Tuple[str, bool]:
+def handle_export_extended(args: str) -> tuple[str, bool]:
     """Обработчик расширенного экспорта."""
     parts = args.strip().split(maxsplit=2)
     if len(parts) < 2:
@@ -140,7 +140,8 @@ def handle_export_extended(args: str) -> Tuple[str, bool]:
     fmt = parts[1].lower()
     filepath = parts[2] if len(parts) > 2 else None
 
-    conn = get_state().conn if hasattr(get_state(), "conn") else None
+    ctx = get_context()
+    conn = ctx.db_conn
 
     if fmt == "html":
         success = _export_html(conn, filepath)

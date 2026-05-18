@@ -17,6 +17,7 @@ from ui import Mode, show_help, show_help_detail, show_menu
 from .registry import registry
 
 from .achievements import handle_achievements
+from .code_review_v2 import handle_code_review_v2
 from .code_scan import handle_code_scan
 from .config import handle_config
 from .cve import handle_cve
@@ -36,21 +37,28 @@ from .misc import (
     handle_backup,
     handle_course,
     handle_export,
+    handle_exploits_log,
+    handle_heatmap,
     handle_history,
     handle_model,
     handle_provider,
     handle_repeat,
     handle_risk,
     handle_set_api_key,
+    handle_state,
     handle_story_mode,
     handle_terminal_log,
+    handle_topics,
     handle_usage,
     handle_version,
     handle_writeup,
+    handle_writeups,
 )
 from .missions import handle_missions
 from .network import handle_network
 from .news import get_last_news, handle_security_news
+from .offline import handle_offline
+from .mood import handle_mood
 
 # ----------------------------------------------------------------------
 # Импорты модулей handlers
@@ -67,7 +75,7 @@ from .analytics import handle_analytics
 from .phishing import handle_phishing
 from .profile import handle_profile
 from .mermaid import handle_mermaid
-from .skills import handle_depth, handle_reputation, handle_skills, handle_skills_list
+from .skills import handle_depth, handle_reputation, handle_skills, handle_skills_list, handle_certificates
 from .quiz import (
     handle_code_review,
     handle_quiz_action,
@@ -80,6 +88,9 @@ from .social import handle_social
 from .summary import handle_summary
 from .summarize import handle_summarize
 from .threats import handle_groups, handle_threat_summary, handle_threats
+from .tryhackme import handle_thm_action
+from .pcap_analyzer import handle_pcap_action
+from .metasploit import handle_msf_action
 from .theme import handle_theme
 from .lang import handle_lang
 from .writeup_auto import handle_auto_writeup
@@ -206,14 +217,43 @@ def show_menu():
 
 def handle_stats(conn):
     """Показать статистику пользователя."""
+    import time
+
     from memory import get_stats
 
+    state = get_context().state
     stats = get_stats(conn)
+
+    # ANA-01: Session duration
+    start_ts = state.metrics.start_time
+    if start_ts > 0:
+        elapsed = time.time() - start_ts
+        hours = int(elapsed // 3600)
+        mins = int((elapsed % 3600) // 60)
+        session_dur = f"{hours}ч {mins}мин" if hours > 0 else f"{mins}мин"
+    else:
+        session_dur = "N/A"
+
+    weak_count = len(state.get_weak_topics(threshold=70.0))
+    due_reviews = len(state.get_due_reviews())
+    streak = state.daily_streak
+    session_count = state.metrics.session_count if hasattr(state.metrics, "session_count") else 0
+    cache_stats = _response_cache.stats()
+    access_count = cache_stats.get("access_count", 0)
+    hit_count = cache_stats.get("hit_count", 0)
+    hit_rate = (hit_count / access_count * 100) if isinstance(access_count, (int, float)) and access_count > 0 else 0
+    cache_size = cache_stats.get("size", 0)
+
     console.print(f"[bold cyan]📈 Статистика:[/bold cyan]")
-    console.print(f"  Очков: {stats.get('points', 0)}")
+    console.print(f"  Очки: {stats.get('points', 0):.0f}")
     console.print(f"  Квизов пройдено: {stats.get('quizzes', 0)}")
     console.print(f"  Задач решено: {stats.get('tasks', 0)}")
-    console.print(f"  Кэш ответов: {_response_cache.stats()['size']} записей")
+    console.print(f"  Сессия: {session_dur}")
+    console.print(f"  Всего сессий: {session_count}")
+    console.print(f"  Стрик: {streak} дней")
+    console.print(f"  Слабые темы: {weak_count}")
+    console.print(f"  Повторения готовы: {due_reviews}")
+    console.print(f"  Кэш ответов: {cache_size} записей (hit rate: {hit_rate:.1f}%)")
     return True, None, None, True
 
 
@@ -243,7 +283,7 @@ def handle_fixcode(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
     if secure:
         console.print(Panel(secure[:1500], title="🔒 БЕЗОПАСНАЯ ВЕРСИЯ", border_style="green"))
-        state = get_state()
+        state = get_context().state
         state.track_skill("secure_coding", True, 20)
     else:
         console.print("[red]❌ Не удалось сгенерировать безопасный код[/red]")
@@ -265,7 +305,7 @@ def handle_commands(
     ctx = AppContext(state=get_state(), db_conn=conn, _llm=llm)
     from di import set_context
     set_context(ctx)
-    
+
     return handle_extended_commands(action, llm, conn)
 
 
@@ -273,10 +313,10 @@ def handle_extended_commands(
     action: str, llm: Any, conn: Any
 ) -> tuple[bool, Any | None, Any | None, bool]:
     """Обработка всех команд. Если команда неизвестна — блокируем передачу в LLM."""
-    state = get_state()
+    state = get_context().state
 
     # Track command usage (M-31)
-    state.track_command_usage(action.split()[0] if action else "unknown")
+    state.track_command_usage(action.split(maxsplit=1)[0] if action else "unknown")
 
     # Try registry first for extensible commands
     handler, remaining_args = registry.get_handler(action)
@@ -342,7 +382,7 @@ def handle_extended_commands(
         console.print(Panel(str(status), title="🧪 Аудит базы", border_style="cyan"))
         return True, None, None, True
 
-    if action == "genassignment":
+    if action == "genassignment" or action.startswith("genassignment "):
         from generators import generate_task
 
         parts = action.split(maxsplit=1)
@@ -383,6 +423,17 @@ def handle_extended_commands(
     if action == "review":
         state.set_persona("review")
         return True, Mode.CODE_REVIEW, None, True
+    if action == "hybrid":
+        state.set_persona("hybrid")
+        return True, Mode.HYBRID, None, True
+
+    # ----- Offline mode (G-07) -----
+    if action == "offline" or action.startswith("offline "):
+        return handle_offline(action)
+
+    # ----- Mood translator (G-08) -----
+    if action == "mood" or action.startswith("mood "):
+        return handle_mood(action)
 
     # ----- News & threats -----
     if action in ("news", "cve", "security_news"):
@@ -403,12 +454,20 @@ def handle_extended_commands(
         return handle_practice(action)
     if action == "htb" or action.startswith("htb "):
         return handle_htb(action)
+    if action == "thm" or action.startswith("thm "):
+        return handle_thm_action(action)
+    if action == "pcap" or action.startswith("pcap "):
+        return handle_pcap_action(action)
+    if action == "msf" or action.startswith("msf "):
+        return handle_msf_action(action)
 
     # ----- Courses & story -----
     if action == "next":
         return handle_course("next")
     if action.startswith("course") or action == "courses":
         return handle_course(action)
+    if action == "topics" or action.startswith("topics "):
+        return handle_topics(action)
     if action in ("story", "episode", "quest"):
         return handle_story_mode(action)
 
@@ -432,6 +491,12 @@ def handle_extended_commands(
     # ----- Miscellaneous -----
     if action == "writeup":
         return handle_writeup()
+    if action == "writeups" or action.startswith("writeups "):
+        return handle_writeups(action)
+    if action == "exploits_log":
+        return handle_exploits_log(action)
+    if action == "heatmap":
+        return handle_heatmap(action)
     if action.startswith("add_book"):
         return handle_add_book(action)
     if action.startswith("log "):
@@ -504,6 +569,8 @@ def handle_extended_commands(
         return handle_health(action)
     if action == "backup":
         return handle_backup(action)
+    if action == "state" or action.startswith("state "):
+        return handle_state(action)
     if action == "network":
         return handle_network(action)
     if action == "tools":
@@ -520,6 +587,8 @@ def handle_extended_commands(
         return handle_cve(action)
     if action.startswith("scan "):
         return handle_code_scan(action)
+    if action == "scanv2" or action.startswith("scanv2 "):
+        return handle_code_review_v2(action)
 
     # ----- Bug Bounty Simulation (M-31) -----
     if action == "bounty":
@@ -566,6 +635,10 @@ def handle_extended_commands(
         if action == "skills":
             return handle_skills_list(action)
         return handle_skills(action)
+
+    # ----- Skill Certificates (SKL-03) -----
+    if action == "certificates" or action.startswith("certificates "):
+        return handle_certificates(action)
 
     # ----- Reputation (L-10) -----
     if action == "reputation" or action.startswith("reputation "):
@@ -659,10 +732,20 @@ def handle_extended_commands(
         from handlers.sync import handle_sync
         return handle_sync(action)
 
+    # ----- REST API Server (M-31) -----
+    if action == "api" or action.startswith("api "):
+        from handlers.api_handler import handle_api
+        return handle_api(action)
+
     # ----- Mobile Companion App PWA (M-32) -----
     if action == "pwa" or action.startswith("pwa "):
         from handlers.pwa import handle_pwa
         return handle_pwa(action)
+
+    # ----- LLM Versus Mode (NEW-01) -----
+    if action == "versus" or action.startswith("versus "):
+        from handlers.versus import handle_versus
+        return handle_versus(action)
 
     # ----- Unknown command -----
     console.print("[bold red]Неизвестная команда или ввод.[/bold red]")

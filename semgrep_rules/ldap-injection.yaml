@@ -1,0 +1,22 @@
+# LDAP Injection detection
+rules:
+  - id: python-ldap-injection
+    pattern-either:
+      - pattern: ldap.search($CONN, "..." % ...)
+      - pattern: ldap.search($CONN, "..." .format(...))
+      - pattern: ldap.search($CONN, f"...{...}...")
+      - pattern: conn.search_s($BASE, $SCOPE, "..." % ...)
+      - pattern: conn.search_s($BASE, $SCOPE, "..." .format(...))
+      - pattern: conn.search_s($BASE, $SCOPE, f"...{...}...")
+      - pattern: ldap3.Connection(...).search("..." % ...)
+      - pattern: ldap3.Connection(...).search("..." .format(...))
+      - pattern: ldap3.Connection(...).search(f"...{...}...")
+    message: "LDAP Injection: пользовательский ввод в LDAP-запросе. Используйте ldap3.escape_filter_chars."
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      owasp: "A03:2021 – Injection"
+      cwe: "CWE-90: LDAP Injection"
+      confidence: HIGH
+      impact: HIGH

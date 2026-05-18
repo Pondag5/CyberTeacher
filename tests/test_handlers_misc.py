@@ -67,56 +67,71 @@ class TestMiscFunctions(unittest.TestCase):
             clear_chat_db(mock_conn)
 
     # handle_version tests
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_version(self, mock_print, mock_get_state):
+    def test_handle_version(self, mock_print, mock_get_context):
         from handlers.misc import handle_version
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_version()
         self.assertEqual(result, (True, None, None, True))
         # Check that the first print is the version line
         mock_print.assert_any_call("[bold cyan]CyberTeacher v3.2[/bold cyan]")
 
     # handle_course - lists courses
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_course_lists_courses(self, mock_print, mock_get_state):
+    def test_handle_course_lists_courses(self, mock_print, mock_get_context):
         from handlers.misc import handle_course
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_course("course")
         self.assertEqual(result, (True, None, None, True))
         self.assertTrue(mock_print.called)
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_course_details(self, mock_print, mock_get_state):
+    def test_handle_course_details(self, mock_print, mock_get_context):
         from handlers.misc import handle_course
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_course("course web-basics")
         self.assertEqual(result, (True, None, None, True))
         self.assertTrue(mock_print.called)
 
     # handle_history tests
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("memory.get_chat_history", return_value=[])
     def test_handle_history_no_conn(
-        self, mock_get_chat_history, mock_print, mock_get_state
+        self, mock_get_chat_history, mock_print, mock_get_context
     ):
         from handlers.misc import handle_history
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_history(None)
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call("[yellow]История пуста[/yellow]")
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("memory.get_chat_history")
     def test_handle_history_with_entries(
-        self, mock_get_chat_history, mock_print, mock_get_state
+        self, mock_get_chat_history, mock_print, mock_get_context
     ):
         from handlers.misc import handle_history
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         mock_conn = MagicMock()
         mock_get_chat_history.return_value = [
             {"role": "user", "content": "hello", "mode": "teacher"},
@@ -127,35 +142,44 @@ class TestMiscFunctions(unittest.TestCase):
         mock_print.assert_any_call("[bold cyan]📜 История чата:[/bold cyan]")
 
     # handle_terminal_log tests
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_terminal_log_no_action(self, mock_print, mock_get_state):
+    def test_handle_terminal_log_no_action(self, mock_print, mock_get_context):
         from handlers.misc import handle_terminal_log
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_terminal_log(None)
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_called()
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("terminal_log.log_command")
     def test_handle_terminal_log_with_action(
-        self, mock_log_command, mock_print, mock_get_state
+        self, mock_log_command, mock_print, mock_get_context
     ):
         from handlers.misc import handle_terminal_log
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_terminal_log("log echo test")
         self.assertEqual(result, (True, None, None, True))
         mock_log_command.assert_called_with("echo test", is_input=False)
 
     # handle_writeup tests
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_writeup_shows_template(self, mock_print, mock_get_state):
+    def test_handle_writeup_shows_template(self, mock_print, mock_get_context):
         from rich.panel import Panel
 
         from handlers.misc import handle_writeup
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_writeup()
         self.assertEqual(result, (True, None, None, True))
         # Check that a Panel was printed with title containing "Шаблон Write-up"
@@ -167,21 +191,27 @@ class TestMiscFunctions(unittest.TestCase):
         self.assertTrue(panel_printed)
 
     # handle_provider tests
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_provider_show_current(self, mock_print, mock_get_state):
+    def test_handle_provider_show_current(self, mock_print, mock_get_context):
         from handlers.misc import handle_provider
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         with patch("config.LLM_PROVIDER", "ollama"):
             result = handle_provider("")
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call("[cyan]📡 Текущий провайдер: ollama[/cyan]")
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def _test_handle_provider_set_ollama(self, mock_print, mock_get_state):
+    def _test_handle_provider_set_ollama(self, mock_print, mock_get_context):
         from handlers.misc import handle_provider
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         def fake_set_provider(p):
             # simulate change
             pass
@@ -196,11 +226,14 @@ class TestMiscFunctions(unittest.TestCase):
             "[green]✅ Провайдер изменён: openrouter → ollama[/green]"
         )
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_provider_invalid(self, mock_print, mock_get_state):
+    def test_handle_provider_invalid(self, mock_print, mock_get_context):
         from handlers.misc import handle_provider
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_provider("provider unknown")
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call(
@@ -208,11 +241,14 @@ class TestMiscFunctions(unittest.TestCase):
         )
 
     # handle_model tests
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_model_show_current(self, mock_print, mock_get_state):
+    def test_handle_model_show_current(self, mock_print, mock_get_context):
         from handlers.misc import handle_model
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         with (
             patch("config.LLM_PROVIDER", "ollama"),
             patch("config.OLLAMA_MODEL", "llama2"),
@@ -222,11 +258,14 @@ class TestMiscFunctions(unittest.TestCase):
         mock_print.assert_any_call("[cyan]🤖 Текущий провайдер: ollama[/cyan]")
         mock_print.assert_any_call("[cyan]Модель: llama2[/cyan]")
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_model_set(self, mock_print, mock_get_state):
+    def test_handle_model_set(self, mock_print, mock_get_context):
         from handlers.misc import handle_model
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         with patch("config.LLM_PROVIDER", "ollama"):
             result = handle_model("model custom-model")
         self.assertEqual(result, (True, None, None, True))
@@ -235,20 +274,26 @@ class TestMiscFunctions(unittest.TestCase):
         )
 
     # handle_set_api_key tests
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_set_api_key_invalid_usage(self, mock_print, mock_get_state):
+    def test_handle_set_api_key_invalid_usage(self, mock_print, mock_get_context):
         from handlers.misc import handle_set_api_key
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_set_api_key("set-api-key")
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call("[cyan]Установка API ключа[/cyan]")
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_set_api_key_openrouter(self, mock_print, mock_get_state):
+    def test_handle_set_api_key_openrouter(self, mock_print, mock_get_context):
         from handlers.misc import handle_set_api_key
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         with patch.dict("os.environ", {}, clear=True):
             result = handle_set_api_key("set-api-key openrouter mykey")
             self.assertEqual(result, (True, None, None, True))
@@ -258,42 +303,51 @@ class TestMiscFunctions(unittest.TestCase):
             )
 
     # handle_add_book tests
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("os.path.exists")
     def test_handle_add_book_missing_args(
-        self, mock_exists, mock_print, mock_get_state
+        self, mock_exists, mock_print, mock_get_context
     ):
         from handlers.misc import handle_add_book
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_add_book("add_book")
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call(
             "[yellow]Использование: /add_book <путь_к_PDF>[/yellow]"
         )
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("os.path.exists")
     def test_handle_add_book_file_not_found(
-        self, mock_exists, mock_print, mock_get_state
+        self, mock_exists, mock_print, mock_get_context
     ):
         from handlers.misc import handle_add_book
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         mock_exists.return_value = False
         result = handle_add_book("add_book missing.pdf")
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call("[red]Файл не найден: missing.pdf[/red]")
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("os.path.exists")
     @patch("shutil.copy2")
     def test_handle_add_book_success(
-        self, mock_copy2, mock_exists, mock_print, mock_get_state
+        self, mock_copy2, mock_exists, mock_print, mock_get_context
     ):
         from handlers.misc import handle_add_book
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         # Simulate source file exists, destination does not
         def fake_exists(path):
             return path == "test.pdf"
@@ -313,12 +367,15 @@ class TestMiscFunctions(unittest.TestCase):
         self.assertEqual(result, (True, None, None, True))
         self.assertTrue(mock_copy2.called)
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("os.path.exists")
-    def test_handle_add_book_not_pdf(self, mock_exists, mock_print, mock_get_state):
+    def test_handle_add_book_not_pdf(self, mock_exists, mock_print, mock_get_context):
         from handlers.misc import handle_add_book
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         # Simulate source file exists
         def fake_exists(path):
             return path == "test.txt"
@@ -337,14 +394,17 @@ class TestMiscFunctions(unittest.TestCase):
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call("[yellow]Поддерживаются только PDF файлы[/yellow]")
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("os.path.exists")
     def test_handle_add_book_outside_knowledge_dir(
-        self, mock_exists, mock_print, mock_get_state
+        self, mock_exists, mock_print, mock_get_context
     ):
         from handlers.misc import handle_add_book
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         mock_exists.return_value = True
         with patch("os.path.abspath") as mock_abspath:
 
@@ -359,52 +419,59 @@ class TestMiscFunctions(unittest.TestCase):
         printed = " ".join(str(call) for call in mock_print.call_args_list)
         self.assertIn("Запрещенный путь", printed)
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("story_mode.get_story_list", return_value="Test story list")
     def test_handle_story_mode_list(
-        self, mock_get_story_list, mock_print, mock_get_state
+        self, mock_get_story_list, mock_print, mock_get_context
     ):
         from handlers.misc import handle_story_mode
 
+        mock_ctx = MagicMock()
+        mock_ctx.state = MagicMock()
+        mock_get_context.return_value = mock_ctx
         result = handle_story_mode("story")
         self.assertTrue(result[0])
         calls = [str(call[0][0]) for call in mock_print.call_args_list if call[0]]
         self.assertIn("Test story list", calls)
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_risk_display(self, mock_print, mock_get_state):
+    def test_handle_risk_display(self, mock_print, mock_get_context):
         from handlers.misc import handle_risk
 
         mock_state = MagicMock()
         mock_state.get_risk_status.return_value = "Низкий (15/100)"
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         result = handle_risk("risk")
         self.assertTrue(result[0])
         printed = " ".join(str(call) for call in mock_print.call_args_list)
         self.assertIn("Уровень риска", printed)
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
-    def test_handle_repeat_no_due(self, mock_print, mock_get_state):
+    def test_handle_repeat_no_due(self, mock_print, mock_get_context):
         from handlers.misc import handle_repeat
 
         mock_state = MagicMock()
         mock_state.get_due_reviews.return_value = []
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         result = handle_repeat("repeat")
         self.assertTrue(result[0])
         mock_print.assert_any_call(
             "[green]🎉 Нет тем для повторения! Все темы в актуальном состоянии.[/green]"
         )
 
-    @patch("handlers.misc.get_state")
+    @patch("handlers.misc.get_context")
     @patch("handlers.misc.console.print")
     @patch("knowledge.get_current_vectordb")
     @patch("generators.generate_quiz")
     def test_handle_repeat_with_due(
-        self, mock_generate_quiz, mock_get_vectordb, mock_print, mock_get_state
+        self, mock_generate_quiz, mock_get_vectordb, mock_print, mock_get_context
     ):
         from handlers.misc import handle_repeat
 
@@ -413,7 +480,9 @@ class TestMiscFunctions(unittest.TestCase):
         mock_state.get_due_reviews.return_value = [
             {"topic": "test_topic", "interval": 1, "repetitions": 1}
         ]
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_get_vectordb.return_value = MagicMock()
         mock_generate_quiz.return_value = {
             "questions": [

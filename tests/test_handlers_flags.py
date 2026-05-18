@@ -46,11 +46,13 @@ class MockState:
 class TestHandlersFlags(unittest.TestCase):
     """Tests for handlers/flags module"""
 
-    @patch("handlers.flags.get_state")
+    @patch("handlers.flags.get_context")
     @patch("handlers.flags.console.print")
-    def test_handle_flag_check_no_flag(self, mock_print, mock_get_state):
+    def test_handle_flag_check_no_flag(self, mock_print, mock_get_context):
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         from handlers import flags
 
@@ -59,11 +61,13 @@ class TestHandlersFlags(unittest.TestCase):
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call("[cyan]Использование: /flag <FLAG{...}>[/cyan]")
 
-    @patch("handlers.flags.get_state")
+    @patch("handlers.flags.get_context")
     @patch("handlers.flags.console.print")
-    def test_handle_flag_check_invalid_format(self, mock_print, mock_get_state):
+    def test_handle_flag_check_invalid_format(self, mock_print, mock_get_context):
         mock_state = MockState()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         from handlers import flags
 
@@ -74,19 +78,21 @@ class TestHandlersFlags(unittest.TestCase):
             "[bold red]❌ Флаг 'invalid-flag' неверного формата.[/bold red]"
         )
 
-    @patch("handlers.flags.get_state")
+    @patch("handlers.flags.get_context")
     @patch("memory.update_stats")
     @patch("memory.init_db")
     @patch("handlers.flags.console.print")
     def test_handle_flag_check_active_assignment_success(
-        self, mock_print, mock_init_db, mock_update_stats, mock_get_state
+        self, mock_print, mock_init_db, mock_update_stats, mock_get_context
     ):
         mock_state = MockState()
         mock_state.active_assignment = {
             "flags": ["FLAG{test1}", "FLAG{test2}"],
             "points": 20,
         }
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_conn = MagicMock()
         mock_init_db.return_value = mock_conn
 
@@ -101,16 +107,18 @@ class TestHandlersFlags(unittest.TestCase):
         self.assertEqual(mock_state.total_flags_collected, 1)
         self.assertIn("FLAG{test1}", mock_state.collected_flags)
 
-    @patch("handlers.flags.get_state")
+    @patch("handlers.flags.get_context")
     @patch("memory.update_stats")
     @patch("memory.init_db")
     @patch("handlers.flags.console.print")
     def test_handle_flag_check_active_assignment_completes_task(
-        self, mock_print, mock_init_db, mock_update_stats, mock_get_state
+        self, mock_print, mock_init_db, mock_update_stats, mock_get_context
     ):
         mock_state = MockState()
         mock_state.active_assignment = {"flags": ["FLAG{onlyone}"], "points": 10}
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_conn = MagicMock()
         mock_init_db.return_value = mock_conn
 
@@ -124,14 +132,16 @@ class TestHandlersFlags(unittest.TestCase):
             "[bold cyan]🎉 Задание завершено! Все флаги собраны.[/bold cyan]"
         )
 
-    @patch("handlers.flags.get_state")
+    @patch("handlers.flags.get_context")
     @patch("handlers.flags.console.print")
     def test_handle_flag_check_active_assignment_failure(
-        self, mock_print, mock_get_state
+        self, mock_print, mock_get_context
     ):
         mock_state = MockState()
         mock_state.active_assignment = {"flags": ["FLAG{correct}"]}
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         from handlers import flags
 
@@ -142,15 +152,17 @@ class TestHandlersFlags(unittest.TestCase):
             "[bold red]❌ Флаг 'FLAG{wrong}' неверный.[/bold red]"
         )
 
-    @patch("handlers.flags.get_state")
+    @patch("handlers.flags.get_context")
     @patch("handlers.flags.console.print")
     @patch("os.path.exists")
     def test_handle_flag_check_global_flags_file_missing(
-        self, mock_exists, mock_print, mock_get_state
+        self, mock_exists, mock_print, mock_get_context
     ):
         mock_state = MockState()
         mock_state.active_assignment = None
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_exists.return_value = False
 
         from handlers import flags
@@ -162,17 +174,19 @@ class TestHandlersFlags(unittest.TestCase):
             "[yellow]База флагов не найдена. Создайте data/flags.json[/yellow]"
         )
 
-    @patch("handlers.flags.get_state")
+    @patch("handlers.flags.get_context")
     @patch("memory.update_stats")
     @patch("memory.init_db")
     @patch("handlers.flags.console.print")
     @patch("os.path.exists")
     def test_handle_flag_check_global_flags_success(
-        self, mock_exists, mock_print, mock_init_db, mock_update_stats, mock_get_state
+        self, mock_exists, mock_print, mock_init_db, mock_update_stats, mock_get_context
     ):
         mock_state = MockState()
         mock_state.active_assignment = None
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_conn = MagicMock()
         mock_init_db.return_value = mock_conn
         mock_exists.return_value = True
@@ -189,15 +203,17 @@ class TestHandlersFlags(unittest.TestCase):
         mock_print.assert_any_call("[bold green]✅ Флаг верный! +15 очков[/bold green]")
         self.assertEqual(mock_state.total_flags_collected, 1)
 
-    @patch("handlers.flags.get_state")
+    @patch("handlers.flags.get_context")
     @patch("handlers.flags.console.print")
     @patch("os.path.exists")
     def test_handle_flag_check_global_flags_not_found(
-        self, mock_exists, mock_print, mock_get_state
+        self, mock_exists, mock_print, mock_get_context
     ):
         mock_state = MockState()
         mock_state.active_assignment = None
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_exists.return_value = True
 
         from handlers import flags
@@ -213,15 +229,17 @@ class TestHandlersFlags(unittest.TestCase):
             "[bold red]❌ Флаг 'FLAG{miss}' неверный.[/bold red]"
         )
 
-    @patch("handlers.flags.get_state")
+    @patch("handlers.flags.get_context")
     @patch("handlers.flags.console.print")
     @patch("os.path.exists")
     def test_handle_flag_check_global_flags_json_error(
-        self, mock_exists, mock_print, mock_get_state
+        self, mock_exists, mock_print, mock_get_context
     ):
         mock_state = MockState()
         mock_state.active_assignment = None
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         mock_exists.return_value = True
 
         from handlers import flags

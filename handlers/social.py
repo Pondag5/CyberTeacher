@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from config import LazyLoader
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -58,7 +58,6 @@ def handle_social(action: str) -> tuple[bool, Any | None, Any | None, bool]:
             return True, None, None, True
 
         scenario = SCENARIOS[scenario_key]
-        state = get_state()
 
         _safe_print(
             Panel.fit(

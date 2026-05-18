@@ -6,11 +6,11 @@ import json
 import os
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from handlers.missions import (
-    _load_mission,
     _list_missions,
+    _load_mission,
     _start_mission,
     _submit_mission,
     handle_missions,

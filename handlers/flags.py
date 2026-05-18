@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 from rich.console import Console
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -24,7 +24,8 @@ def handle_flag_check(
         return True, None, None, True
     try:
         # Проверка в активном задании
-        state = get_state()
+        ctx = get_context()
+        state = ctx.state
         if state.active_assignment:
             success, points = state.collect_flag(flag)
             if success:
@@ -71,7 +72,7 @@ def handle_flag_check(
 
                 conn2 = init_db()
                 update_stats(conn2, pts)
-                state = get_state()
+                state = ctx.state
                 state.increment_flag()
                 newly_earned = state.check_achievements()
                 if newly_earned:

@@ -12,25 +12,25 @@ class TestPWA(unittest.TestCase):
     def test_pwa_info(self):
         """Информация о PWA."""
         with patch("handlers.pwa.console.print"):
-            result, action_taken = handle_pwa("")
+            result, _, _, action_taken = handle_pwa("pwa")
             self.assertTrue(action_taken)
 
     def test_pwa_setup(self):
         """Инструкция по установке."""
         with patch("handlers.pwa.console.print"):
-            result, action_taken = handle_pwa("setup")
+            result, _, _, action_taken = handle_pwa("setup")
             self.assertTrue(action_taken)
 
     def test_pwa_help(self):
         """Справка."""
         with patch("handlers.pwa.console.print"):
-            result, action_taken = handle_pwa("help")
+            result, _, _, action_taken = handle_pwa("help")
             self.assertTrue(action_taken)
 
     def test_pwa_unknown(self):
         """Неизвестная подкоманда."""
         with patch("handlers.pwa.console.print"):
-            result, action_taken = handle_pwa("unknown")
+            result, _, _, action_taken = handle_pwa("unknown")
             self.assertTrue(action_taken)
 
 

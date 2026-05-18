@@ -3,63 +3,37 @@
 
 from typing import Any
 
-from di import get_context
 from rich.console import Console
 from rich.panel import Panel
+
+from di import get_context
 
 console = Console()
 
 THEMES = {
-    "default": {
-        "name": "Default",
-        "description": "Standard theme (cyan/green)",
-        "border": "cyan",
-        "primary": "cyan",
-        "success": "green",
-        "warning": "yellow",
-        "error": "red",
-    },
-    "dark": {
-        "name": "Dark Matrix",
-        "description": "Dark Matrix-style theme (green/black)",
-        "border": "green",
-        "primary": "green",
-        "success": "bright_green",
-        "warning": "yellow",
-        "error": "red",
-    },
     "ocean": {
         "name": "Ocean",
-        "description": "Ocean theme (blue/teal)",
-        "border": "blue",
-        "primary": "bright_cyan",
-        "success": "green",
+        "description": "Океан (Blue/Teal) — #00B4D8",
+        "border": "cyan",
+        "primary": "#00B4D8",
+        "success": "#48CAE4",
         "warning": "yellow",
         "error": "red",
     },
     "sunset": {
         "name": "Sunset",
-        "description": "Warm theme (orange/purple)",
+        "description": "Закат (Orange/Purple) — #FF6A00",
         "border": "magenta",
-        "primary": "bright_magenta",
-        "success": "green",
+        "primary": "#FF6A00",
+        "success": "#9D4EDD",
         "warning": "yellow",
         "error": "red",
     },
-    "colorblind": {
-        "name": "Colorblind Friendly",
-        "description": "Accessible theme for colorblind users",
-        "border": "white",
-        "primary": "bright_white",
-        "success": "bright_green",
-        "warning": "bright_yellow",
-        "error": "bright_red",
-    },
-    "hacker": {
-        "name": "Hacker Terminal",
-        "description": "Hacker terminal style (bright green on black)",
+    "matrix": {
+        "name": "Matrix",
+        "description": "Матрица (Neon Green) — #00FF41",
         "border": "bright_green",
-        "primary": "bright_green",
+        "primary": "#00FF41",
         "success": "bright_green",
         "warning": "bright_yellow",
         "error": "bright_red",
@@ -74,7 +48,7 @@ def handle_theme(action: str) -> tuple[bool, Any | None, Any | None, bool]:
 
     # Initialize current_theme if not present
     if not hasattr(state, "current_theme"):
-        state.current_theme = "default"
+        state.current_theme = "ocean"
         ctx.save_state()
 
     parts = action.split(maxsplit=1)
@@ -125,5 +99,5 @@ def get_theme_colors() -> dict[str, str]:
     """Get colors of current theme."""
     ctx = get_context()
     state = ctx.state
-    theme_name = getattr(state, "current_theme", "default")
-    return THEMES.get(theme_name, THEMES["default"])
+    theme_name = getattr(state, "current_theme", "ocean")
+    return THEMES.get(theme_name, THEMES["ocean"])

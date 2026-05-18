@@ -6,12 +6,13 @@ import json
 import logging
 import os
 from typing import Any, Dict, List
+
 from config import ACHIEVEMENTS_FILE
 
 logger = logging.getLogger(__name__)
 
 # Маппинг типов условий к атрибутам состояния
-CONDITION_MAP: Dict[str, str] = {
+CONDITION_MAP: dict[str, str] = {
     "flags_total": "total_flags_collected",
     "assignments_completed": "assignments_completed",
     "total_points": "points",
@@ -22,10 +23,15 @@ CONDITION_MAP: Dict[str, str] = {
     "apt_groups_viewed": "apt_groups_viewed",
     "stealth_ops": "stealth_ops",
     "threat_exposures": "threat_exposures",
+    "daily_streak": "daily_streak",
+    "tracks_completed": "tracks_completed",
+    "bounty_reports": "bounty_reports_count",
+    "skill_level": "max_skill_level",
+    "reviews_completed": "reviews_completed",
 }
 
 
-def load_achievements() -> List[Dict[str, Any]]:
+def load_achievements() -> list[dict[str, Any]]:
     """Загрузить список достижений из JSON-файла."""
     if not os.path.exists(ACHIEVEMENTS_FILE):
         return []
@@ -39,8 +45,8 @@ def load_achievements() -> List[Dict[str, Any]]:
 
 
 def check_achievement(
-    achievement: Dict[str, Any],
-    earned_achievements: List[str],
+    achievement: dict[str, Any],
+    earned_achievements: list[str],
     state_getter,
 ) -> bool:
     """Проверить, выполнено ли конкретное достижение."""
@@ -61,10 +67,10 @@ def check_achievement(
 
 
 def check_achievements(
-    earned_achievements: List[str],
+    earned_achievements: list[str],
     state_getter,
     state_setter,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Проверить все достижения и вернуть newly earned."""
     achievements_list = load_achievements()
     if not achievements_list:

@@ -17,12 +17,11 @@ from typing import Any, Dict, List, Tuple
 from rich.panel import Panel
 from rich.table import Table
 
-from state import get_state
 from ui import console
 
 SUBSCRIPTIONS_FILE = os.path.join(os.path.dirname(__file__), "memory", "subscriptions.json")
 
-THREAT_TYPES: Dict[str, str] = {
+THREAT_TYPES: dict[str, str] = {
     "apt": "APT-группы и целевые атаки",
     "ransomware": "Ransomware и шифровальщики",
     "ddos": "DDoS-атаки",
@@ -33,7 +32,7 @@ THREAT_TYPES: Dict[str, str] = {
     "cloud": "Облачные инциденты",
 }
 
-RECENT_THREATS: Dict[str, List[Dict[str, str]]] = {
+RECENT_THREATS: dict[str, list[dict[str, str]]] = {
     "apt": [
         {"name": "APT41", "detail": "Новая кампания против телекома в Юго-Восточной Азии", "severity": "High"},
         {"name": "Lazarus", "detail": "Атака на криптовалютные биржи через supply chain", "severity": "Critical"},
@@ -53,7 +52,7 @@ RECENT_THREATS: Dict[str, List[Dict[str, str]]] = {
 }
 
 
-def _load_subscriptions() -> Dict[str, Any]:
+def _load_subscriptions() -> dict[str, Any]:
     """Загрузить подписки."""
     if os.path.exists(SUBSCRIPTIONS_FILE):
         with open(SUBSCRIPTIONS_FILE, "r") as f:
@@ -61,7 +60,7 @@ def _load_subscriptions() -> Dict[str, Any]:
     return {"types": [], "notifications": [], "last_check": None}
 
 
-def _save_subscriptions(data: Dict[str, Any]) -> None:
+def _save_subscriptions(data: dict[str, Any]) -> None:
     """Сохранить подписки."""
     os.makedirs(os.path.dirname(SUBSCRIPTIONS_FILE), exist_ok=True)
     with open(SUBSCRIPTIONS_FILE, "w") as f:
@@ -135,7 +134,7 @@ def _check_notifications() -> None:
     _save_subscriptions(data)
 
 
-def handle_subscribe(args: str) -> Tuple[str, bool]:
+def handle_subscribe(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /subscribe."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""

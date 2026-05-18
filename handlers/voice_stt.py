@@ -11,7 +11,7 @@ from typing import Tuple
 
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 from ui import console
 
 # Попытка импорта speech_recognition
@@ -52,7 +52,8 @@ def _listen_for_voice() -> str:
 
 def _display_voice_status() -> None:
     """Показать статус голосовых функций."""
-    tts_status = "✅ Доступен" if hasattr(get_state(), "tts_enabled") else "❌ Не настроен"
+    state = get_context().state
+    tts_status = "✅ Доступен" if hasattr(state, "tts_enabled") else "❌ Не настроен"
     stt_status = "✅ Доступен (speech_recognition)" if STT_AVAILABLE else "⚠️ Симуляция (установите speech_recognition)"
 
     console.print(Panel(
@@ -64,7 +65,7 @@ def _display_voice_status() -> None:
     ))
 
 
-def handle_voice_stt(args: str) -> Tuple[str, bool]:
+def handle_voice_stt(args: str) -> tuple[str, bool]:
     """Обработчик голосовых команд STT."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""

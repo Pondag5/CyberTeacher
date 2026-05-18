@@ -62,9 +62,10 @@ def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
     console.print("  [cyan]1[/cyan] — Ollama (локально, бесплатно)")
     console.print("  [cyan]2[/cyan] — OpenRouter (облако, API ключ)")
     console.print("  [cyan]3[/cyan] — HuggingFace (облако, HF token)")
+    console.print("  [cyan]4[/cyan] — Groq (облако, быстро, бесплатно)")
     provider_choice = input("\nВыбор: ").strip()
 
-    provider_map = {"1": "ollama", "2": "openrouter", "3": "huggingface"}
+    provider_map = {"1": "ollama", "2": "openrouter", "3": "huggingface", "4": "groq"}
     provider = provider_map.get(provider_choice, "ollama")
 
     console.print(f"[green]✓ Провайдер: {provider}[/green]\n")
@@ -87,6 +88,11 @@ def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
             ("1", "mistralai/Mixtral-8x7B-Instruct-v0.1", "Хорошая мультиязычная"),
             ("2", "meta-llama/Llama-2-70b-chat-hf", "Мощная, требуется доступ"),
         ],
+        "groq": [
+            ("1", "llama-3.1-8b-instant", "Быстрая, бесплатная"),
+            ("2", "llama-3.3-70b-versatile", "Мощная, бесплатная"),
+            ("3", "mixtral-8x7b-32768", "Хорошая для кода"),
+        ],
     }
 
     models = model_choices.get(provider, model_choices["ollama"])
@@ -108,9 +114,14 @@ def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
 
     # Шаг 3: API ключ (если нужен)
     api_key = None
-    if provider in ("openrouter", "huggingface"):
+    if provider in ("openrouter", "huggingface", "groq"):
         console.print("[bold]Шаг 3/3: API ключ[/bold]")
-        console.print(f"[dim]Получите ключ на {'openrouter.ai/keys' if provider == 'openrouter' else 'huggingface.co/settings/tokens'}[/dim]")
+        key_urls = {
+            "openrouter": "openrouter.ai/keys",
+            "huggingface": "huggingface.co/settings/tokens",
+            "groq": "console.groq.com/keys",
+        }
+        console.print(f"[dim]Получите ключ на {key_urls.get(provider, '...')}[/dim]")
         api_key = input("API ключ (или Enter для пропуска): ").strip()
         if api_key:
             if provider == "openrouter":
@@ -119,8 +130,11 @@ def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
             elif provider == "huggingface":
                 os.environ["HF_TOKEN"] = api_key
                 console.print("[green]✓ HF_TOKEN установлен[/green]")
+            elif provider == "groq":
+                os.environ["GROQ_API_KEY"] = api_key
+                console.print("[green]✓ GROQ_API_KEY установлен[/green]")
         else:
-            console.print("[yellow]⚠ Ключ не установлен — некоторые функции могут не работать[/yellow]")
+            console.print("[yellow] Ключ не установлен — некоторые функции могут не работать[/yellow]")
 
     # Применяем настройки
     config.LLM_PROVIDER = provider
@@ -130,6 +144,8 @@ def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
         config.OPENROUTER_MODEL = model
     elif provider == "huggingface":
         config.HF_MODEL = model
+    elif provider == "groq":
+        config.GROQ_MODEL = model
 
     # Сброс кэша LLM
     config.LazyLoader._llm = None

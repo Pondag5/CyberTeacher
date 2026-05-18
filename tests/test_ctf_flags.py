@@ -3,15 +3,15 @@ Tests for CTF flags handler.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from handlers.ctf_flags import (
     FLAG_PREFIX,
     FLAG_TTL,
-    generate_flag,
-    verify_flag,
-    handle_ctf_flags,
     _list_challenges,
+    generate_flag,
+    handle_ctf_flags,
+    verify_flag,
 )
 
 

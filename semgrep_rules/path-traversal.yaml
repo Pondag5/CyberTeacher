@@ -1,0 +1,50 @@
+# Path Traversal detection
+rules:
+  - id: python-path-traversal
+    pattern-either:
+      - patterns:
+          - pattern: open(request.$GET, ...)
+      - patterns:
+          - pattern: open(request.$POST, ...)
+      - patterns:
+          - pattern: send_file(request.$GET, ...)
+      - patterns:
+          - pattern: send_file(request.$POST, ...)
+      - patterns:
+          - pattern: os.path.join($BASE, request.$GET)
+      - patterns:
+          - pattern: os.path.join($BASE, request.$POST)
+      - patterns:
+          - pattern: |
+              with open(request.$GET) as $F:
+                  ...
+      - patterns:
+          - pattern: |
+              with open(request.$POST) as $F:
+                  ...
+    message: "Path Traversal: пользовательский ввод используется в пути к файлу. Валидируйте и санитайзьте путь."
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      owasp: "A01:2021 – Broken Access Control"
+      cwe: "CWE-22: Path Traversal"
+      confidence: HIGH
+      impact: HIGH
+
+  - id: js-path-traversal
+    pattern-either:
+      - pattern: fs.readFile(req.$PARAM, ...)
+      - pattern: fs.readFileSync(req.$PARAM, ...)
+      - pattern: res.sendFile(req.$PARAM)
+      - pattern: path.join($BASE, req.$PARAM)
+    message: "Path Traversal: пользовательский ввод используется в пути к файлу. Валидируйте путь."
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      owasp: "A01:2021 – Broken Access Control"
+      cwe: "CWE-22: Path Traversal"
+      confidence: HIGH
+      impact: HIGH

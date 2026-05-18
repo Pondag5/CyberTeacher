@@ -3,9 +3,9 @@ Tests for Dependency Injection container.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from di import AppContext, get_context, set_context, reset_context, inject
+from di import AppContext, get_context, inject, reset_context, set_context
 
 
 class TestAppContext(unittest.TestCase):

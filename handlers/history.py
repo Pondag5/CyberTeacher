@@ -12,10 +12,10 @@ from typing import Any, Dict, List, Tuple
 from rich.panel import Panel
 from rich.table import Table
 
-from state import get_state
+from di import get_context
 from ui import console
 
-ERAS: List[Dict[str, Any]] = [
+ERAS: list[dict[str, Any]] = [
     {
         "name": "1980-е: Зарождение",
         "period": "1980-1989",
@@ -90,7 +90,7 @@ ERAS: List[Dict[str, Any]] = [
     },
 ]
 
-QUIZ_QUESTIONS: List[Dict[str, str]] = [
+QUIZ_QUESTIONS: list[dict[str, str]] = [
     {
         "q": "Какой вирус считается первым для IBM PC?",
         "a": "Brain",
@@ -169,7 +169,8 @@ def _display_era_details(era_name: str) -> bool:
 
     console.print(Panel(content, title=era["name"], border_style="cyan"))
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     if hasattr(state, "xp"):
         state.xp += era["xp"]
         console.print(f"[green]+{era['xp']} XP за изучение эпохи![/green]")
@@ -193,14 +194,15 @@ def _run_history_quiz() -> None:
 
     console.print(Panel(f"Результат: {score}/{len(questions)}", border_style="green"))
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     if hasattr(state, "xp"):
         bonus = score * 10
         state.xp += bonus
         console.print(f"[green]+{bonus} XP за викторину![/green]")
 
 
-def handle_timeline(args: str) -> Tuple[str, bool]:
+def handle_timeline(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /timeline."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":

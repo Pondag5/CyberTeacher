@@ -13,10 +13,10 @@ from typing import Any, Dict, List, Tuple
 from rich.panel import Panel
 from rich.table import Table
 
-from state import get_state
+from di import get_context
 from ui import console
 
-MEDIA_RESOURCES: Dict[str, Dict[str, Any]] = {
+MEDIA_RESOURCES: dict[str, dict[str, Any]] = {
     "yt_sql_injection": {
         "title": "SQL Injection Explained",
         "type": "video",
@@ -109,7 +109,8 @@ def _play_resource(resource_id: str) -> bool:
         border_style="cyan",
     ))
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     if hasattr(state, "xp"):
         state.xp += res["xp"]
         console.print(f"[green]+{res['xp']} XP за изучение материала![/green]")
@@ -133,7 +134,7 @@ def _show_notes(resource_id: str) -> bool:
     return True
 
 
-def handle_media(args: str) -> Tuple[str, bool]:
+def handle_media(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /media."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":

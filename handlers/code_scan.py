@@ -10,8 +10,6 @@ from typing import Any
 
 from rich.console import Console
 
-from state import get_state
-
 console = Console()
 
 # Patterns for common secrets

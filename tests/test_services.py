@@ -8,25 +8,25 @@ import tempfile
 import time
 import unittest
 
-from services.weak_topics_service import (
-    get_next_weak_topic,
-    get_weak_topics,
-    update_weak_topic,
-)
-from services.spaced_repetition_service import (
-    compute_next_review,
-    get_due_reviews,
-    schedule_review,
+from services.achievement_service import (
+    check_achievement,
+    check_achievements,
+    load_achievements,
 )
 from services.skill_tracker_service import (
     get_all_skills,
     get_skill_level,
     track_skill,
 )
-from services.achievement_service import (
-    check_achievement,
-    check_achievements,
-    load_achievements,
+from services.spaced_repetition_service import (
+    compute_next_review,
+    get_due_reviews,
+    schedule_review,
+)
+from services.weak_topics_service import (
+    get_next_weak_topic,
+    get_weak_topics,
+    update_weak_topic,
 )
 
 

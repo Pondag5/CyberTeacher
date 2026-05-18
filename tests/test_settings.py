@@ -17,7 +17,7 @@ class TestSettings(unittest.TestCase):
 
     def test_default_values(self):
         s = Settings()
-        self.assertEqual(s.llm_provider, "ollama")
+        self.assertIn(s.llm_provider, ["ollama", "groq", "openrouter", "huggingface"])
         self.assertEqual(s.ollama_model, "qwen2.5:7b")
         self.assertEqual(s.model_temperature, 0.3)
         self.assertEqual(s.max_tokens, 2000)

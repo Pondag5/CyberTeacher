@@ -4,9 +4,10 @@
 import os
 from typing import Any
 
-from di import get_context
 from rich.console import Console
 from rich.panel import Panel
+
+from di import get_context
 
 console = Console()
 

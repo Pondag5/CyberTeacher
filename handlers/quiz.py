@@ -365,17 +365,141 @@ def handle_quiz_generation(
             console.print(
                 f"[bold green]📝 Квиз сгенерирован: {len(quiz.get('questions', []))} вопросов[/bold green]"
             )
-            # TODO: Реализовать интерактивный режим прохождения квиза
+            questions = quiz.get("questions", [])
+            quiz_topic = quiz.get("topic", "general")
+
+            if not questions:
+                console.print("[yellow]Не удалось сгенерировать вопросы[/yellow]")
+                return True, None, None, True
+
             console.print(
-                "[yellow]Режим прохождения квиза в разработке. Показываю вопросы:[/yellow]"
+                f"[bold green]📝 Интерактивный квиз: {len(questions)} вопросов по теме '{quiz_topic}'[/bold green]"
             )
-            for i, q in enumerate(quiz.get("questions", [])[:5], 1):
-                console.print(f"{i}. {q.get('question', '?')}")
+            console.print(
+                "[yellow]Напишите ответ на каждый вопрос. Введите /skip чтобы пропустить, /exit для выхода.[/yellow]\n"
+            )
+
+            scores = []  # list of (score, max_score) for each question
+            responses = []  # Detailed responses for writeup
+            total_score = 0
+            max_total = 0
+
+            for i, q in enumerate(questions, 1):
+                console.print(f"[bold cyan]Вопрос {i}/{len(questions)}:[/bold cyan]")
+                console.print(q.get("question", "?"))
+
                 if "options" in q:
-                    for opt in q["options"]:
-                        console.print(f"   - {opt}")
-            if len(quiz.get("questions", [])) > 5:
-                console.print(f"... и еще {len(quiz['questions']) - 5} вопросов")
+                    for opt_key, opt_val in q["options"].items():
+                        console.print(f"  {opt_key}) {opt_val}")
+
+                try:
+                    user_ans = input("\nВаш ответ: ").strip()
+                    if user_ans.lower() in ["/exit", "/quit"]:
+                        console.print("[yellow]Квиз прерван[/yellow]")
+                        break
+                    if user_ans.lower() == "/skip":
+                        console.print("[dim]Пропущено[/dim]\n")
+                        scores.append((0, 10))
+                        responses.append(
+                            {
+                                "question": q.get("question", ""),
+                                "user_answer": "<пропущено>",
+                                "correct_answer": q.get("correct", ""),
+                                "score": 0,
+                                "feedback": "Пропущено",
+                            }
+                        )
+                        continue
+                    if not user_ans:
+                        console.print("[dim]Пустой ответ[/dim]\n")
+                        scores.append((0, 10))
+                        responses.append(
+                            {
+                                "question": q.get("question", ""),
+                                "user_answer": "",
+                                "correct_answer": q.get("correct", ""),
+                                "score": 0,
+                                "feedback": "Пустой ответ",
+                            }
+                        )
+                        continue
+                except KeyboardInterrupt:
+                    console.print("\n[yellow]Прервано[/yellow]")
+                    break
+
+                # Оценить ответ
+                correct = q.get("correct", "")
+                explanation = q.get("explanation", "")
+                key_points = None
+                if "options" in q:
+                    # Для вопросов с вариантами - просто проверяем совпадение
+                    if user_ans.upper() == correct.upper():
+                        score = 10
+                        feedback = "✅ Верно!"
+                    else:
+                        score = 0
+                        feedback = f"❌ Неверно. Правильный ответ: {correct}"
+                    if explanation:
+                        feedback += f"\n[dim]{explanation}[/dim]"
+                else:
+                    # Для открытых вопросов используем check_open_answer
+                    result = check_open_answer(
+                        q.get("question", ""), user_ans, key_points
+                    )
+                    score = result["score"]
+                    feedback = result["feedback"]
+
+                console.print(f"[bold]Результат:[/bold] {score}/10 - {feedback}\n")
+                scores.append((score, 10))
+                total_score += score
+                max_total += 10
+
+                # Record response for writeup
+                responses.append(
+                    {
+                        "question": q.get("question", ""),
+                        "user_answer": user_ans,
+                        "correct_answer": correct if "options" in q else None,
+                        "score": score,
+                        "feedback": feedback,
+                    }
+                )
+
+            # Показать итоги и обновить weak_topics
+            if scores:
+                success_rate = (total_score / max_total * 100) if max_total > 0 else 0
+                console.print(
+                    f"[bold]📊 Итог:[/bold] {total_score}/{max_total} ({success_rate:.1f}%)"
+                )
+
+                # Обновить weak_topics
+                ctx = get_context()
+                state_obj = ctx.state
+                state_obj.update_weak_topic(quiz_topic, total_score, max_total)
+
+                # Запланировать следующее повторение (Spaced Repetition)
+                state_obj.schedule_review(quiz_topic, total_score, max_total)
+
+                # Дать рекомендации
+                if success_rate < 50:
+                    console.print("[red]Рекомендую повторить эту тему![/red]")
+                elif success_rate < 70:
+                    console.print("[yellow]Есть пробелы - стоит потренировать[/yellow]")
+                else:
+                    console.print("[green]Отлично! Тема усвоена[/green]")
+
+                # Показать слабые темы если есть
+                weak = state_obj.get_weak_topics(threshold=70.0)
+                if weak:
+                    console.print(
+                        f"\n[bold cyan]Слабые темы (нужно повторить):[/bold cyan]"
+                    )
+                    for w in weak[:5]:
+                        console.print(
+                            f"  • {w['topic']}: {w['success_rate']:.1f}% ({w['attempts']} попыток)"
+                        )
+            else:
+                console.print("[dim]Нет результатов для анализа[/dim]")
         else:
             console.print("[yellow]Генератор квизов недоступен[/yellow]")
     except Exception as e:

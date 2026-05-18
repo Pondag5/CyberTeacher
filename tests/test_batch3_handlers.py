@@ -6,7 +6,8 @@ import json
 import os
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 
 # ── Emotions Handler ──────────────────────────────────────────
 class TestEmotionsHandler(unittest.TestCase):
@@ -149,7 +150,7 @@ class TestSubscribeHandler(unittest.TestCase):
 
     @patch("handlers.subscribe.console")
     def test_subscribe_add_valid(self, mock_console):
-        from handlers.subscribe import handle_subscribe, SUBSCRIPTIONS_FILE
+        from handlers.subscribe import SUBSCRIPTIONS_FILE, handle_subscribe
         if os.path.exists(SUBSCRIPTIONS_FILE):
             os.remove(SUBSCRIPTIONS_FILE)
 
@@ -171,7 +172,11 @@ class TestSubscribeHandler(unittest.TestCase):
 
     @patch("handlers.subscribe.console")
     def test_subscribe_list_empty(self, mock_console):
-        from handlers.subscribe import handle_subscribe, _load_subscriptions, SUBSCRIPTIONS_FILE
+        from handlers.subscribe import (
+            SUBSCRIPTIONS_FILE,
+            _load_subscriptions,
+            handle_subscribe,
+        )
         if os.path.exists(SUBSCRIPTIONS_FILE):
             os.remove(SUBSCRIPTIONS_FILE)
 
@@ -185,7 +190,7 @@ class TestSubscribeHandler(unittest.TestCase):
 
     @patch("handlers.subscribe.console")
     def test_subscribe_notify_empty(self, mock_console):
-        from handlers.subscribe import handle_subscribe, SUBSCRIPTIONS_FILE
+        from handlers.subscribe import SUBSCRIPTIONS_FILE, handle_subscribe
         if os.path.exists(SUBSCRIPTIONS_FILE):
             os.remove(SUBSCRIPTIONS_FILE)
 

@@ -1,0 +1,65 @@
+# Cross-Site Scripting (XSS) detection
+rules:
+  - id: python-xss-reflected
+    pattern-either:
+      - patterns:
+          - pattern: |
+              return HttpResponse("..." % request.$GET)
+          - pattern-inside: |
+              from django.http import HttpResponse
+              ...
+      - patterns:
+          - pattern: |
+              return HttpResponse("..." .format(request.$GET))
+          - pattern-inside: |
+              from django.http import HttpResponse
+              ...
+      - patterns:
+          - pattern: |
+              return HttpResponse(f"...{request.$GET}...")
+          - pattern-inside: |
+              from django.http import HttpResponse
+              ...
+      - patterns:
+          - pattern: |
+              return render_template("...", user_input=$VAR)
+          - pattern-inside: |
+              from flask import render_template
+              ...
+      - patterns:
+          - pattern: |
+              return "<html>" + request.$GET + "</html>"
+      - patterns:
+          - pattern: |
+              return "<html>" % request.$GET
+      - patterns:
+          - pattern: |
+              return "<html>" .format(request.$GET)
+    message: "XSS: пользовательский ввод выводится в HTML без экранирования. Используйте autoescape или mark_safe с осторожностью."
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      owasp: "A03:2021 – Injection"
+      cwe: "CWE-79: Cross-site Scripting"
+      confidence: HIGH
+      impact: HIGH
+
+  - id: js-xss-innerhtml
+    pattern-either:
+      - pattern: $EL.innerHTML = $USER_INPUT
+      - pattern: document.write($USER_INPUT)
+      - pattern: document.writeln($USER_INPUT)
+      - pattern: $EL.outerHTML = $USER_INPUT
+      - pattern: |
+          $EL.insertAdjacentHTML($POS, $USER_INPUT)
+    message: "XSS: использование innerHTML/document.write с пользовательским вводом. Используйте textContent или sanitize."
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      owasp: "A03:2021 – Injection"
+      cwe: "CWE-79: Cross-site Scripting"
+      confidence: HIGH
+      impact: HIGH

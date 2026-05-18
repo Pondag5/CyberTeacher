@@ -14,10 +14,10 @@ from typing import Any, Dict, List, Tuple
 from rich.panel import Panel
 from rich.table import Table
 
-from state import get_state
+from di import get_context
 from ui import console
 
-CASES: Dict[str, Dict[str, Any]] = {
+CASES: dict[str, dict[str, Any]] = {
     "corp_espionage": {
         "title": "Корпоративный шпионаж",
         "description": "В компании TechCorp произошла утечка чертежей нового продукта. Найдите шпиона.",
@@ -101,7 +101,8 @@ def _start_case(case_id: str) -> bool:
         border_style="cyan",
     ))
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     if hasattr(state, "current_case"):
         state.current_case = case_id
         state.found_evidence = []
@@ -110,7 +111,8 @@ def _start_case(case_id: str) -> bool:
 
 def _examine_evidence(item: str) -> bool:
     """Изучить улику."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     case_id = getattr(state, "current_case", None)
     if not case_id:
         console.print("[yellow]Сначала начните расследование.[/yellow]")
@@ -133,7 +135,8 @@ def _examine_evidence(item: str) -> bool:
 
 def _conclude(suspect: str) -> bool:
     """Обвинить подозреваемого."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     case_id = getattr(state, "current_case", None)
     if not case_id:
         console.print("[yellow]Сначала начните расследование.[/yellow]")
@@ -164,7 +167,7 @@ def _conclude(suspect: str) -> bool:
         return False
 
 
-def handle_investigation(args: str) -> Tuple[str, bool]:
+def handle_investigation(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /investigation."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":

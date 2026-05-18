@@ -8,7 +8,7 @@ import yaml
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -272,7 +272,8 @@ def _generate_assignment(name: str) -> tuple[bool, Any | None, Any | None, bool]
         console.print(f"[red]❌ Шаблон '{name}' не найден[/red]")
         return True, None, None, True
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     state.active_assignment = {
         "template": name,
         "started_at": __import__("time").time(),

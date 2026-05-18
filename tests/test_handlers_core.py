@@ -91,34 +91,42 @@ class TestHandlersCore(unittest.TestCase):
         mock_stats.assert_called_once_with(self.mock_conn)
 
     # --- Mode switches ---
-    @patch("handlers.core.get_state")
-    def test_mode_teacher(self, mock_get_state, mock_print):
+    @patch("handlers.core.get_context")
+    def test_mode_teacher(self, mock_get_context, mock_print):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         result = handle_extended_commands("teacher", self.mock_llm, self.mock_conn)
         self.assertTrue(result[0])
         mock_state.set_persona.assert_called_with("teacher")
 
-    @patch("handlers.core.get_state")
-    def test_mode_expert(self, mock_get_state, mock_print):
+    @patch("handlers.core.get_context")
+    def test_mode_expert(self, mock_get_context, mock_print):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         result = handle_extended_commands("expert", self.mock_llm, self.mock_conn)
         self.assertTrue(result[0])
         mock_state.set_persona.assert_called_with("expert")
 
-    @patch("handlers.core.get_state")
-    def test_mode_ctf(self, mock_get_state, mock_print):
+    @patch("handlers.core.get_context")
+    def test_mode_ctf(self, mock_get_context, mock_print):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         result = handle_extended_commands("ctf", self.mock_llm, self.mock_conn)
         self.assertTrue(result[0])
         mock_state.set_persona.assert_called_with("ctf")
 
-    @patch("handlers.core.get_state")
-    def test_mode_review(self, mock_get_state, mock_print):
+    @patch("handlers.core.get_context")
+    def test_mode_review(self, mock_get_context, mock_print):
         mock_state = MagicMock()
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
         result = handle_extended_commands("review", self.mock_llm, self.mock_conn)
         self.assertTrue(result[0])
         mock_state.set_persona.assert_called_with("review")

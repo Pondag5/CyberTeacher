@@ -15,7 +15,6 @@ from typing import Any, Dict, List, Tuple
 from rich.panel import Panel
 from rich.table import Table
 
-from state import get_state
 from ui import console
 
 # Попытка импорта реальных библиотек (если установлены)
@@ -32,7 +31,7 @@ except ImportError:
     CENSYS_AVAILABLE = False
 
 
-def _simulate_shodan_search(query: str) -> List[Dict[str, Any]]:
+def _simulate_shodan_search(query: str) -> list[dict[str, Any]]:
     """Симуляция поиска в Shodan."""
     products = ["Apache httpd", "nginx", "OpenSSH", "Microsoft IIS", "Docker", "Redis", "MongoDB"]
     os_list = ["Linux", "Windows", "FreeBSD", "macOS"]
@@ -52,7 +51,7 @@ def _simulate_shodan_search(query: str) -> List[Dict[str, Any]]:
     return results
 
 
-def _simulate_shodan_host(ip: str) -> Dict[str, Any]:
+def _simulate_shodan_host(ip: str) -> dict[str, Any]:
     """Симуляция информации о хосте в Shodan."""
     return {
         "ip": ip,
@@ -64,7 +63,7 @@ def _simulate_shodan_host(ip: str) -> Dict[str, Any]:
     }
 
 
-def _simulate_censys_search(query: str) -> List[Dict[str, Any]]:
+def _simulate_censys_search(query: str) -> list[dict[str, Any]]:
     """Симуляция поиска в Censys."""
     services = ["HTTP", "HTTPS", "SSH", "FTP", "SMTP", "DNS", "RDP"]
     results = []
@@ -169,7 +168,7 @@ def _display_censys_search(query: str) -> bool:
     return True
 
 
-def handle_shodan(args: str) -> Tuple[str, bool]:
+def handle_shodan(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /shodan."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":
@@ -196,7 +195,7 @@ def handle_shodan(args: str) -> Tuple[str, bool]:
         return "", True
 
 
-def handle_censys(args: str) -> Tuple[str, bool]:
+def handle_censys(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /censys."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":

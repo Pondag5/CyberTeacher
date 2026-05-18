@@ -7,7 +7,7 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -72,7 +72,8 @@ def check_auto_summarize(conn) -> None:
     try:
         from memory import get_chat_history
 
-        state = get_state()
+        ctx = get_context()
+        state = ctx.state
         msg_count = getattr(state, "_msg_count_since_summary", 0)
         msg_count += 1
 

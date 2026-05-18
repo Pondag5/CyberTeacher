@@ -1,6 +1,7 @@
 import time
 import unittest
 
+from services.spaced_repetition_service import compute_next_review
 from state import AppState, get_state
 
 
@@ -19,7 +20,7 @@ class TestSpacedRepetition(unittest.TestCase):
         self.assertEqual(entry["repetitions"], 0)
         self.assertEqual(entry["interval"], 1)
         self.assertAlmostEqual(
-            entry["next_review"], self.state._compute_next_review(1), places=1
+            entry["next_review"], compute_next_review(1), places=1
         )
         self.assertEqual(entry["ef"], 2.5)
 

@@ -1,14 +1,14 @@
 """Тесты для модуля Interactive Investigations (M-10)."""
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from handlers.investigation import (
-    handle_investigation,
-    _start_case,
-    _examine_evidence,
-    _conclude,
     CASES,
+    _conclude,
+    _examine_evidence,
+    _start_case,
+    handle_investigation,
 )
 
 
@@ -36,45 +36,65 @@ class TestInvestigation(unittest.TestCase):
     def test_examine_evidence(self):
         """Изучение улики."""
         with patch("handlers.investigation.console.print"):
-            with patch("handlers.investigation.get_state") as mock_state:
-                mock_state.return_value.current_case = "corp_espionage"
-                mock_state.return_value.found_evidence = []
-                mock_state.return_value.xp = 0
+            with patch("handlers.investigation.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_case = "corp_espionage"
+                mock_state.found_evidence = []
+                mock_state.xp = 0
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _examine_evidence("email_logs")
                 self.assertTrue(success)
 
     def test_examine_invalid_evidence(self):
         """Изучение несуществующей улики."""
         with patch("handlers.investigation.console.print"):
-            with patch("handlers.investigation.get_state") as mock_state:
-                mock_state.return_value.current_case = "corp_espionage"
+            with patch("handlers.investigation.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_case = "corp_espionage"
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _examine_evidence("nonexistent")
                 self.assertFalse(success)
 
     def test_conclude_correct(self):
         """Правильное обвинение."""
         with patch("handlers.investigation.console.print"):
-            with patch("handlers.investigation.get_state") as mock_state:
-                mock_state.return_value.current_case = "corp_espionage"
-                mock_state.return_value.found_evidence = ["email_logs"]
-                mock_state.return_value.xp = 0
+            with patch("handlers.investigation.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_case = "corp_espionage"
+                mock_state.found_evidence = ["email_logs"]
+                mock_state.xp = 0
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _conclude("Петрова (Инженер)")
                 self.assertTrue(success)
 
     def test_conclude_wrong(self):
         """Неправильное обвинение."""
         with patch("handlers.investigation.console.print"):
-            with patch("handlers.investigation.get_state") as mock_state:
-                mock_state.return_value.current_case = "corp_espionage"
-                mock_state.return_value.found_evidence = []
+            with patch("handlers.investigation.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_case = "corp_espionage"
+                mock_state.found_evidence = []
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _conclude("Иванов (Бухгалтер)")
                 self.assertFalse(success)
 
     def test_conclude_without_case(self):
         """Обвинение без начатого кейса."""
         with patch("handlers.investigation.console.print"):
-            with patch("handlers.investigation.get_state") as mock_state:
-                del mock_state.return_value.current_case
+            with patch("handlers.investigation.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_case = None
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _conclude("Test")
                 self.assertFalse(success)
 

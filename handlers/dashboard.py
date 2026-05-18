@@ -77,6 +77,24 @@ def handle_dashboard(action: str, args: str = "") -> tuple[bool, str, Any]:
     lines.append(f"  Messages sent: [cyan]{state.messages_sent}[/cyan]")
     lines.append(f"  News checks: [cyan]{state.news_checked}[/cyan]")
 
+    # SKL-02: Skill-based recommendations
+    try:
+        from services.skill_tracker_service import get_all_skills
+        skills = get_all_skills(getattr(state, "skill_tracker", {}))
+        if skills:
+            low_skills = [s for s in skills if s["level"] < 3]
+            if low_skills:
+                lines.append("\n[bold]Рекомендации по навыкам:[/bold]")
+                for s in low_skills[:5]:
+                    lines.append(
+                        f"  • [yellow]{s['name']}[/yellow] (lvl {s['level']}) — "
+                        f"попробуй /quiz по теме '{s['name']}'"
+                    )
+            else:
+                lines.append("\n[bold]Навыки:[/bold] [green]Все на хорошем уровне![/green]")
+    except Exception:
+        pass
+
     # Footer tip
     lines.append(
         "\n[dim]Tip: Use /adaptive to focus on weak topics. Use /tracks for structured learning paths.[/dim]"

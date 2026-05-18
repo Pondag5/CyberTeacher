@@ -3,14 +3,14 @@ Tests for profile handler.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from di import AppContext
 from handlers.profile import (
     AVATARS,
-    _set_name,
-    _set_avatar,
     _list_avatars,
+    _set_avatar,
+    _set_name,
     _show_detailed_stats,
 )
 

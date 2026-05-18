@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 
 class TestWebUIHelpers(unittest.TestCase):
@@ -103,10 +103,10 @@ class TestWebUIStateLoading(unittest.TestCase):
 
             # Directly test the function logic without import issues
             from pathlib import Path
-            from web_ui import load_state
 
             # Temporarily replace STATE_PATH
             import web_ui
+            from web_ui import load_state
             original_path = web_ui.STATE_PATH
             web_ui.STATE_PATH = Path(state_path)
             try:

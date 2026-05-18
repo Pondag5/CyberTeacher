@@ -18,7 +18,13 @@ from ui import console
 # Попытка импорта python-telegram-bot
 try:
     from telegram import Update
-    from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+    from telegram.ext import (
+        Application,
+        CommandHandler,
+        ContextTypes,
+        MessageHandler,
+        filters,
+    )
     TELEGRAM_AVAILABLE = True
 except ImportError:
     TELEGRAM_AVAILABLE = False
@@ -133,7 +139,7 @@ def _stop_bot() -> bool:
     return False
 
 
-def handle_telegram(args: str) -> Tuple[str, bool]:
+def handle_telegram(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /telegram."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""

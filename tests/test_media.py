@@ -4,10 +4,10 @@ import unittest
 from unittest.mock import patch
 
 from handlers.media import (
-    handle_media,
+    MEDIA_RESOURCES,
     _play_resource,
     _show_notes,
-    MEDIA_RESOURCES,
+    handle_media,
 )
 
 

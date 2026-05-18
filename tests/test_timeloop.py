@@ -1,14 +1,14 @@
 """Тесты для модуля Time Loop (M-18)."""
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from handlers.timeloop import (
-    handle_timeloop,
-    _start_timeloop,
+    STORY_NODES,
     _make_choice,
     _reset_timeloop,
-    STORY_NODES,
+    _start_timeloop,
+    handle_timeloop,
 )
 
 
@@ -18,44 +18,64 @@ class TestTimeLoop(unittest.TestCase):
     def test_start_timeloop(self):
         """Начало временной петли."""
         with patch("handlers.timeloop.console.print"):
-            with patch("handlers.timeloop.get_state") as mock_state:
-                mock_state.return_value.current_node = None
-                mock_state.return_value.loop_count = 0
+            with patch("handlers.timeloop.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_node = None
+                mock_state.loop_count = 0
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 _start_timeloop()
-                self.assertEqual(mock_state.return_value.current_node, "start")
+                self.assertEqual(mock_state.current_node, "start")
 
     def test_make_choice_valid(self):
         """Валидный выбор."""
         with patch("handlers.timeloop.console.print"):
-            with patch("handlers.timeloop.get_state") as mock_state:
-                mock_state.return_value.current_node = "start"
+            with patch("handlers.timeloop.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_node = "start"
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 _make_choice("1")
-                self.assertEqual(mock_state.return_value.current_node, "check_logs")
+                self.assertEqual(mock_state.current_node, "check_logs")
 
     def test_make_choice_invalid(self):
         """Невалидный выбор."""
         with patch("handlers.timeloop.console.print"):
-            with patch("handlers.timeloop.get_state") as mock_state:
-                mock_state.return_value.current_node = "start"
+            with patch("handlers.timeloop.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_node = "start"
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 _make_choice("9")
                 # Узел не должен измениться
-                self.assertEqual(mock_state.return_value.current_node, "start")
+                self.assertEqual(mock_state.current_node, "start")
 
     def test_make_choice_without_node(self):
         """Выбор без начатой петли."""
         with patch("handlers.timeloop.console.print"):
-            with patch("handlers.timeloop.get_state") as mock_state:
-                del mock_state.return_value.current_node
+            with patch("handlers.timeloop.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_node = None
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 _make_choice("1")
                 # Должно показать предупреждение
 
     def test_reset_timeloop(self):
         """Сброс петли."""
         with patch("handlers.timeloop.console.print"):
-            with patch("handlers.timeloop.get_state") as mock_state:
-                mock_state.return_value.current_node = "check_logs"
+            with patch("handlers.timeloop.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_node = "check_logs"
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 _reset_timeloop()
-                self.assertIsNone(mock_state.return_value.current_node)
+                self.assertIsNone(mock_state.current_node)
 
     def test_help_command(self):
         """Вызов справки /timeloop help."""

@@ -3,15 +3,15 @@ Tests for skills handler.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from handlers.skills import (
     SKILL_CATEGORIES,
-    handle_skills,
-    handle_reputation,
-    handle_depth,
-    handle_skills_list,
     _track_skill,
+    handle_depth,
+    handle_reputation,
+    handle_skills,
+    handle_skills_list,
 )
 
 

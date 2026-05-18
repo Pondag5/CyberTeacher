@@ -1,0 +1,35 @@
+{
+  "news": [
+    {
+      "title": "PoC Code Published for Critical NGINX Vulnerability",
+      "link": "",
+      "desc": "<p>Introduced in 2008, the critical-severity security defect was patched this week in NGINX Plus and NGINX open source.</p>\n<p>The post <a href=\"https://www.securityweek.com/poc-code-published-for-cri",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "In Other News: Big Tech vs Canada Encryption Bill, Cisco’s Free AI Security Spec, Audi App Flaws",
+      "link": "",
+      "desc": "<p>Other noteworthy stories that might have slipped under the radar: Nvidia cloud gaming data breach, Android 17 security upgrades, FBI warning after ShinyHunters hacks Canvas.</p>\n<p>The post <a href",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "Microsoft Warns of Exchange Server Zero-Day Exploited in the Wild",
+      "link": "",
+      "desc": "<p>Microsoft has shared mitigations for CVE-2026-42897 until a permanent patch can be released for affected Exchange Server versions.</p>\n<p>The post <a href=\"https://www.securityweek.com/microsoft-wa",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "American Lending Center Data Breach Affects 123,000 Individuals",
+      "link": "",
+      "desc": "<p>The non-bank lender discovered a ransomware attack nearly one year ago, but only recently completed its investigation.</p>\n<p>The post <a href=\"https://www.securityweek.com/american-lending-center-",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "OpenAI Hit by TanStack Supply Chain Attack",
+      "link": "",
+      "desc": "<p>Two employee devices were compromised in the attack, and credential material was stolen from OpenAI code repositories.</p>\n<p>The post <a href=\"https://www.securityweek.com/openai-hit-by-tanstack-s",
+      "source": "SecurityWeek"
+    }
+  ],
+  "last": "2026-05-17T18:05:24.301582+00:00"
+}

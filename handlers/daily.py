@@ -2,7 +2,12 @@
 
 from typing import Any
 
-from daily_challenge import generate_daily_challenge, get_daily_status, get_hint, submit_daily_answer
+from daily_challenge import (
+    generate_daily_challenge,
+    get_daily_status,
+    get_hint,
+    submit_daily_answer,
+)
 from di import get_context
 from ui import console
 
@@ -35,6 +40,7 @@ def handle_daily(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     if subcmd == "force":
         # For testing — regenerate challenge
         import os
+
         from daily_challenge import CHALLENGE_FILE, _get_today_str
         if os.path.exists(CHALLENGE_FILE):
             import json

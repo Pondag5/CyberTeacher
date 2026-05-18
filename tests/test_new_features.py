@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from handlers.mindmap import handle_mindmap, TOPIC_TREE
+from handlers.mindmap import TOPIC_TREE, handle_mindmap
 from handlers.registry import CommandRegistry, registry
 
 

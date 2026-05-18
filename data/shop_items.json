@@ -25,6 +25,22 @@
       "value": "hacker"
     },
     {
+      "id": "theme_amber",
+      "name": "Тема Amber",
+      "description": "Тёплые янтарные тона, как старый терминал",
+      "cost": 75,
+      "type": "theme",
+      "value": "amber"
+    },
+    {
+      "id": "theme_nord",
+      "name": "Тема Nord",
+      "description": "Холодные скандинавские тона",
+      "cost": 100,
+      "type": "theme",
+      "value": "nord"
+    },
+    {
       "id": "hint_single",
       "name": "Одна подсказка",
       "description": "Одна подсказка от учителя в следующих заданиях",
@@ -43,6 +59,63 @@
       "quantity": 3
     },
     {
+      "id": "hint_pack_10",
+      "name": "Пакет из 10 подсказок",
+      "description": "Десять подсказок по супер-скидке",
+      "cost": 150,
+      "type": "consumable",
+      "effect": "hint_credit",
+      "quantity": 10
+    },
+    {
+      "id": "xp_boost_1h",
+      "name": "XP Буст (1 час)",
+      "description": "Двойной XP на 1 час",
+      "cost": 30,
+      "type": "consumable",
+      "effect": "xp_boost",
+      "multiplier": 2.0,
+      "duration_hours": 1
+    },
+    {
+      "id": "xp_boost_4h",
+      "name": "XP Буст (4 часа)",
+      "description": "Двойной XP на 4 часа",
+      "cost": 100,
+      "type": "consumable",
+      "effect": "xp_boost",
+      "multiplier": 2.0,
+      "duration_hours": 4
+    },
+    {
+      "id": "xp_boost_24h",
+      "name": "XP Буст (24 часа)",
+      "description": "Двойной XP на целый день",
+      "cost": 200,
+      "type": "consumable",
+      "effect": "xp_boost",
+      "multiplier": 2.0,
+      "duration_hours": 24
+    },
+    {
+      "id": "lucky_charm",
+      "name": "Талисман удачи",
+      "description": "Случайный бонус XP (10-50)",
+      "cost": 40,
+      "type": "consumable",
+      "effect": "lucky_xp",
+      "min_xp": 10,
+      "max_xp": 50
+    },
+    {
+      "id": "risk_reset",
+      "name": "Сброс риска",
+      "description": "Сбросить уровень риска до 0 (CTF/Story)",
+      "cost": 60,
+      "type": "consumable",
+      "effect": "risk_reset"
+    },
+    {
       "id": "topic_cloud",
       "name": "Раздел Cloud Security",
       "description": "Разблокировать темы по облачной безопасности",
@@ -57,6 +130,30 @@
       "cost": 200,
       "type": "unlock_topic",
       "value": "mobile"
+    },
+    {
+      "id": "topic_iot",
+      "name": "Раздел IoT Security",
+      "description": "Разблокировать темы по безопасности IoT",
+      "cost": 250,
+      "type": "unlock_topic",
+      "value": "iot"
+    },
+    {
+      "id": "topic_ics",
+      "name": "Раздел ICS/SCADA",
+      "description": "Разблокировать темы по промышленной безопасности",
+      "cost": 300,
+      "type": "unlock_topic",
+      "value": "ics"
+    },
+    {
+      "id": "topic_devsecops",
+      "name": "Раздел DevSecOps",
+      "description": "Разблокировать темы по DevSecOps",
+      "cost": 250,
+      "type": "unlock_topic",
+      "value": "devsecops"
     }
   ]
 }

@@ -13,10 +13,10 @@ from typing import Any, Dict, List, Tuple
 from rich.panel import Panel
 from rich.table import Table
 
-from state import get_state
+from di import get_context
 from ui import console
 
-STORY_NODES: Dict[str, Dict[str, Any]] = {
+STORY_NODES: dict[str, dict[str, Any]] = {
     "start": {
         "text": (
             "Вы — аналитик SOC. В 3:00 ночи срабатывает警报: подозрительная активность в сети.\n"
@@ -167,7 +167,7 @@ def _display_node(node_id: str) -> None:
             f"[bold]XP:[/bold] +{node.get('xp', 0)}",
             border_style="green" if node["ending"] == "good" else "red",
         ))
-        state = get_state()
+        state = get_context().state
         if hasattr(state, "xp"):
             state.xp += node.get("xp", 0)
         state.current_node = None
@@ -189,7 +189,7 @@ def _start_timeloop() -> None:
         "Попробуйте найти все концовки!",
         border_style="magenta",
     ))
-    state = get_state()
+    state = get_context().state
     state.current_node = "start"
     state.loop_count = getattr(state, "loop_count", 0) + 1
     _display_node("start")
@@ -197,7 +197,7 @@ def _start_timeloop() -> None:
 
 def _make_choice(choice_num: str) -> None:
     """Сделать выбор в сюжете."""
-    state = get_state()
+    state = get_context().state
     current_node = getattr(state, "current_node", None)
     if not current_node:
         console.print("[yellow]Сначала начните петлю: /timeloop[/yellow]")
@@ -219,7 +219,7 @@ def _make_choice(choice_num: str) -> None:
 
 def _reset_timeloop() -> None:
     """Сбросить петлю."""
-    state = get_state()
+    state = get_context().state
     state.current_node = None
     console.print(Panel(
         "[bold]🔄 Петля сброшена.[/bold]\n"
@@ -228,7 +228,7 @@ def _reset_timeloop() -> None:
     ))
 
 
-def handle_timeloop(args: str) -> Tuple[str, bool]:
+def handle_timeloop(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /timeloop."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""

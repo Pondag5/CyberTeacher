@@ -6,50 +6,73 @@
     /pwa help              — Справка
 """
 
-from typing import Tuple
+import socket
+from typing import Any, Tuple
 
 from rich.panel import Panel
 
 from ui import console
 
 
-def handle_pwa(args: str) -> Tuple[str, bool]:
+def get_local_ip() -> str:
+    """Получить локальный IP-адрес машины."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "localhost"
+
+
+def handle_pwa(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     """Главный обработчик команды /pwa."""
-    parts = args.strip().split(maxsplit=1)
-    subcommand = parts[0].lower() if parts else ""
+    parts = action.strip().split(maxsplit=1)
+    # Если только "pwa" без аргументов — показать info
+    if len(parts) == 1:
+        subcommand = ""
+    else:
+        subcommand = parts[1].lower().strip()
+    local_ip = get_local_ip()
 
     if subcommand == "" or subcommand == "info":
         console.print(Panel(
-            "[bold]📱 CyberTeacher Companion App[/bold]\n"
-            "PWA-приложение для мобильных устройств.\n\n"
+            f"[bold]📱 CyberTeacher Companion App[/bold]\n"
+            "Адаптивное веб-приложение для ПК, планшетов и смартфонов.\n\n"
             "[bold]Функции:[/bold]\n"
             "• Быстрые квизы в дороге\n"
-            "• Уведомления о повторениях\n"
-            "• Синхронизация прогресса\n\n"
-            "[bold]URL:[/bold] http://localhost:8501/pwa\n"
-            "[dim]Откройте в браузере и добавьте на главный экран.[/dim]",
+            "• Просмотр прогресса и статистики\n"
+            "• Установка на главный экран (PWA)\n\n"
+            "[bold]Доступ в локальной сети:[/bold]\n"
+            f"  🌐 http://{local_ip}:8000\n\n"
+            "[bold]Локально:[/bold]\n"
+            "  🌐 http://localhost:8000\n\n"
+            "[dim]Откройте ссылку в браузере любого устройства.[/dim]",
             border_style="cyan",
         ))
-        return "", True
+        return True, None, None, True
     elif subcommand == "setup":
         console.print(Panel(
-            "[bold]📲 Установка PWA:[/bold]\n\n"
-            "1. Откройте http://localhost:8501/pwa\n"
-            "2. В Chrome: ⋮ → 'Установить приложение'\n"
-            "3. В Safari: Поделиться → 'На экран Домой'\n"
-            "4. В Firefox: ⋮ → 'Установить'\n\n"
-            "[dim]Приложение будет работать офлайн после загрузки.[/dim]",
+            f"[bold]📲 Как открыть:[/bold]\n\n"
+            "1. Убедитесь, что API запущен: /api start\n"
+            f"2. Откройте в браузере: http://{local_ip}:8000\n"
+            "3. Для установки как приложения:\n"
+            "   • Chrome (Android/PC): ⋮ → 'Установить приложение'\n"
+            "   • Safari (iOS): Поделиться → 'На экран Домой'\n"
+            "   • Firefox: ⋮ → 'Установить'\n\n"
+            "[dim]Приложение адаптируется под размер экрана.[/dim]",
             border_style="green",
         ))
-        return "", True
+        return True, None, None, True
     elif subcommand == "help":
         console.print(Panel(
             "[bold]Команды PWA:[/bold]\n"
-            "/pwa                   — Информация о приложении\n"
+            "/pwa                   — Информация и ссылки\n"
             "/pwa setup             — Инструкция по установке",
             border_style="yellow",
         ))
-        return "", True
+        return True, None, None, True
     else:
         console.print(f"[red]Неизвестная подкоманда: {subcommand}[/red]")
-        return "", True
+        return True, None, None, True

@@ -1,0 +1,30 @@
+networks:
+  ct_lab_net:
+    driver: bridge
+services:
+  dvwa:
+    container_name: ct_dvwa
+    image: vulnerables/web-dvwa:latest
+    networks:
+    - ct_lab_net
+    ports:
+    - 80:8080
+    restart: unless-stopped
+  juice_shop:
+    container_name: ct_juice_shop
+    image: bkimminich/juice-shop:latest
+    networks:
+    - ct_lab_net
+    ports:
+    - 3000:3000
+    restart: unless-stopped
+  webgoat:
+    container_name: ct_webgoat
+    image: webgoat/webgoat:latest
+    networks:
+    - ct_lab_net
+    ports:
+    - 8080:8080
+    - 9090:9090
+    restart: unless-stopped
+version: '3.8'

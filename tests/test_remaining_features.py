@@ -3,16 +3,16 @@
 import unittest
 from unittest.mock import patch
 
-from handlers.kb_manager import handle_kb, _get_kb_status
-from handlers.vision import handle_vision, VISION_ANALYSIS
-from handlers.telegram_bot import handle_telegram
+from handlers.kb_manager import _get_kb_status, handle_kb
 from handlers.subscribe import (
-    handle_subscribe,
-    _add_subscription,
-    _remove_subscription,
-    _load_subscriptions,
     THREAT_TYPES,
+    _add_subscription,
+    _load_subscriptions,
+    _remove_subscription,
+    handle_subscribe,
 )
+from handlers.telegram_bot import handle_telegram
+from handlers.vision import VISION_ANALYSIS, handle_vision
 
 
 class TestKBManager(unittest.TestCase):

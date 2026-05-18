@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
-async def async_rag_search(query: str, knowledge_base: Any) -> Optional[str]:
+async def async_rag_search(query: str, knowledge_base: Any) -> str | None:
     """Асинхронный поиск в RAG базе."""
     try:
         loop = asyncio.get_event_loop()
@@ -21,7 +21,7 @@ async def async_rag_search(query: str, knowledge_base: Any) -> Optional[str]:
         return None
 
 
-async def async_llm_call(llm: Any, prompt: str) -> Optional[str]:
+async def async_llm_call(llm: Any, prompt: str) -> str | None:
     """Асинхронный вызов LLM."""
     try:
         loop = asyncio.get_event_loop()
@@ -32,7 +32,7 @@ async def async_llm_call(llm: Any, prompt: str) -> Optional[str]:
         return None
 
 
-async def async_combined_query(query: str, llm: Any, knowledge_base: Any) -> Dict[str, Any]:
+async def async_combined_query(query: str, llm: Any, knowledge_base: Any) -> dict[str, Any]:
     """Параллельный запрос: RAG + LLM одновременно.
 
     Returns:
@@ -56,7 +56,7 @@ async def async_combined_query(query: str, llm: Any, knowledge_base: Any) -> Dic
     }
 
 
-def run_async_query(query: str, llm: Any, knowledge_base: Any) -> Dict[str, Any]:
+def run_async_query(query: str, llm: Any, knowledge_base: Any) -> dict[str, Any]:
     """Обёртка для запуска асинхронного запроса из синхронного кода."""
     try:
         loop = asyncio.get_event_loop()

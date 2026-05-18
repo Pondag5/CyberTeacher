@@ -4,13 +4,13 @@ import unittest
 from unittest.mock import patch
 
 from handlers.osint import (
+    _simulate_breaches,
+    _simulate_social_media,
     handle_osint,
     handle_osint_email,
     handle_osint_metadata,
     handle_osint_phone,
     handle_osint_search,
-    _simulate_breaches,
-    _simulate_social_media,
 )
 
 

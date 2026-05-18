@@ -1,0 +1,40 @@
+# Insecure Deserialization detection
+rules:
+  - id: python-insecure-deserialization
+    pattern-either:
+      - pattern: pickle.loads($DATA)
+      - pattern: pickle.load($FILE)
+      - pattern: yaml.load($DATA)
+      - pattern: yaml.load($DATA, Loader=yaml.Loader)
+      - pattern: yaml.unsafe_load($DATA)
+      - pattern: marshal.loads($DATA)
+      - pattern: shelve.open($FILE, ...)
+      - patterns:
+          - pattern: |
+              import pickle
+              ...
+              pickle.loads(...)
+    message: "Insecure Deserialization: использование pickle/yaml.load без SafeLoader. Используйте json или yaml.safe_load."
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      owasp: "A08:2021 – Software and Data Integrity Failures"
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      confidence: HIGH
+      impact: CRITICAL
+
+  - id: js-insecure-deserialization
+    pattern-either:
+      - pattern: unserialize($DATA)
+      - pattern: node_serialize.deserialize($DATA)
+    message: "Insecure Deserialization: десериализация ненадёжных данных. Валидируйте входные данные."
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      owasp: "A08:2021 – Software and Data Integrity Failures"
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      confidence: HIGH
+      impact: CRITICAL

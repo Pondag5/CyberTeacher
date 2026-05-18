@@ -261,15 +261,17 @@ class TestHandlersTracks(unittest.TestCase):
 
     def setUp(self):
         # Mock state
-        self.state_patcher = patch("handlers.tracks.get_state")
-        self.mock_get_state = self.state_patcher.start()
+        self.context_patcher = patch("handlers.tracks.get_context")
+        self.mock_get_context = self.context_patcher.start()
         self.mock_state = MagicMock(spec=AppState)
         self.mock_state.tracks_enrolled = []
         self.mock_state.track_progress = {}
         self.mock_state.learning_context = {}
         self.mock_state.points = 0.0
         self.mock_state.save_to_file = MagicMock()
-        self.mock_get_state.return_value = self.mock_state
+        self.mock_ctx = MagicMock()
+        self.mock_ctx.state = self.mock_state
+        self.mock_get_context.return_value = self.mock_ctx
 
         # Mock track engine
         self.engine_patcher = patch("handlers.tracks.get_track_engine")
@@ -299,7 +301,7 @@ class TestHandlersTracks(unittest.TestCase):
         self.mock_load_all.return_value = None
 
     def tearDown(self):
-        self.state_patcher.stop()
+        self.context_patcher.stop()
         self.engine_patcher.stop()
         self.track_engine_patcher.stop()
 

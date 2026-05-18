@@ -6,7 +6,7 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -188,7 +188,8 @@ def _show_diagram(topic: str) -> tuple[bool, Any | None, Any | None, bool]:
         border_style="cyan",
     ))
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     state.mermaid_views = getattr(state, "mermaid_views", 0) + 1
     state.save_to_file()
 

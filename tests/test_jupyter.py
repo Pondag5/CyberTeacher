@@ -1,14 +1,14 @@
 """Тесты для модуля Jupyter Notebook Support (M-12)."""
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from handlers.jupyter import (
-    handle_jupyter,
+    NOTEBOOK_TEMPLATES,
     _open_notebook,
     _run_cell,
     _submit_notebook,
-    NOTEBOOK_TEMPLATES,
+    handle_jupyter,
 )
 
 
@@ -36,45 +36,65 @@ class TestJupyter(unittest.TestCase):
     def test_run_cell(self):
         """Выполнение ячейки."""
         with patch("handlers.jupyter.console.print"):
-            with patch("handlers.jupyter.get_state") as mock_state:
-                mock_state.return_value.current_notebook = "crypto_basics"
-                mock_state.return_value.completed_cells = []
-                mock_state.return_value.xp = 0
+            with patch("handlers.jupyter.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_notebook = "crypto_basics"
+                mock_state.completed_cells = []
+                mock_state.xp = 0
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _run_cell(1)
                 self.assertTrue(success)
 
     def test_run_cell_invalid_id(self):
         """Выполнение ячейки с неверным ID."""
         with patch("handlers.jupyter.console.print"):
-            with patch("handlers.jupyter.get_state") as mock_state:
-                mock_state.return_value.current_notebook = "crypto_basics"
+            with patch("handlers.jupyter.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_notebook = "crypto_basics"
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _run_cell(99)
                 self.assertFalse(success)
 
     def test_run_cell_without_notebook(self):
         """Выполнение ячейки без открытого ноутбука."""
         with patch("handlers.jupyter.console.print"):
-            with patch("handlers.jupyter.get_state") as mock_state:
-                del mock_state.return_value.current_notebook
+            with patch("handlers.jupyter.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_notebook = None
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _run_cell(1)
                 self.assertFalse(success)
 
     def test_submit_complete(self):
         """Отправка завершённого ноутбука."""
         with patch("handlers.jupyter.console.print"):
-            with patch("handlers.jupyter.get_state") as mock_state:
-                mock_state.return_value.current_notebook = "crypto_basics"
-                mock_state.return_value.completed_cells = [1, 2, 3]
-                mock_state.return_value.xp = 0
+            with patch("handlers.jupyter.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_notebook = "crypto_basics"
+                mock_state.completed_cells = [1, 2, 3]
+                mock_state.xp = 0
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _submit_notebook()
                 self.assertTrue(success)
 
     def test_submit_incomplete(self):
         """Отправка незавершённого ноутбука."""
         with patch("handlers.jupyter.console.print"):
-            with patch("handlers.jupyter.get_state") as mock_state:
-                mock_state.return_value.current_notebook = "crypto_basics"
-                mock_state.return_value.completed_cells = [1]
+            with patch("handlers.jupyter.get_context") as mock_get_context:
+                mock_state = MagicMock()
+                mock_state.current_notebook = "crypto_basics"
+                mock_state.completed_cells = [1]
+                mock_ctx = MagicMock()
+                mock_ctx.state = mock_state
+                mock_get_context.return_value = mock_ctx
                 success = _submit_notebook()
                 self.assertFalse(success)
 

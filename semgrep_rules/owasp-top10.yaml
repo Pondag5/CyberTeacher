@@ -1,0 +1,39 @@
+# OWASP Top 10 2021 — Semgrep Rules Index
+# Используйте: semgrep --config semgrep_rules/ <target>
+
+rules:
+  # A01: Broken Access Control
+  - id: owasp-a01-path-traversal
+    import: path-traversal.yaml
+
+  - id: owasp-a01-open-redirect
+    import: open-redirect.yaml
+
+  # A02: Cryptographic Failures
+  - id: owasp-a02-weak-crypto
+    import: weak-crypto.yaml
+
+  # A03: Injection
+  - id: owasp-a03-sql-injection
+    import: sql-injection.yaml
+
+  - id: owasp-a03-xss
+    import: xss.yaml
+
+  - id: owasp-a03-command-injection
+    import: command-injection.yaml
+
+  - id: owasp-a03-ldap-injection
+    import: ldap-injection.yaml
+
+  # A07: Identification and Authentication Failures
+  - id: owasp-a07-hardcoded-secrets
+    import: hardcoded-secrets.yaml
+
+  # A08: Software and Data Integrity Failures
+  - id: owasp-a08-insecure-deserialization
+    import: insecure-deserialization.yaml
+
+  # A10: Server-Side Request Forgery
+  - id: owasp-a10-ssrf
+    import: ssrf.yaml

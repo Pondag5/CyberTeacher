@@ -18,15 +18,17 @@ class MockState:
 class TestHandlersWriteupAuto(unittest.TestCase):
     """Tests for handlers/writeup_auto module"""
 
-    @patch("handlers.writeup_auto.get_state")
+    @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
-    def test_handle_auto_writeup_no_activity(self, mock_print, mock_get_state):
+    def test_handle_auto_writeup_no_activity(self, mock_print, mock_get_context):
         """Test when there is no last_writeup_activity"""
         from handlers import writeup_auto
 
         mock_state = MockState()
         mock_state.last_writeup_activity = None
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = writeup_auto.handle_auto_writeup("")
 
@@ -35,24 +37,26 @@ class TestHandlersWriteupAuto(unittest.TestCase):
             "[yellow]Нет данных для генерации writeup. Сначала пройдите квиз или задание.[/yellow]"
         )
 
-    @patch("handlers.writeup_auto.get_state")
+    @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
     def test_handle_auto_writeup_activity_without_topic(
-        self, mock_print, mock_get_state
+        self, mock_print, mock_get_context
     ):
         """Test activity missing topic/category"""
         from handlers import writeup_auto
 
         mock_state = MockState()
         mock_state.last_writeup_activity = {"type": "quiz"}  # no topic
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         result = writeup_auto.handle_auto_writeup("")
 
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call("[red]Не указана тема в активности[/red]")
 
-    @patch("handlers.writeup_auto.get_state")
+    @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
     @patch("knowledge.get_current_vectordb")
     @patch("knowledge.get_relevant_docs")
@@ -65,7 +69,7 @@ class TestHandlersWriteupAuto(unittest.TestCase):
         mock_get_docs,
         mock_vectordb,
         mock_print,
-        mock_get_state,
+        mock_get_context,
     ):
         """Test writeup generation for quiz activity with LLM"""
         from handlers import writeup_auto
@@ -88,7 +92,9 @@ class TestHandlersWriteupAuto(unittest.TestCase):
             ],
         }
         mock_state.last_writeup_activity = activity
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         # Mock vectordb and docs
         mock_vectordb.return_value = MagicMock()
@@ -109,7 +115,7 @@ class TestHandlersWriteupAuto(unittest.TestCase):
         self.assertEqual(len(mock_state.writeup_history), 1)
         self.assertEqual(mock_state.writeup_history[0]["topic"], "xss")
 
-    @patch("handlers.writeup_auto.get_state")
+    @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
     @patch("knowledge.get_current_vectordb")
     @patch("knowledge.get_relevant_docs")
@@ -124,7 +130,7 @@ class TestHandlersWriteupAuto(unittest.TestCase):
         mock_get_docs,
         mock_vectordb,
         mock_print,
-        mock_get_state,
+        mock_get_context,
     ):
         """Test writeup is saved to file when user confirms"""
         from handlers import writeup_auto
@@ -140,7 +146,9 @@ class TestHandlersWriteupAuto(unittest.TestCase):
             "feedback": "Good",
         }
         mock_state.last_writeup_activity = activity
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_vectordb.return_value = MagicMock()
         mock_doc = MagicMock()
@@ -159,12 +167,12 @@ class TestHandlersWriteupAuto(unittest.TestCase):
         # Verify state saved
         self.assertTrue(mock_state.save_called)
 
-    @patch("handlers.writeup_auto.get_state")
+    @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
     @patch("knowledge.get_current_vectordb")
     @patch("config.LazyLoader")
     def test_handle_auto_writeup_llm_exception(
-        self, mock_lazy, mock_vectordb, mock_print, mock_get_state
+        self, mock_lazy, mock_vectordb, mock_print, mock_get_context
     ):
         """Test writeup generation when LLM raises exception"""
         from handlers import writeup_auto
@@ -172,7 +180,9 @@ class TestHandlersWriteupAuto(unittest.TestCase):
         mock_state = MockState()
         activity = {"type": "quiz", "topic": "test"}
         mock_state.last_writeup_activity = activity
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_vectordb.return_value = MagicMock()
         mock_llm = MagicMock()
@@ -190,12 +200,12 @@ class TestHandlersWriteupAuto(unittest.TestCase):
             )
         )
 
-    @patch("handlers.writeup_auto.get_state")
+    @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
     @patch("knowledge.get_current_vectordb")
     @patch("config.LazyLoader")
     def test_handle_auto_writeup_no_vectordb(
-        self, mock_lazy, mock_vectordb, mock_print, mock_get_state
+        self, mock_lazy, mock_vectordb, mock_print, mock_get_context
     ):
         """Test writeup when vectordb is None (context unavailable)"""
         from handlers import writeup_auto
@@ -211,7 +221,9 @@ class TestHandlersWriteupAuto(unittest.TestCase):
             "feedback": "Good",
         }
         mock_state.last_writeup_activity = activity
-        mock_get_state.return_value = mock_state
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        mock_get_context.return_value = mock_ctx
 
         mock_vectordb.return_value = None
         mock_llm = MagicMock()

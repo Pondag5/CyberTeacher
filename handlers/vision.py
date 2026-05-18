@@ -17,13 +17,13 @@ from ui import console
 
 # Попытка импорта LLaVA
 try:
-    from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration
+    from transformers import LlavaNextForConditionalGeneration, LlavaNextProcessor
     LLAVA_AVAILABLE = True
 except ImportError:
     LLAVA_AVAILABLE = False
 
 # Симуляция анализа
-VISION_ANALYSIS: Dict[str, List[str]] = {
+VISION_ANALYSIS: dict[str, list[str]] = {
     "screenshot": [
         "Обнаружен интерфейс веб-приложения",
         "Видна форма входа с полями username/password",
@@ -123,7 +123,7 @@ def _ocr_image(image_path: str) -> bool:
         return False
 
 
-def handle_vision(args: str) -> Tuple[str, bool]:
+def handle_vision(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /vision."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""

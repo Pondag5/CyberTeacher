@@ -1,0 +1,55 @@
+# Weak Cryptography detection
+rules:
+  - id: python-weak-crypto
+    pattern-either:
+      - pattern: hashlib.md5($DATA)
+      - pattern: hashlib.sha1($DATA)
+      - pattern: |
+          from hashlib import md5
+          ...
+          md5($DATA)
+      - pattern: |
+          from hashlib import sha1
+          ...
+          sha1($DATA)
+      - pattern: DES.new($KEY, ...)
+      - pattern: ARC4.new($KEY)
+      - pattern: Blowfish.new($KEY)
+      - patterns:
+          - pattern: random.$FUNC($ARGS)
+          - pattern-inside: |
+              import random
+              ...
+      - pattern: |
+          Crypto.Cipher.DES.new($KEY, ...)
+      - pattern: |
+          Crypto.Cipher.ARC4.new($KEY)
+    message: "Weak Cryptography: использование слабых хеш-функций или алгоритмов. Используйте SHA-256+, AES, secrets module."
+    severity: WARNING
+    languages:
+      - python
+    metadata:
+      owasp: "A02:2021 – Cryptographic Failures"
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      confidence: HIGH
+      impact: MEDIUM
+
+  - id: js-weak-crypto
+    pattern-either:
+      - pattern: crypto.createHash("md5")
+      - pattern: crypto.createHash("sha1")
+      - pattern: |
+          require("crypto").createHash("md5")
+      - pattern: |
+          require("crypto").createHash("sha1")
+      - pattern: Math.random()
+    message: "Weak Cryptography: использование слабых хеш-функций или Math.random(). Используйте crypto.randomBytes."
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      owasp: "A02:2021 – Cryptographic Failures"
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      confidence: HIGH
+      impact: MEDIUM

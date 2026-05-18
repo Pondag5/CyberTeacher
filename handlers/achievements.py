@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from rich.console import Console
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -28,7 +28,8 @@ def handle_achievements(*args, **kwargs) -> tuple[bool, Any | None, Any | None, 
         achievements = {ach["id"]: ach for ach in data.get("achievements", [])}
 
         # Получить текущие достижения из state
-        state = get_state()
+        ctx = get_context()
+        state = ctx.state
         earned_ids = state.earned_achievements
 
         # Подкоманда: earn <id> - получить достижение (тестовый режим)

@@ -28,8 +28,7 @@ def track_skill(
     if success:
         s["successes"] += 1
     new_level = min(5, s["xp"] // 50)
-    if new_level > s["level"]:
-        s["level"] = new_level
+    s["level"] = max(s["level"], new_level)
 
 
 def get_skill_level(skill_tracker: dict[str, Any], skill: str) -> int:
@@ -52,5 +51,31 @@ def get_all_skills(skill_tracker: dict[str, Any]) -> list[dict[str, Any]]:
             "success_rate": round(
                 data["successes"] / data["attempts"] * 100, 1
             ) if data["attempts"] > 0 else 0,
+            "last_practice": data.get("last_practice", 0),
         })
     return sorted(result, key=lambda x: x["level"], reverse=True)
+
+
+def apply_skill_decay(
+    skill_tracker: dict[str, Any],
+    decay_days: int = 7,
+    decay_rate: float = 0.10,
+) -> list[str]:
+    """Применить decay к навыкам, которые не практиковались decay_days дней.
+    
+    Возвращает список навыков, которые были уменьшены.
+    """
+    now = time.time()
+    decay_seconds = decay_days * 86400
+    decayed = []
+
+    for name, data in skill_tracker.items():
+        last_practice = data.get("last_practice", 0)
+        if last_practice > 0 and (now - last_practice) > decay_seconds:
+            old_xp = data["xp"]
+            data["xp"] = max(0, int(old_xp * (1 - decay_rate)))
+            data["level"] = min(5, data["xp"] // 50)
+            if data["xp"] < old_xp:
+                decayed.append(name)
+
+    return decayed

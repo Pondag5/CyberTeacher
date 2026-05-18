@@ -3,12 +3,12 @@ Tests for features handler.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from handlers.features import (
     DEFAULT_FEATURES,
-    handle_features,
     _list_features,
+    handle_features,
     is_feature_enabled,
 )
 
@@ -43,7 +43,7 @@ class TestFeaturesHandler(unittest.TestCase):
     @patch("handlers.features.console")
     def test_enable_feature(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_state.feature_flags = {k: False for k in DEFAULT_FEATURES}
+        mock_state.feature_flags = dict.fromkeys(DEFAULT_FEATURES, False)
         mock_ctx = MagicMock()
         mock_ctx.state = mock_state
         mock_get_context.return_value = mock_ctx
@@ -58,7 +58,7 @@ class TestFeaturesHandler(unittest.TestCase):
     @patch("handlers.features.console")
     def test_disable_feature(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_state.feature_flags = {k: True for k in DEFAULT_FEATURES}
+        mock_state.feature_flags = dict.fromkeys(DEFAULT_FEATURES, True)
         mock_ctx = MagicMock()
         mock_ctx.state = mock_state
         mock_get_context.return_value = mock_ctx
@@ -115,7 +115,7 @@ class TestFeaturesHandler(unittest.TestCase):
     @patch("handlers.features.console")
     def test_reset_features(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_state.feature_flags = {k: False for k in DEFAULT_FEATURES}
+        mock_state.feature_flags = dict.fromkeys(DEFAULT_FEATURES, False)
         mock_ctx = MagicMock()
         mock_ctx.state = mock_state
         mock_get_context.return_value = mock_ctx

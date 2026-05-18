@@ -172,11 +172,12 @@ class TestHandleStats(unittest.TestCase):
             "quizzes": 5,
             "tasks": 10,
         }
+        mock_cache.stats.return_value = {"size": 0, "hit_count": 0, "access_count": 0}
         mock_conn = MagicMock()
         handle_stats(mock_conn)
         mock_get_stats.assert_called_once_with(mock_conn)
         mock_print.assert_any_call("[bold cyan]📈 Статистика:[/bold cyan]")
-        mock_print.assert_any_call("  Очков: 100")
+        mock_print.assert_any_call("  Очки: 100")
         mock_print.assert_any_call("  Квизов пройдено: 5")
         mock_print.assert_any_call("  Задач решено: 10")
 

@@ -1,0 +1,45 @@
+# SQL Injection detection for Python
+rules:
+  - id: python-sql-injection
+    pattern-either:
+      - patterns:
+          - pattern: cursor.execute("..." % ..., ...)
+          - pattern-inside: |
+              import $DB
+              ...
+      - patterns:
+          - pattern: cursor.execute("..." .format(...), ...)
+          - pattern-inside: |
+              import $DB
+              ...
+      - patterns:
+          - pattern: cursor.execute(f"...{...}...", ...)
+          - pattern-inside: |
+              import $DB
+              ...
+      - patterns:
+          - pattern: cursor.execute("..." + ... + "...", ...)
+          - pattern-inside: |
+              import $DB
+              ...
+      - patterns:
+          - pattern: django.db.connection.cursor().execute("..." % ..., ...)
+      - patterns:
+          - pattern: django.db.connection.cursor().execute("..." .format(...), ...)
+      - patterns:
+          - pattern: django.db.connection.cursor().execute(f"...{...}...", ...)
+      - patterns:
+          - pattern: sqlalchemy.text("..." % ...)
+      - patterns:
+          - pattern: sqlalchemy.text("..." .format(...))
+      - patterns:
+          - pattern: sqlalchemy.text(f"...{...}...")
+    message: "SQL Injection: использование string formatting в SQL-запросе. Используйте параметризованные запросы."
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      owasp: "A03:2021 – Injection"
+      cwe: "CWE-89: SQL Injection"
+      confidence: HIGH
+      impact: CRITICAL

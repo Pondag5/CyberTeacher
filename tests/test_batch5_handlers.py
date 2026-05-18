@@ -6,7 +6,8 @@ import json
 import os
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 
 # ── Assignment Templates Handler ──────────────────────────────
 class TestAssignmentTemplatesHandler(unittest.TestCase):
@@ -48,9 +49,11 @@ class TestAssignmentTemplatesHandler(unittest.TestCase):
     @patch("handlers.assignment_templates.console")
     def test_templates_generate_valid(self, mock_console):
         from handlers.assignment_templates import handle_assignment_templates
-        with patch("handlers.assignment_templates.get_state") as mock_get_state:
+        with patch("handlers.assignment_templates.get_context") as mock_get_context:
             mock_state = MagicMock()
-            mock_get_state.return_value = mock_state
+            mock_ctx = MagicMock()
+            mock_ctx.state = mock_state
+            mock_get_context.return_value = mock_ctx
 
             success, _, _, continue_loop = handle_assignment_templates("/templates generate web_discovery")
 
@@ -60,9 +63,11 @@ class TestAssignmentTemplatesHandler(unittest.TestCase):
     @patch("handlers.assignment_templates.console")
     def test_templates_generate_invalid(self, mock_console):
         from handlers.assignment_templates import handle_assignment_templates
-        with patch("handlers.assignment_templates.get_state") as mock_get_state:
+        with patch("handlers.assignment_templates.get_context") as mock_get_context:
             mock_state = MagicMock()
-            mock_get_state.return_value = mock_state
+            mock_ctx = MagicMock()
+            mock_ctx.state = mock_state
+            mock_get_context.return_value = mock_ctx
 
             success, _, _, continue_loop = handle_assignment_templates("/templates generate nonexistent")
 

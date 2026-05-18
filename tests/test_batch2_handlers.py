@@ -6,7 +6,8 @@ import json
 import os
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 
 # ── HTB Handler ───────────────────────────────────────────────
 class TestHTBHandler(unittest.TestCase):

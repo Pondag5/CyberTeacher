@@ -3,12 +3,12 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from state import AppState
 from handlers.analytics import (
-    handle_analytics,
     _compute_learning_metrics,
     _generate_ai_recommendation,
+    handle_analytics,
 )
+from state import AppState
 
 
 class TestAnalytics(unittest.TestCase):

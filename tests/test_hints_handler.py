@@ -3,7 +3,7 @@ Tests for hints handler.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from handlers.hints import (
     DEFAULT_PATTERNS,

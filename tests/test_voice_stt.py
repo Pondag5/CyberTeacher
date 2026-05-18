@@ -4,10 +4,10 @@ import unittest
 from unittest.mock import patch
 
 from handlers.voice import (
-    handle_voice,
-    _handle_voice_listen,
-    STT_AVAILABLE,
     SIMULATED_PHRASES,
+    STT_AVAILABLE,
+    _handle_voice_listen,
+    handle_voice,
 )
 
 

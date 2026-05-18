@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from rich.console import Console
 
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -33,7 +33,8 @@ def handle_practice(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         ):
             lab_name = parts[2]
             # Отмечаем запуск лаборатории в state (достижение)
-            state = get_state()
+            ctx = get_context()
+            state = ctx.state
             state.start_lab()
             # Reset hint counter for new lab session
             state.hints_used = 0
@@ -53,7 +54,8 @@ def handle_practice(action: str) -> tuple[bool, Any | None, Any | None, bool]:
             result = stop_lab(lab_name)
             console.print(result)
             # Сбросить таймер Trace при остановке лабы
-            state = get_state()
+            ctx = get_context()
+            state = ctx.state
             state.trace_deadline = None
             state.trace_hint = None
             return True, None, None, True

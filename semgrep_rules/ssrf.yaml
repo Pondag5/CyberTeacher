@@ -1,0 +1,47 @@
+# Server-Side Request Forgery (SSRF) detection
+rules:
+  - id: python-ssrf
+    pattern-either:
+      - pattern: requests.get(request.$GET, ...)
+      - pattern: requests.get(request.$POST, ...)
+      - pattern: requests.post(request.$GET, ...)
+      - pattern: requests.post(request.$POST, ...)
+      - pattern: urllib.request.urlopen(request.$GET)
+      - pattern: urllib.request.urlopen(request.$POST)
+      - pattern: httpx.get(request.$GET, ...)
+      - pattern: httpx.get(request.$POST, ...)
+      - pattern: httpx.post(request.$GET, ...)
+      - pattern: httpx.post(request.$POST, ...)
+      - patterns:
+          - pattern: |
+              url = request.$PARAM
+              ...
+              requests.get(url, ...)
+    message: "SSRF: пользовательский ввод используется как URL для запроса. Валидируйте URL и используйте allowlist."
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      owasp: "A10:2021 – Server-Side Request Forgery"
+      cwe: "CWE-918: Server-Side Request Forgery"
+      confidence: HIGH
+      impact: HIGH
+
+  - id: js-ssrf
+    pattern-either:
+      - pattern: axios.get(req.$PARAM)
+      - pattern: axios.post(req.$PARAM)
+      - pattern: fetch(req.$PARAM)
+      - pattern: request(req.$PARAM)
+      - pattern: http.get(req.$PARAM)
+      - pattern: https.get(req.$PARAM)
+    message: "SSRF: пользовательский ввод используется как URL. Валидируйте URL."
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      owasp: "A10:2021 – Server-Side Request Forgery"
+      cwe: "CWE-918: Server-Side Request Forgery"
+      confidence: HIGH
+      impact: HIGH

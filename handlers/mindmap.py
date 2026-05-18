@@ -12,7 +12,7 @@ from rich.panel import Panel
 
 from ui import console
 
-TOPIC_TREE: Dict[str, List[str]] = {
+TOPIC_TREE: dict[str, list[str]] = {
     "CyberSecurity": [
         "Network Security",
         "Web Security",
@@ -117,7 +117,7 @@ def _display_mindmap(topic: str = None) -> None:
     console.print("\n[dim]Используйте /mindmap <тема> для детализации.[/dim]")
 
 
-def handle_mindmap(args: str) -> Tuple[str, bool]:
+def handle_mindmap(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /mindmap."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""

@@ -3,14 +3,14 @@ Tests for phishing handler.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from handlers.phishing import (
-    PHISHING_TEMPLATES,
     PHISHING_CRITERIA,
-    handle_phishing,
+    PHISHING_TEMPLATES,
     _show_templates,
     _show_tips,
+    handle_phishing,
 )
 
 

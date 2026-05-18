@@ -12,7 +12,7 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -38,7 +38,8 @@ SIMULATED_PHRASES: list[str] = [
 
 def handle_voice(action: str, args: str = "") -> tuple[bool, str, Any]:
     """Handle voice commands: /voice on/off/test."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
 
     if action == "voice on":
         state.voice_enabled = True
@@ -79,7 +80,7 @@ _engine = None
 
 def _get_tts_engine():
     """Get or initialize the TTS engine."""
-    global _engine  # noqa: PLW0603
+    global _engine
     if _engine is not None:
         return _engine
 
@@ -87,7 +88,7 @@ def _get_tts_engine():
         import pyttsx3
 
         engine = pyttsx3.init()
-        engine.setProperty("rate", get_state().voice_rate)
+        engine.setProperty("rate", get_context().state.voice_rate)
         # Optionally set voice based on language
         voices = engine.getProperty("voices")
         # Try to find a Russian voice if available
@@ -111,7 +112,8 @@ def _speak(text: str) -> bool:
     Returns:
         True if spoken successfully, False otherwise.
     """
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     if not state.voice_enabled:
         return False
 
@@ -136,7 +138,7 @@ def _speak(text: str) -> bool:
 
 def speak_if_enabled(text: str):
     """Speak text if voice output is enabled. Non-blocking convenience wrapper."""
-    if not get_state().voice_enabled:
+    if not get_context().state.voice_enabled:
         return
     _speak(text)
 

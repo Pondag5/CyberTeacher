@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from config import LazyLoader
-from state import get_state
+from di import get_context
 
 console = Console()
 
@@ -64,7 +64,8 @@ def handle_threats(action: str) -> tuple[bool, Any | None, Any | None, bool]:
                 console.print(f"[bold]Ссылки:[/bold] {threat['references'][0]}")
             console.print()
             # Увеличить счётчик просмотренных APT-групп (C-13)
-            state = get_state()
+            ctx = get_context()
+            state = ctx.state
             state.increment_apt_groups_viewed()
             return True, None, None, True
         else:
@@ -269,7 +270,8 @@ def handle_threat_summary(
             console.print(
                 Panel(analysis, title="📊 Недельная сводка угроз", border_style="red")
             )
-            state = get_state()
+            ctx = get_context()
+            state = ctx.state
             state.increment_threat_exposures()
 
             # 5. Показываем исходники

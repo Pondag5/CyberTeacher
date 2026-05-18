@@ -15,13 +15,14 @@ from typing import Any, Dict, Tuple
 
 from rich.panel import Panel
 
-from state import get_state
+from di import get_context
 from ui import console
 
 
 def _generate_user_id() -> str:
     """Генерация уникального ID пользователя."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     if not hasattr(state, "sync_id"):
         state.sync_id = str(uuid.uuid4())[:8]
     return state.sync_id
@@ -29,7 +30,8 @@ def _generate_user_id() -> str:
 
 def _export_progress(filepath: str = None) -> bool:
     """Экспорт прогресса в JSON файл."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     if not filepath:
         filepath = f"cyberteacher_sync_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
 
@@ -78,7 +80,8 @@ def _import_progress(filepath: str) -> bool:
             console.print("[red]Неверный формат файла синхронизации.[/red]")
             return False
 
-        state = get_state()
+        ctx = get_context()
+        state = ctx.state
         progress = sync_data["progress"]
 
         # Восстановление данных
@@ -103,7 +106,7 @@ def _import_progress(filepath: str) -> bool:
         return False
 
 
-def handle_sync(args: str) -> Tuple[str, bool]:
+def handle_sync(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /sync."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""

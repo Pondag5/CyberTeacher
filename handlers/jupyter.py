@@ -14,10 +14,10 @@ from typing import Any, Dict, List, Tuple
 from rich.panel import Panel
 from rich.table import Table
 
-from state import get_state
+from di import get_context
 from ui import console
 
-NOTEBOOK_TEMPLATES: Dict[str, Dict[str, Any]] = {
+NOTEBOOK_TEMPLATES: dict[str, dict[str, Any]] = {
     "crypto_basics": {
         "title": "Основы криптографии",
         "description": "Шифрование/дешифрование Caesar, XOR, Base64.",
@@ -91,7 +91,8 @@ def _open_notebook(notebook_id: str) -> bool:
         border_style="cyan",
     ))
 
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     if hasattr(state, "current_notebook"):
         state.current_notebook = notebook_id
         state.completed_cells = []
@@ -100,7 +101,8 @@ def _open_notebook(notebook_id: str) -> bool:
 
 def _run_cell(cell_id: int) -> bool:
     """Выполнить ячейку."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     notebook_id = getattr(state, "current_notebook", None)
     if not notebook_id:
         console.print("[yellow]Сначала откройте ноутбук.[/yellow]")
@@ -125,7 +127,8 @@ def _run_cell(cell_id: int) -> bool:
 
 def _submit_notebook() -> bool:
     """Отправить ноутбук на проверку."""
-    state = get_state()
+    ctx = get_context()
+    state = ctx.state
     notebook_id = getattr(state, "current_notebook", None)
     if not notebook_id:
         console.print("[yellow]Нет активного ноутбука.[/yellow]")
@@ -154,7 +157,7 @@ def _submit_notebook() -> bool:
         return False
 
 
-def handle_jupyter(args: str) -> Tuple[str, bool]:
+def handle_jupyter(args: str) -> tuple[str, bool]:
     """Главный обработчик команды /jupyter."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":
