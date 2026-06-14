@@ -9,6 +9,18 @@ line_length = 88
 [tool.ruff]
 line-length = 88
 target-version = "py312"
+exclude = [
+    "config/paths.yaml",
+    "stubs/",
+    ".git/",
+    "__pycache__/",
+    ".venv/",
+    "venv/",
+    "env/",
+    "local/",
+    "backups/",
+    "dist/",
+]
 
 [tool.ruff.lint]
     select = ["E", "F", "W", "I", "N", "UP", "YTT", "BLE", "A", "B", "C4", "DTZ", "T20", "SIM", "ARG", "PL", "RUF"]
