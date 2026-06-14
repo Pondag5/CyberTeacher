@@ -6,9 +6,9 @@ from handlers.summary import handle_summary
 
 class TestSummary(unittest.TestCase):
     @patch("handlers.summary.input", create=True)
-    @patch("config.LazyLoader")
-    @patch("knowledge.get_relevant_docs")
-    @patch("knowledge.get_current_vectordb")
+    @patch("handlers.summary.LazyLoader")
+    @patch("handlers.summary.get_relevant_docs")
+    @patch("handlers.summary.get_current_vectordb")
     def test_handle_summary_success(
         self, mock_get_db, mock_get_docs, mock_lazy_loader, mock_input
     ):
@@ -33,17 +33,17 @@ class TestSummary(unittest.TestCase):
         result = handle_summary("summary SQL injection")
 
         self.assertEqual(result, (True, None, None, True))
-        mock_get_docs.assert_called()
-        mock_llm.invoke.assert_called()
+        mock_get_docs.assert_called_once()
+        mock_llm.invoke.assert_called_once()
 
-    @patch("knowledge.get_current_vectordb")
+    @patch("handlers.summary.get_current_vectordb")
     def test_handle_summary_no_db(self, mock_get_db):
         mock_get_db.return_value = None
         result = handle_summary("summary Test")
         self.assertEqual(result, (True, None, None, True))
 
-    @patch("knowledge.get_relevant_docs")
-    @patch("knowledge.get_current_vectordb")
+    @patch("handlers.summary.get_relevant_docs")
+    @patch("handlers.summary.get_current_vectordb")
     def test_handle_summary_no_docs(self, mock_get_db, mock_get_docs):
         mock_get_db.return_value = MagicMock()
         mock_get_docs.return_value = []

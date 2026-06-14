@@ -8,11 +8,13 @@ from rich.panel import Panel
 
 from di import get_context
 from i18n import get_available_languages, t
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 
-def handle_lang(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_lang(action: str) -> HandlerResult:
     """Handle /lang command for switching interface language."""
     ctx = get_context()
     state = ctx.state
@@ -43,7 +45,7 @@ def handle_lang(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _show_languages() -> tuple[bool, Any | None, Any | None, bool]:
+def _show_languages() -> HandlerResult:
     """Show available languages."""
     ctx = get_context()
     state = ctx.state

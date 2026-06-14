@@ -1,17 +1,17 @@
 # handlers/news.py
-from typing import Any, Optional
+from typing import Any, List, Dict, Union, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 
-def handle_security_news(
-    action: str, llm: Any
-) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_security_news(action: str, llm: Any) -> HandlerResult:
     """Handle /news command."""
     parts = action.split(maxsplit=1)
 
@@ -28,10 +28,20 @@ def handle_security_news(
             console.print("[yellow]Новостей нет.[/yellow]")
             return True, None, None, True
 
-        # Format for LLM
+        # Приведение к единому формату списка словарей
+        if isinstance(news, str):
+            news = [{"title": news, "desc": ""}]
+        elif isinstance(news, list) and all(isinstance(item, str) for item in news):
+            news = [{"title": item, "desc": ""} for item in news]
+        elif not isinstance(news, list):
+            news = []
+
+        if not news:
+            console.print("[yellow]Новостей нет.[/yellow]")
+            return True, None, None, True
+
         news_for_llm = "\n".join([f"- {n.get('title', '')}" for n in news[:5]])
 
-        # If LLM is available - process
         llm_obj = llm() if callable(llm) else llm
         if llm_obj:
             console.print("[cyan]Обрабатываю новости...[/cyan]")
@@ -42,14 +52,15 @@ def handle_security_news(
 Формат:
 1. [Название] - Краткое описание"""
             try:
-                processed = llm_obj.invoke(prompt)  # type: ignore
-                news_text = processed
+                response = llm_obj.invoke(prompt)
+                news_text = (
+                    response.content if hasattr(response, "content") else str(response)
+                )
             except Exception:
                 news_text = news_for_llm
         else:
             news_text = news_for_llm
 
-        # Save to state and mark news check
         ctx = get_context()
         state = ctx.state
         state.last_news = news_text
@@ -57,16 +68,14 @@ def handle_security_news(
         newly_earned = state.check_achievements()
         if newly_earned:
             for ach in newly_earned:
-                console.print(
-                    f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points', 0)} XP[/bold magenta]"
-                )
+                console.print(f"[bold magenta]🏆 Достижение: {ach} [/bold magenta]")
         console.print(Panel(news_text[:800], title="НОВОСТИ"))
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
 
 
-def _analyze_news(llm: Any) -> tuple[bool, Any | None, Any | None, bool]:
+def _analyze_news(llm: Any) -> HandlerResult:
     """News analysis by teacher (M-17) — deep analysis with context."""
     from config import LazyLoader
     from news_fetcher import fetch_news
@@ -78,6 +87,17 @@ def _analyze_news(llm: Any) -> tuple[bool, Any | None, Any | None, bool]:
         console.print("[yellow]Новостей нет для анализа.[/yellow]")
         return True, None, None, True
 
+    if isinstance(news, str):
+        news = [{"title": news, "desc": ""}]
+    elif isinstance(news, list) and all(isinstance(item, str) for item in news):
+        news = [{"title": item, "desc": ""} for item in news]
+    elif not isinstance(news, list):
+        news = []
+
+    if not news:
+        console.print("[yellow]Новостей нет.[/yellow]")
+        return True, None, None, True
+
     llm_obj = llm() if callable(llm) else llm
     if llm_obj is None:
         llm_obj = LazyLoader.get_llm()
@@ -86,9 +106,9 @@ def _analyze_news(llm: Any) -> tuple[bool, Any | None, Any | None, bool]:
         console.print("[red]❌ LLM недоступна[/red]")
         return True, None, None, True
 
-    news_text = "\n".join([
-        f"- {n.get('title', '')}: {n.get('desc', '')}" for n in news[:5]
-    ])
+    news_text = "\n".join(
+        [f"- {n.get('title', '')}: {n.get('desc', '')}" for n in news[:5]]
+    )
 
     prompt = f"""Ты — хакер из 90-х, учитель кибербезопасности. Проанализируй свежие новости.
 
@@ -107,7 +127,9 @@ def _analyze_news(llm: Any) -> tuple[bool, Any | None, Any | None, bool]:
         console.print("[cyan]Учитель анализирует новости...[/cyan]")
         response = llm_obj.invoke(prompt)
         content = response.content if hasattr(response, "content") else str(response)
-        console.print(Panel(content[:1200], title="🔍 АНАЛИЗ НОВОСТЕЙ", border_style="yellow"))
+        console.print(
+            Panel(content[:1200], title="🔍 АНАЛИЗ НОВОСТЕЙ", border_style="yellow")
+        )
 
         ctx = get_context()
         state = ctx.state
@@ -119,6 +141,6 @@ def _analyze_news(llm: Any) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def get_last_news() -> str | None:
+def get_last_news() -> Union[str, None]:
     """Get last news for prompt."""
     return get_context().state.last_news

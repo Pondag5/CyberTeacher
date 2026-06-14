@@ -6,6 +6,12 @@
 `from handlers import …` продолжал работать.
 """
 
+from __future__ import annotations
+from typing import Any, NamedTuple
+
+from handlers.types import HandlerResult
+
+
 # ── Константы & утилиты ────────────────────────────────────────
 from .achievements import handle_achievements
 

@@ -8,11 +8,13 @@ from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 
-def handle_config(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_config(action: str) -> HandlerResult:
     """Interactive configuration wizard."""
     import config
 
@@ -20,17 +22,19 @@ def handle_config(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     state = ctx.state
 
     if action == "config":
-        console.print(Panel(
-            "[bold cyan]⚙️ Мастер настройки CyberTeacher[/bold cyan]\n\n"
-            "Выберите действие:\n"
-            "  [cyan]1[/cyan] — Настроить LLM провайдер (wizard)\n"
-            "  [cyan]2[/cyan] — Показать текущую конфигурацию\n"
-            "  [cyan]3[/cyan] — Сбросить настройки к дефолтным\n"
-            "  [cyan]4[/cyan] — Настроить тему оформления (/theme)\n"
-            "  [cyan]5[/cyan] — Управление модулями (/features)\n",
-            title="НАСТРОЙКА",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel(
+                "[bold cyan]⚙️ Мастер настройки CyberTeacher[/bold cyan]\n\n"
+                "Выберите действие:\n"
+                "  [cyan]1[/cyan] — Настроить LLM провайдер (wizard)\n"
+                "  [cyan]2[/cyan] — Показать текущую конфигурацию\n"
+                "  [cyan]3[/cyan] — Сбросить настройки к дефолтным\n"
+                "  [cyan]4[/cyan] — Настроить тему оформления (/theme)\n"
+                "  [cyan]5[/cyan] — Управление модулями (/features)\n",
+                title="НАСТРОЙКА",
+                border_style="cyan",
+            )
+        )
         choice = input("Выбор: ").strip()
 
         if choice == "1":
@@ -41,9 +45,11 @@ def handle_config(action: str) -> tuple[bool, Any | None, Any | None, bool]:
             return _reset_config()
         elif choice == "4":
             from handlers.theme import handle_theme
+
             return handle_theme("theme")
         elif choice == "5":
             from handlers.features import handle_features
+
             return handle_features("features")
         else:
             console.print("[yellow]Отмена[/yellow]")
@@ -51,7 +57,7 @@ def handle_config(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
+def _wizard_llm() -> HandlerResult:
     """Пошаговая настройка LLM провайдера."""
     import config
 
@@ -63,9 +69,16 @@ def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
     console.print("  [cyan]2[/cyan] — OpenRouter (облако, API ключ)")
     console.print("  [cyan]3[/cyan] — HuggingFace (облако, HF token)")
     console.print("  [cyan]4[/cyan] — Groq (облако, быстро, бесплатно)")
+    console.print("  [cyan]5[/cyan] — LM Studio (локально, OpenAI-совместимый API)")
     provider_choice = input("\nВыбор: ").strip()
 
-    provider_map = {"1": "ollama", "2": "openrouter", "3": "huggingface", "4": "groq"}
+    provider_map = {
+        "1": "ollama",
+        "2": "openrouter",
+        "3": "huggingface",
+        "4": "groq",
+        "5": "lmstudio",
+    }
     provider = provider_map.get(provider_choice, "ollama")
 
     console.print(f"[green]✓ Провайдер: {provider}[/green]\n")
@@ -134,7 +147,9 @@ def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
                 os.environ["GROQ_API_KEY"] = api_key
                 console.print("[green]✓ GROQ_API_KEY установлен[/green]")
         else:
-            console.print("[yellow] Ключ не установлен — некоторые функции могут не работать[/yellow]")
+            console.print(
+                "[yellow] Ключ не установлен — некоторые функции могут не работать[/yellow]"
+            )
 
     # Применяем настройки
     config.LLM_PROVIDER = provider
@@ -150,20 +165,22 @@ def _wizard_llm() -> tuple[bool, Any | None, Any | None, bool]:
     # Сброс кэша LLM
     config.LazyLoader._llm = None
 
-    console.print(Panel(
-        f"[bold green]✅ Настройка завершена![/bold green]\n\n"
-        f"Провайдер: [cyan]{provider}[/cyan]\n"
-        f"Модель: [cyan]{model}[/cyan]\n"
-        f"API ключ: [cyan]{'установлен' if api_key else 'не требуется / пропущен'}[/cyan]\n\n"
-        "[dim]Следующий запрос загрузит модель с новыми настройками.[/dim]",
-        title="ГОТОВО",
-        border_style="green",
-    ))
+    console.print(
+        Panel(
+            f"[bold green]✅ Настройка завершена![/bold green]\n\n"
+            f"Провайдер: [cyan]{provider}[/cyan]\n"
+            f"Модель: [cyan]{model}[/cyan]\n"
+            f"API ключ: [cyan]{'установлен' if api_key else 'не требуется / пропущен'}[/cyan]\n\n"
+            "[dim]Следующий запрос загрузит модель с новыми настройками.[/dim]",
+            title="ГОТОВО",
+            border_style="green",
+        )
+    )
 
     return True, None, None, True
 
 
-def _show_config() -> tuple[bool, Any | None, Any | None, bool]:
+def _show_config() -> HandlerResult:
     """Show current configuration."""
     import config
 
@@ -178,30 +195,40 @@ def _show_config() -> tuple[bool, Any | None, Any | None, bool]:
 
     has_key = ""
     if provider == "openrouter":
-        has_key = "установлен" if os.environ.get("OPENROUTER_API_KEY") or config.OPENROUTER_API_KEY else "не установлен"
+        has_key = (
+            "установлен"
+            if os.environ.get("OPENROUTER_API_KEY") or config.OPENROUTER_API_KEY
+            else "не установлен"
+        )
     elif provider == "huggingface":
-        has_key = "установлен" if os.environ.get("HF_TOKEN") or config.HF_TOKEN else "не установлен"
+        has_key = (
+            "установлен"
+            if os.environ.get("HF_TOKEN") or config.HF_TOKEN
+            else "не установлен"
+        )
 
     ctx = get_context()
     state = ctx.state
     theme = state.current_theme if hasattr(state, "current_theme") else "default"
 
-    console.print(Panel(
-        f"[bold]📋 Текущая конфигурация[/bold]\n\n"
-        f"Провайдер: [cyan]{provider}[/cyan]\n"
-        f"Модель: [cyan]{model}[/cyan]\n"
-        f"API ключ: [cyan]{has_key if has_key else 'не требуется'}[/cyan]\n"
-        f"Тема: [cyan]{theme}[/cyan]\n"
-        f"Голос: [cyan]{'вкл' if state.voice_enabled else 'выкл'}[/cyan]\n"
-        f"Подсказки: [cyan]{'вкл' if state.hint_enabled else 'выкл'}[/cyan]",
-        title="КОНФИГУРАЦИЯ",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            f"[bold]📋 Текущая конфигурация[/bold]\n\n"
+            f"Провайдер: [cyan]{provider}[/cyan]\n"
+            f"Модель: [cyan]{model}[/cyan]\n"
+            f"API ключ: [cyan]{has_key if has_key else 'не требуется'}[/cyan]\n"
+            f"Тема: [cyan]{theme}[/cyan]\n"
+            f"Голос: [cyan]{'вкл' if state.voice_enabled else 'выкл'}[/cyan]\n"
+            f"Подсказки: [cyan]{'вкл' if state.hint_enabled else 'выкл'}[/cyan]",
+            title="КОНФИГУРАЦИЯ",
+            border_style="cyan",
+        )
+    )
 
     return True, None, None, True
 
 
-def _reset_config() -> tuple[bool, Any | None, Any | None, bool]:
+def _reset_config() -> HandlerResult:
     """Reset configuration to defaults."""
     import config
 

@@ -7,8 +7,20 @@ embeddings/
 *.db
 *.log
 temp*.txt
-test.json
 .env
+.env.bak
+.env.*
+!.env.example
+*.bak
+
+# Models package
+models/__pycache__/
+
+# Cache directories
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
 
 # Вложенные git-репозитории (не добавлять)
 /book_new/CheatSheetSeries/
@@ -16,9 +28,7 @@ test.json
 /book_new/container-security-checklist/
 /book_new/dostackbufferoverflowgood/
 /book_new/owasp-mstg/
-/temp_cheatsheets/
 
 # Системные файлы
-nul
 Thumbs.db
 .DS_Store

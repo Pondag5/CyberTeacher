@@ -1,0 +1,12 @@
+networks:
+  ct_lab_net:
+    driver: bridge
+services:
+  metasploitable3:
+    container_name: ct_metasploitable3
+    image: rapid7/metasploitable3-amd64
+    ports:
+      - "2200:22"
+      - "4444:4444"
+    restart: unless-stopped
+version: '3.8'

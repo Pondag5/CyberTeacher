@@ -23,7 +23,7 @@ import state
 
 class TestIntegrationBase(unittest.TestCase):
     """Базовый класс для интеграционных тестов.
-    
+
     Создает временную директорию, настраивает пути к БД и State,
     перезагружает модули для применения новых путей.
     """
@@ -41,6 +41,7 @@ class TestIntegrationBase(unittest.TestCase):
         # 3. Перезагружаем модули, чтобы они подхватили новые пути
         # Порядок важен: config зависит от env, db зависит от env, memory зависит от db
         import db
+
         importlib.reload(config)
         importlib.reload(db)
         importlib.reload(memory)
@@ -57,7 +58,7 @@ class TestIntegrationBase(unittest.TestCase):
         # Закрываем соединение
         if hasattr(self, "conn") and self.conn:
             self.conn.close()
-        
+
         # Удаляем временную папку
         if hasattr(self, "temp_dir"):
             shutil.rmtree(self.temp_dir, ignore_errors=True)
@@ -72,10 +73,10 @@ class TestMemoryIntegration(TestIntegrationBase):
 
         # Сохраняем сообщение
         save_message(self.conn, "user", "Привет, это интеграционный тест", "teacher")
-        
+
         # Получаем историю
         history = get_chat_history(self.conn)
-        
+
         # Проверяем
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0]["role"], "user")
@@ -92,7 +93,7 @@ class TestMemoryIntegration(TestIntegrationBase):
 
         # get_chat_history обычно возвращает последние N сообщений
         history = get_chat_history(self.conn, limit=10)
-        
+
         self.assertEqual(len(history), 3)
         # Проверяем, что последнее добавленное сообщение последнее в списке (или первое, зависит от реализации)
         # В нашей реализации обычно sort by id desc или asc.
@@ -110,7 +111,7 @@ class TestMemoryIntegration(TestIntegrationBase):
         self.assertEqual(len(get_chat_history(self.conn)), 1)
 
         clear_chat(self.conn)
-        
+
         self.assertEqual(len(get_chat_history(self.conn)), 0)
 
 
@@ -123,13 +124,13 @@ class TestStateIntegration(TestIntegrationBase):
         self.state.xp = 1500
         self.state.current_course = "web-security-advanced"
         self.state.username = "IntegrationTester"
-        
+
         # Сохраняем
         self.state.save_to_file()
 
         # Эмулируем перезапуск приложения: сбрасываем синглтон
         state._instance = None
-        
+
         # Загружаем заново
         new_state = state.get_state()
 
@@ -142,28 +143,28 @@ class TestStateIntegration(TestIntegrationBase):
         """Тест: загрузка состояния из пустого файла (дефолтные значения)."""
         # Файл состояния пустой (создан в setUp, но пустой)
         # При первом get_state() он должен инициализироваться дефолтами
-        
+
         # Принудительно сохраняем пустой файл (если он не создан)
         if not os.path.exists(self.state_path):
             self.state.save_to_file()
-            
+
         state._instance = None
         new_state = state.get_state()
-        
+
         # Проверяем дефолты (используем points вместо xp, так как в модели это points)
         self.assertEqual(new_state.points, 0.0)
         self.assertEqual(new_state.current_course, None)
-        self.assertEqual(new_state.username, "Аноним") # Или другое дефолтное имя
+        self.assertEqual(new_state.username, "Аноним")  # Или другое дефолтное имя
 
     def test_weak_topics_update(self):
         """Тест: обновление слабых тем."""
         # Добавляем слабую тему
         self.state.weak_topics = ["SQLi", "XSS"]
         self.state.save_to_file()
-        
+
         state._instance = None
         new_state = state.get_state()
-        
+
         self.assertIn("SQLi", new_state.weak_topics)
         self.assertIn("XSS", new_state.weak_topics)
 
@@ -175,18 +176,18 @@ class TestHandlerStateIntegration(TestIntegrationBase):
         """Тест: хендлеры корректно обновляют статистику команд в State."""
         # Симулируем вызов команды (обычно это делает main.py или core.py)
         # Но мы можем проверить, что state.command_usage обновляется
-        
+
         # Предположим, у нас есть функция update_command_usage или аналогичная логика
         # Если такой функции нет в публичном API, проверим через прямое изменение
         # и сохранение, чтобы убедиться, что поле существует и сериализуется.
-        
+
         self.state.command_usage["/help"] = 1
         self.state.command_usage["/news"] = 5
         self.state.save_to_file()
-        
+
         state._instance = None
         new_state = state.get_state()
-        
+
         self.assertEqual(new_state.command_usage["/help"], 1)
         self.assertEqual(new_state.command_usage["/news"], 5)
 
@@ -195,10 +196,10 @@ class TestHandlerStateIntegration(TestIntegrationBase):
         self.state.earned_achievements = ["first_steps", "quiz_master"]
         self.state.points = 100.0
         self.state.save_to_file()
-        
+
         state._instance = None
         new_state = state.get_state()
-        
+
         self.assertEqual(len(new_state.earned_achievements), 2)
         self.assertIn("quiz_master", new_state.earned_achievements)
         self.assertEqual(new_state.points, 100.0)
@@ -211,12 +212,14 @@ class TestE2ELearningCycle(TestIntegrationBase):
         """E2E: Полный цикл обучения — курс → квиз → результат → слабые темы."""
         from memory import save_message
 
-        # 1. Выбираем курс (используем метод set_course)
-        self.state.set_course("web-security")
+        # 1. Выбираем курс (используем атрибут current_course)
+        self.state.current_course = "web-security"
         self.state.save_to_file()
 
         # 2. Симулируем квиз (сохраняем вопросы/ответы в БД)
-        save_message(self.conn, "user", "Какой символ используется для SQL-инъекции?", "quiz")
+        save_message(
+            self.conn, "user", "Какой символ используется для SQL-инъекции?", "quiz"
+        )
         save_message(self.conn, "assistant", "Одинарная кавычка '", "quiz")
 
         # 3. Симулируем плохой результат квиза
@@ -228,7 +231,7 @@ class TestE2ELearningCycle(TestIntegrationBase):
         # 4. Проверяем адаптивную рекомендацию
         state._instance = None
         new_state = state.get_state()
-        
+
         self.assertEqual(new_state.current_course, "web-security")
         self.assertIn("sqli", new_state.weak_topics)
         self.assertEqual(new_state.points, 50.0)
@@ -262,16 +265,16 @@ class TestE2ELearningCycle(TestIntegrationBase):
         from memory import save_message
 
         # Добавляем элемент в расписание повторений
-        if hasattr(self.state, 'review_schedule'):
+        if hasattr(self.state, "review_schedule"):
             self.state.review_schedule = [
                 {"topic": "XSS", "next_review": "2026-05-18", "interval": 1},
-                {"topic": "CSRF", "next_review": "2026-05-20", "interval": 3}
+                {"topic": "CSRF", "next_review": "2026-05-20", "interval": 3},
             ]
             self.state.save_to_file()
 
             state._instance = None
             new_state = state.get_state()
-            
+
             self.assertEqual(len(new_state.review_schedule), 2)
             self.assertEqual(new_state.review_schedule[0]["topic"], "XSS")
 
@@ -289,7 +292,9 @@ class TestE2EVersusCycle(TestIntegrationBase):
         self.state.save_to_file()
 
         # 2. Первый ход
-        self.state.versus_history.append({"role": "system", "content": "Server: SELECT * FROM users WHERE id="})
+        self.state.versus_history.append(
+            {"role": "system", "content": "Server: SELECT * FROM users WHERE id="}
+        )
         self.state.versus_history.append({"role": "user", "content": "' OR '1'='1"})
         self.state.versus_attempts = 1
         self.state.save_to_file()
@@ -297,7 +302,9 @@ class TestE2EVersusCycle(TestIntegrationBase):
         # 3. Второй ход
         state._instance = None
         s = state.get_state()
-        s.versus_history.append({"role": "system", "content": "Server: Access granted!"})
+        s.versus_history.append(
+            {"role": "system", "content": "Server: Access granted!"}
+        )
         s.versus_attempts = 2
         s.save_to_file()
 
@@ -358,7 +365,7 @@ class TestE2EChatHistory(TestIntegrationBase):
 
         history = get_chat_history(self.conn)
         modes = [h["mode"] for h in history]
-        
+
         self.assertIn("teacher", modes)
         self.assertIn("quiz", modes)
         self.assertIn("ctf", modes)
@@ -377,17 +384,17 @@ class TestE2EAchievementsCycle(TestIntegrationBase):
         # Выполняем действие (например, 10 квизов)
         self.state.quiz_count = 10
         self.state.points = 100.0
-        
+
         # Разблокируем достижение
         if "quiz_master" not in self.state.earned_achievements:
             self.state.earned_achievements.append("quiz_master")
-        
+
         self.state.save_to_file()
 
         # Проверяем
         state._instance = None
         new_state = state.get_state()
-        
+
         self.assertIn("quiz_master", new_state.earned_achievements)
         self.assertEqual(new_state.points, 100.0)
         self.assertEqual(new_state.quiz_count, 10)
@@ -399,7 +406,7 @@ class TestE2ELabCycle(TestIntegrationBase):
     def test_lab_lifecycle(self):
         """E2E: Полный цикл лаборатории — выбор → запуск → проверка → остановка."""
         # Проверяем, что lab_state существует
-        if hasattr(self.state, 'active_labs'):
+        if hasattr(self.state, "active_labs"):
             # 1. Выбор лаборатории
             self.state.active_labs = {"lab-1": {"name": "DVWA", "status": "stopped"}}
             self.state.save_to_file()
@@ -430,7 +437,7 @@ class TestE2EShopCycle(TestIntegrationBase):
 
     def test_shop_purchase_flow(self):
         """E2E: Покупка в магазине — проверка XP → списание → получение предмета."""
-        if hasattr(self.state, 'inventory') and hasattr(self.state, 'hint_credits'):
+        if hasattr(self.state, "inventory") and hasattr(self.state, "hint_credits"):
             # Начальное состояние
             self.state.points = 500.0
             self.state.hint_credits = 0

@@ -5,16 +5,14 @@ import json
 import logging
 import os
 from collections import OrderedDict, deque
-from typing import Any, Optional
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
 from state import get_state
-from ui import Mode, show_help, show_help_detail, show_menu
-
-from .registry import registry
+from ui import Mode, show_help_detail
 
 from .achievements import handle_achievements
 from .code_review_v2 import handle_code_review_v2
@@ -47,12 +45,24 @@ from .misc import (
     handle_set_api_key,
     handle_state,
     handle_story_mode,
+    handle_final_choice,
     handle_terminal_log,
     handle_topics,
     handle_usage,
     handle_version,
     handle_writeup,
     handle_writeups,
+    handle_noise,
+    handle_trace,
+    handle_check_logs,
+    handle_wipe_logs,
+    handle_stealth,
+    handle_debts,
+    handle_faction,
+    handle_echo,
+    handle_memory,
+    handle_ghost_log,
+    handle_backdoor,
 )
 from .missions import handle_missions
 from .network import handle_network
@@ -61,7 +71,7 @@ from .offline import handle_offline
 from .mood import handle_mood
 
 # ----------------------------------------------------------------------
-# Импорты модулей handlers
+# Статические импорты (все хендлеры, которые были динамическими)
 # ----------------------------------------------------------------------
 from .practice import handle_container_check, handle_practice
 from .htb import handle_htb
@@ -75,7 +85,13 @@ from .analytics import handle_analytics
 from .phishing import handle_phishing
 from .profile import handle_profile
 from .mermaid import handle_mermaid
-from .skills import handle_depth, handle_reputation, handle_skills, handle_skills_list, handle_certificates
+from .skills import (
+    handle_depth,
+    handle_reputation,
+    handle_skills,
+    handle_skills_list,
+    handle_certificates,
+)
 from .quiz import (
     handle_code_review,
     handle_quiz_action,
@@ -95,6 +111,25 @@ from .theme import handle_theme
 from .lang import handle_lang
 from .writeup_auto import handle_auto_writeup
 
+from .ctf_flags import handle_ctf_flags
+from .daily import handle_daily
+from .osint import handle_osint
+from .history import handle_timeline
+from .exploit_trainer import handle_exploits
+from .shodan_censys import handle_shodan, handle_censys
+from .malware_analysis import handle_malware
+from .investigation import handle_investigation
+from .jupyter import handle_jupyter
+from .media import handle_media
+from .timeloop import handle_timeloop
+from .sync import handle_sync
+from .api_handler import handle_api
+from .pwa import handle_pwa
+from .versus import handle_versus
+from .assignment_templates import handle_assignment_templates
+from handlers.types import HandlerResult
+
+
 console = Console()
 logger = logging.getLogger(__name__)
 
@@ -103,19 +138,21 @@ logger = logging.getLogger(__name__)
 # RESPONSE CACHE
 # ----------------------------------------------------------------------
 class ResponseCache:
-    def __init__(self, capacity: int = 100):
-        self.cache = OrderedDict()
-        self.capacity = capacity
-        self.access_order = deque()
-        self.hit_count = 0
-        self.access_count = 0
+    def __init__(
+        self, capacity: int = 100, cache_file: str = "./memory/response_cache.json"
+    ) -> None:
+        self.cache: OrderedDict[str, Any] = OrderedDict()
+        self.capacity: int = capacity
+        self.cache_file: str = cache_file
+        self.access_order: deque[str] = deque()
+        self.hit_count: int = 0
+        self.access_count: int = 0
         self._load()
 
-    def _load(self):
+    def _load(self) -> None:
         try:
-            cache_file = "./memory/response_cache.json"
-            if os.path.exists(cache_file):
-                with open(cache_file, "r", encoding="utf-8") as f:
+            if os.path.exists(self.cache_file):
+                with open(self.cache_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 self.cache = OrderedDict(data.get("cache", {}))
                 self.access_order = deque(data.get("access_order", []))
@@ -130,16 +167,16 @@ class ResponseCache:
         except Exception as e:
             logger.error(f"[ResponseCache] load error: {e}")
 
-    def _save(self):
+    def _save(self) -> None:
         try:
-            os.makedirs("./memory", exist_ok=True)
+            os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
             data = {
                 "cache": dict(self.cache),
                 "access_order": list(self.access_order),
                 "hit_count": self.hit_count,
                 "access_count": self.access_count,
             }
-            with open("./memory/response_cache.json", "w", encoding="utf-8") as f:
+            with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.error(f"[ResponseCache] save error: {e}")
@@ -154,7 +191,7 @@ class ResponseCache:
         self.hit_count += 1
         return self.cache[key]
 
-    def put(self, key: str, value: Any):
+    def put(self, key: str, value: Any) -> None:
         if key in self.cache:
             self.cache.move_to_end(key)
             self.access_order.remove(key)
@@ -164,13 +201,13 @@ class ResponseCache:
             oldest = self.access_order.popleft()
             del self.cache[oldest]
 
-    def clear(self):
+    def clear(self) -> None:
         self.cache.clear()
         self.access_order.clear()
         self.hit_count = 0
         self.access_count = 0
 
-    def stats(self) -> dict:
+    def stats(self) -> dict[str, Any]:
         return {
             "size": len(self.cache),
             "capacity": self.capacity,
@@ -182,13 +219,13 @@ class ResponseCache:
 _response_cache = ResponseCache()
 
 
-def clear_response_cache():
+def clear_response_cache() -> None:
     _response_cache.clear()
     with contextlib.suppress(Exception):
         _response_cache._save()
 
 
-def show_cache_stats():
+def show_cache_stats() -> None:
     stats = _response_cache.stats()
     console.print(f"[bold cyan]📊 Статистика кэша ответов:[/bold cyan]")
     console.print(f"  Размер: {stats['size']} / {stats['capacity']}")
@@ -201,21 +238,21 @@ def show_cache_stats():
 
 
 # ----------------------------------------------------------------------
-# ПОМОГОТЕЛЬНЫЕ ФУНКЦИИ
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ----------------------------------------------------------------------
-def show_help():
+def show_help() -> None:
     from ui import show_help as ui_help
 
     ui_help()
 
 
-def show_menu():
+def show_menu() -> None:
     from ui import show_menu as ui_menu
 
     ui_menu()
 
 
-def handle_stats(conn):
+def handle_stats(conn: Any) -> HandlerResult:
     """Показать статистику пользователя."""
     import time
 
@@ -225,7 +262,7 @@ def handle_stats(conn):
     stats = get_stats(conn)
 
     # ANA-01: Session duration
-    start_ts = state.metrics.start_time
+    start_ts: float = state.metrics.get("start_time", 0)
     if start_ts > 0:
         elapsed = time.time() - start_ts
         hours = int(elapsed // 3600)
@@ -237,11 +274,17 @@ def handle_stats(conn):
     weak_count = len(state.get_weak_topics(threshold=70.0))
     due_reviews = len(state.get_due_reviews())
     streak = state.daily_streak
-    session_count = state.metrics.session_count if hasattr(state.metrics, "session_count") else 0
+    session_count = (
+        state.metrics.session_count if hasattr(state.metrics, "session_count") else 0
+    )
     cache_stats = _response_cache.stats()
     access_count = cache_stats.get("access_count", 0)
     hit_count = cache_stats.get("hit_count", 0)
-    hit_rate = (hit_count / access_count * 100) if isinstance(access_count, (int, float)) and access_count > 0 else 0
+    hit_rate = (
+        (hit_count / access_count * 100)
+        if isinstance(access_count, (int, float)) and access_count > 0
+        else 0
+    )
     cache_size = cache_stats.get("size", 0)
 
     console.print(f"[bold cyan]📈 Статистика:[/bold cyan]")
@@ -257,22 +300,24 @@ def handle_stats(conn):
     return True, None, None, True
 
 
-def handle_fixcode(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_fixcode(action: str) -> HandlerResult:
     """Генерация безопасной версии кода (L-09)."""
     from code_review import generate_secure_code
 
     parts = action.split(maxsplit=2)
 
     if len(parts) < 3:
-        console.print(Panel(
-            "[bold cyan]🔒 Генерация безопасного кода[/bold cyan]\n\n"
-            "Использование:\n"
-            "  /fixcode <язык> <код>  — сгенерировать безопасную версию\n\n"
-            "Языки: python, javascript, php, java, bash\n\n"
-            "Пример: /fixcode python query = f\"SELECT * FROM users WHERE id={user_id}\"",
-            title="FIXCODE",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel(
+                "[bold cyan]🔒 Генерация безопасного кода[/bold cyan]\n\n"
+                "Использование:\n"
+                "  /fixcode <язык> <код>  — сгенерировать безопасную версию\n\n"
+                "Языки: python, javascript, php, java, bash\n\n"
+                'Пример: /fixcode python query = f"SELECT * FROM users WHERE id={user_id}"',
+                title="FIXCODE",
+                border_style="cyan",
+            )
+        )
         return True, None, None, True
 
     language = parts[1].lower()
@@ -282,7 +327,9 @@ def handle_fixcode(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     secure = generate_secure_code(code, language)
 
     if secure:
-        console.print(Panel(secure[:1500], title="🔒 БЕЗОПАСНАЯ ВЕРСИЯ", border_style="green"))
+        console.print(
+            Panel(secure[:1500], title="🔒 БЕЗОПАСНАЯ ВЕРСИЯ", border_style="green")
+        )
         state = get_context().state
         state.track_skill("secure_coding", True, 20)
     else:
@@ -298,34 +345,31 @@ def handle_commands(
     action: str,
     conn: Any,
     llm: Any,
-) -> tuple[bool, Any | None, Any | None, bool]:
+) -> HandlerResult:
     """Главный диспетчер. Все команды (включая numeric menu) передаются в handle_extended_commands."""
-    # Initialize DI context with current connection and LLM
-    from di import AppContext
+    from di import AppContext, set_context
+
     ctx = AppContext(state=get_state(), db_conn=conn, _llm=llm)
-    from di import set_context
     set_context(ctx)
 
     return handle_extended_commands(action, llm, conn)
 
 
-def handle_extended_commands(
-    action: str, llm: Any, conn: Any
-) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_extended_commands(action: str, llm: Any, conn: Any) -> HandlerResult:
     """Обработка всех команд. Если команда неизвестна — блокируем передачу в LLM."""
     state = get_context().state
 
     # Track command usage (M-31)
     state.track_command_usage(action.split(maxsplit=1)[0] if action else "unknown")
 
-    # Try registry first for extensible commands
-    handler, remaining_args = registry.get_handler(action)
-    if handler is not None:
-        return handler(remaining_args, llm, conn)
-
     # ----- Simple commands -----
-    if action in ("help", "menu"):
-        show_help() if action == "help" else show_menu()
+    if action in ("help", "menu", "help detail"):
+        if action == "menu":
+            show_menu()
+        elif action == "help detail":
+            show_help_detail()
+        else:
+            show_help()
         return True, None, None, True
 
     if action == "guide":
@@ -333,7 +377,7 @@ def handle_extended_commands(
             with open("docs/ГАЙД_VM.md", "r", encoding="utf-8") as f:
                 guide = f.read()
             console.print(Panel(guide[:1000], title="ГАЙД ПО LAB", border_style="cyan"))
-        except Exception:
+        except (OSError, IOError):
             console.print("[yellow]Гайд не найден[/yellow]")
         return True, None, None, True
 
@@ -390,14 +434,16 @@ def handle_extended_commands(
         console.print("[cyan]🎯 Генерирую задание...[/cyan]")
         task = generate_task(vectordb=None, category=category)
         if task:
-            console.print(Panel(
-                f"[bold]Категория:[/bold] {task.category}\n"
-                f"[bold]Сложность:[/bold] {task.difficulty}\n\n"
-                f"[bold]Задача:[/bold]\n{task.question}\n\n"
-                f"[bold]Подсказка:[/bold] {task.hint}",
-                title="ЗАДАНИЕ",
-                border_style="yellow",
-            ))
+            console.print(
+                Panel(
+                    f"[bold]Категория:[/bold] {task.category}\n"
+                    f"[bold]Сложность:[/bold] {task.difficulty}\n\n"
+                    f"[bold]Задача:[/bold]\n{task.question}\n\n"
+                    f"[bold]Подсказка:[/bold] {task.hint}",
+                    title="ЗАДАНИЕ",
+                    border_style="yellow",
+                )
+            )
         else:
             console.print("[red]❌ Не удалось сгенерировать задание[/red]")
         return True, None, None, True
@@ -426,6 +472,10 @@ def handle_extended_commands(
     if action == "hybrid":
         state.set_persona("hybrid")
         return True, Mode.HYBRID, None, True
+
+    # ----- Persona router (dynamic) -----
+    if action == "persona" or action.startswith("persona "):
+        return handle_persona(action)
 
     # ----- Offline mode (G-07) -----
     if action == "offline" or action.startswith("offline "):
@@ -470,6 +520,12 @@ def handle_extended_commands(
         return handle_topics(action)
     if action in ("story", "episode", "quest"):
         return handle_story_mode(action)
+    if action == "final" or action.startswith("final "):
+        return handle_final_choice(action)
+    if action == "timeline" or action.startswith("timeline "):
+        from handlers.misc import handle_timeline_action
+
+        return handle_timeline_action(action)
 
     # ----- Tracks (M-29) -----
     if action == "tracks" or action.startswith("tracks "):
@@ -530,6 +586,60 @@ def handle_extended_commands(
     if action.startswith("risk "):
         return handle_risk(action)
 
+    # ----- Noise / Stealth / Trace -----
+    if action == "noise":
+        return handle_noise(action)
+    if action == "stealth":
+        return handle_stealth(action)
+    if action == "trace":
+        return handle_trace(action)
+
+    # ----- Dirty logs -----
+    if action == "check_logs":
+        return handle_check_logs(action)
+    if action == "wipe_logs":
+        return handle_wipe_logs(action)
+
+    # ----- Debts -----
+    if action == "debts":
+        return handle_debts(action)
+
+    # ----- Factions -----
+    if action == "faction" or action.startswith("faction "):
+        return handle_faction(action)
+
+    # ----- Echo -----
+    if action == "echo":
+        return handle_echo(action)
+
+    # ----- Memory -----
+    if action in ("memory", "memories"):
+        return handle_memory(action)
+
+    # ----- Watchers -----
+    if action == "watchers":
+        from handlers.watchers import handle_watchers
+
+        return handle_watchers(action)
+
+    # ----- Phantom labs -----
+    if action == "phantom" or action.startswith("phantom "):
+        from handlers.phantom_lab import handle_phantom
+
+        return handle_phantom(action)
+
+    # ----- Secret room -----
+    if action == "secret" or action.startswith("secret "):
+        from handlers.secret_room import handle_secret
+
+        return handle_secret(action)
+
+    # ----- Rewind (time machine) -----
+    if action == "rewind" or action.startswith("rewind "):
+        from handlers.rewind import handle_rewind
+
+        return handle_rewind(action)
+
     # ----- Adaptive learning -----
     if action in {"adaptive", "weaknesses"}:
         return handle_adaptive(action)
@@ -541,12 +651,6 @@ def handle_extended_commands(
     # ----- Advanced Analytics (M-33) -----
     if action == "analytics":
         return handle_analytics(action)
-
-    # ----- Voice Assistant (M-34) -----
-    if action.startswith("voice") or action == "voice":
-        from handlers.voice import handle_voice
-
-        return handle_voice(action, "")
 
     # ----- Spaced Repetition -----
     if action == "repeat":
@@ -567,6 +671,14 @@ def handle_extended_commands(
         return handle_auto_writeup(action)
     if action == "health":
         return handle_health(action)
+    if action == "doctor" or action.startswith("doctor "):
+        from handlers.doctor import handle_doctor
+
+        return handle_doctor(action)
+    if action == "context" or action.startswith("context "):
+        from handlers.context import handle_context
+
+        return handle_context(action)
     if action == "backup":
         return handle_backup(action)
     if action == "state" or action.startswith("state "):
@@ -654,7 +766,6 @@ def handle_extended_commands(
 
     # ----- Assignment templates (L-17) -----
     if action == "templates" or action.startswith("templates "):
-        from handlers.assignment_templates import handle_assignment_templates
         return handle_assignment_templates(action)
 
     # ----- Emotions (M-19) -----
@@ -667,7 +778,6 @@ def handle_extended_commands(
 
     # ----- CTF dynamic flags (G-03) -----
     if action == "ctf" or action.startswith("ctf "):
-        from handlers.ctf_flags import handle_ctf_flags
         return handle_ctf_flags(action)
 
     # ----- User profile (G-09) -----
@@ -676,81 +786,238 @@ def handle_extended_commands(
 
     # ----- Daily Challenge -----
     if action == "daily" or action.startswith("daily "):
-        from handlers.daily import handle_daily
         return handle_daily(action)
 
     # ----- OSINT Module (M-03) -----
     if action == "osint" or action.startswith("osint "):
-        from handlers.osint import handle_osint
         return handle_osint(action)
 
     # ----- Historical Mode (M-05) -----
     if action == "timeline" or action.startswith("timeline "):
-        from handlers.history import handle_timeline
         return handle_timeline(action)
 
     # ----- Exploit Trainer (M-06) -----
     if action == "exploits" or action.startswith("exploits "):
-        from handlers.exploit_trainer import handle_exploits
         return handle_exploits(action)
 
     # ----- Shodan / Censys Integration (M-07) -----
     if action == "shodan" or action.startswith("shodan "):
-        from handlers.shodan_censys import handle_shodan
         return handle_shodan(action)
     if action == "censys" or action.startswith("censys "):
-        from handlers.shodan_censys import handle_censys
         return handle_censys(action)
 
     # ----- Malware Analysis Sandbox (M-08) -----
     if action == "malware" or action.startswith("malware "):
-        from handlers.malware_analysis import handle_malware
         return handle_malware(action)
 
     # ----- Interactive Investigations (M-10) -----
     if action == "investigation" or action.startswith("investigation "):
-        from handlers.investigation import handle_investigation
         return handle_investigation(action)
 
     # ----- Jupyter Notebook Support (M-12) -----
     if action == "jupyter" or action.startswith("jupyter "):
-        from handlers.jupyter import handle_jupyter
         return handle_jupyter(action)
 
     # ----- Video/Podcasts Player (M-16) -----
     if action == "media" or action.startswith("media "):
-        from handlers.media import handle_media
         return handle_media(action)
 
     # ----- Time Loop / Alternate Realities (M-18) -----
     if action == "timeloop" or action.startswith("timeloop "):
-        from handlers.timeloop import handle_timeloop
         return handle_timeloop(action)
 
     # ----- Cross-platform Sync (M-20) -----
     if action == "sync" or action.startswith("sync "):
-        from handlers.sync import handle_sync
         return handle_sync(action)
 
     # ----- REST API Server (M-31) -----
     if action == "api" or action.startswith("api "):
-        from handlers.api_handler import handle_api
         return handle_api(action)
 
     # ----- Mobile Companion App PWA (M-32) -----
     if action == "pwa" or action.startswith("pwa "):
-        from handlers.pwa import handle_pwa
         return handle_pwa(action)
 
     # ----- LLM Versus Mode (NEW-01) -----
     if action == "versus" or action.startswith("versus "):
-        from handlers.versus import handle_versus
         return handle_versus(action)
 
+    # ----- World Stability + Teacher Sleep (Chapter 7) -----
+    if action == "stability" or action.startswith("stability "):
+        from handlers.misc import handle_stability
+        return handle_stability(action)
+
+    if action == "teacher_sleep" or action.startswith("teacher_sleep "):
+        from handlers.misc import handle_teacher_sleep
+        return handle_teacher_sleep(action)
+
+    # ----- FAISS Watcher (Optimization) -----
+    if action == "faiss_watch" or action.startswith("faiss_watch "):
+        from handlers.misc import handle_faiss_watch
+        return handle_faiss_watch(action)
+
+    # ----- Ghost Log (Chapter 1) -----
+    if action == "ghost_log" or action.startswith("ghost_log "):
+        from handlers.misc import handle_ghost_log
+
+        return handle_ghost_log(action)
+
+    # ----- Backdoors (Chapter 5) -----
+    if action == "backdoor" or action.startswith("backdoor "):
+        from handlers.misc import handle_backdoor
+
+        return handle_backdoor(action)
+
+    # ----- Tutorial -----
+    if action == "tutorial":
+        from smart_hints import get_tutorial_step, get_total_tutorial_steps
+
+        step = getattr(state, "tutorial_step", 0)
+        total = get_total_tutorial_steps()
+        if step >= total:
+            console.print(
+                "[green]\u2705 \u0422\u0443\u0442\u043e\u0440\u0438\u0430\u043b \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d![/green]"
+            )
+            return True, None, None, True
+        data = get_tutorial_step(step)
+        if data:
+            console.print(
+                Panel(
+                    f"{data['message']}\n\n"
+                    f"[cyan]\u0412\u0432\u0435\u0434\u0438\u0442\u0435:[/cyan] {data['command']}\n"
+                    f"[dim]{data['hint']}[/dim]",
+                    title=f"\ud83c\udfaf \u0422\u0443\u0442\u043e\u0440\u0438\u0430\u043b ({step + 1}/{total})",
+                    border_style="cyan",
+                )
+            )
+            state.tutorial_step = step + 1
+        return True, None, None, True
+
+    # ----- Difficulty level -----
+    if action.startswith("difficulty"):
+        parts = action.split()
+        if len(parts) < 2:
+            from adaptive_ui import (
+                DIFFICULTY_CONFIG,
+                DIFFICULTY_LEVELS,
+                get_progress_hint,
+            )
+
+            level = getattr(state, "difficulty_level", "beginner")
+            config = DIFFICULTY_CONFIG.get(level, {})
+            lines = [
+                f"\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u0443\u0440\u043e\u0432\u0435\u043d\u044c: {config.get('difficulty_label', level)}"
+            ]
+            for l in DIFFICULTY_LEVELS:
+                c = DIFFICULTY_CONFIG.get(l, {})
+                marker = "\u2705" if l == level else "  "
+                lines.append(
+                    f"  {marker} {c.get('difficulty_label', l)} — {c.get('description', '')}"
+                )
+            hint = get_progress_hint(level, state)
+            if hint:
+                lines.append(f"\n[dim]{hint}[/dim]")
+            console.print(
+                Panel(
+                    "\n".join(lines),
+                    title="\ud83d\udccb \u0423\u0440\u043e\u0432\u0435\u043d\u044c \u0441\u043b\u043e\u0436\u043d\u043e\u0441\u0442\u0438",
+                    border_style="cyan",
+                )
+            )
+            return True, None, None, True
+
+    # ----- Report -----
+    if action == "report":
+        try:
+            from report_generator import generate_report_from_state
+            from config import sanitize_log
+
+            html = generate_report_from_state(state)
+            report_path = "./memory/training_report.html"
+            with open(report_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            console.print(
+                f"[green]\u2705 \u041e\u0442\u0447\u0451\u0442 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d: {report_path}[/green]"
+            )
+        except Exception as e:
+            console.print(
+                f"[red]\u2717 \u041e\u0448\u0438\u0431\u043a\u0430: {e}[/red]"
+            )
+        return True, None, None, True
+
+    # ----- Persona handler -----
+    if action == "persona" or action.startswith("persona "):
+        return handle_persona(action)
+
     # ----- Unknown command -----
-    console.print("[bold red]Неизвестная команда или ввод.[/bold red]")
-    console.print(
-        "[yellow]Используй цифровое меню (0-44) или команды со /. Не трать время — я не библиотечный червь.[/yellow]"
-    )
-    console.print("[dim]Подсказка: введи /help или 9 для справки.[/dim]")
+    from smart_hints import suggest_command
+
+    suggestion = suggest_command(action)
+    if suggestion:
+        console.print(f"[yellow]{suggestion}[/yellow]")
+    else:
+        console.print("[bold red]Неизвестная команда или ввод.[/bold red]")
+        console.print("[dim]Подсказка: введи /help или 9 для справки.[/dim]")
     return True, None, None, True
+
+
+def handle_persona(action: str) -> tuple:
+    """Обработка /persona [list|auto|rick|doc|analyst|ghost]."""
+    from persona_router import (
+        list_personas,
+        get_preferred_persona,
+        set_preferred_persona,
+        get_persona_info,
+    )
+    from ui import console, Panel
+
+    state = get_context().state
+    parts = action.split()
+    sub = parts[1].lower() if len(parts) > 1 else "status"
+
+    if sub == "list":
+        personas = list_personas()
+        lines = []
+        current = get_preferred_persona()
+        for p in personas:
+            marker = " ← ТЕКУЩАЯ" if p["id"] == current else ""
+            lines.append(f"  {p['emoji']} {p['name']} ({p['id']}){marker}")
+        console.print(
+            Panel("\n".join(lines), title="🎭 Персоны учителя", border_style="magenta")
+        )
+        return True, None, None, True
+
+    if sub == "status":
+        current = get_preferred_persona()
+        info = get_persona_info(current)
+        console.print(
+            Panel(
+                f"{info['emoji']} Текущая персона: {info['name']} ({info['id']})\n\n"
+                f"Доступные: {', '.join(p['id'] for p in list_personas())}\n\n"
+                f"Использование: /persona <id> или /persona auto",
+                title="🎭 Персона",
+                border_style="cyan",
+            )
+        )
+        return True, None, None, True
+
+    if sub in ("auto", "rick", "doc", "analyst", "ghost"):
+        if set_preferred_persona(sub):
+            info = get_persona_info(sub)
+            console.print(
+                Panel(
+                    f"{info['emoji']} Персона изменена на: {info['name']}",
+                    title="🎭 Персона",
+                    border_style="green",
+                )
+            )
+        else:
+            console.print("[red]Неизвестная персона[/red]")
+        return True, None, None, True
+
+    console.print(
+        "[yellow]Использование: /persona [list|status|auto|rick|doc|analyst|ghost][/yellow]"
+    )
+    return True, None, None, True
+
+

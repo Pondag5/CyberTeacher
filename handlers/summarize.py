@@ -2,25 +2,27 @@
 """Автосворачивание истории каждые N сообщений через LLM."""
 
 import logging
-from typing import Any
+from typing import Any, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from memory import init_db, get_chat_history
+from handlers.types import HandlerResult
+
 
 console = Console()
 logger = logging.getLogger(__name__)
 
-SUMMARY_INTERVAL = 20  # сообщений между суммаризациями
+SUMMARY_INTERVAL = 20
 
 
-def handle_summarize(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_summarize(action: str) -> HandlerResult:
     """Ручная суммаризация истории."""
     try:
-        from memory import get_chat_history
-
-        history = get_chat_history(limit=50)
+        conn = init_db()
+        history = get_chat_history(conn, limit=50)
         if len(history) < 5:
             console.print("[yellow]История слишком короткая для суммаризации[/yellow]")
             return True, None, None, True
@@ -35,15 +37,13 @@ def handle_summarize(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _generate_summary(history: list[dict]) -> str | None:
-    """Сгенерировать суммаризацию через LLM."""
+def _generate_summary(history: list[dict[str, str]]) -> str | None:
     from config import LazyLoader
 
     llm = LazyLoader.get_llm()
     if llm is None:
         return None
 
-    # Берём последние 30 сообщений для контекста
     recent = history[-30:]
     context = "\n".join([f"{m['role']}: {m['content'][:150]}" for m in recent])
 
@@ -67,11 +67,8 @@ def _generate_summary(history: list[dict]) -> str | None:
         return None
 
 
-def check_auto_summarize(conn) -> None:
-    """Проверить, нужна ли автосуммаризация (вызывается после каждого сообщения)."""
+def check_auto_summarize(conn: Any) -> None:
     try:
-        from memory import get_chat_history
-
         ctx = get_context()
         state = ctx.state
         msg_count = getattr(state, "_msg_count_since_summary", 0)
@@ -82,13 +79,11 @@ def check_auto_summarize(conn) -> None:
             if len(history) >= 10:
                 summary = _generate_summary(history)
                 if summary:
-                    console.print(Panel(
-                        summary,
-                        title="📝 АВТО-СУММАРИЗАЦИЯ",
-                        border_style="dim",
-                    ))
-                    # Сохраняем суммаризацию в историю
+                    console.print(
+                        Panel(summary, title="📝 АВТО-СУММАРИЗАЦИЯ", border_style="dim")
+                    )
                     from memory import save_message
+
                     save_message(conn, "system", f"[SUMMARY] {summary}", "teacher")
             msg_count = 0
 

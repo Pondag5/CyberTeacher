@@ -17,17 +17,43 @@ from rich.table import Table
 
 from di import get_context
 from ui import console
+from handlers.types import HandlerResult
 
 
-def _simulate_social_media(username: str) -> list[dict[str, str]]:
+
+def _simulate_social_media(username: str) -> list[dict[str, Any]]:
     """Симуляция поиска аккаунтов в социальных сетях."""
     platforms = [
-        {"name": "GitHub", "url": f"https://github.com/{username}", "found": random.choice([True, True, False])},
-        {"name": "Twitter/X", "url": f"https://twitter.com/{username}", "found": random.choice([True, False])},
-        {"name": "Instagram", "url": f"https://instagram.com/{username}", "found": random.choice([True, False])},
-        {"name": "LinkedIn", "url": f"https://linkedin.com/in/{username}", "found": random.choice([True, False])},
-        {"name": "Reddit", "url": f"https://reddit.com/user/{username}", "found": random.choice([True, False])},
-        {"name": "Telegram", "url": f"https://t.me/{username}", "found": random.choice([True, True, False])},
+        {
+            "name": "GitHub",
+            "url": f"https://github.com/{username}",
+            "found": random.choice([True, True, False]),
+        },
+        {
+            "name": "Twitter/X",
+            "url": f"https://twitter.com/{username}",
+            "found": random.choice([True, False]),
+        },
+        {
+            "name": "Instagram",
+            "url": f"https://instagram.com/{username}",
+            "found": random.choice([True, False]),
+        },
+        {
+            "name": "LinkedIn",
+            "url": f"https://linkedin.com/in/{username}",
+            "found": random.choice([True, False]),
+        },
+        {
+            "name": "Reddit",
+            "url": f"https://reddit.com/user/{username}",
+            "found": random.choice([True, False]),
+        },
+        {
+            "name": "Telegram",
+            "url": f"https://t.me/{username}",
+            "found": random.choice([True, True, False]),
+        },
     ]
     return [p for p in platforms if p["found"]]
 
@@ -62,14 +88,26 @@ def _simulate_phone_info(phone: str) -> dict[str, Any]:
 
 def _simulate_metadata(filepath: str) -> dict[str, str]:
     """Симуляция извлечения метаданных из файла."""
-    cameras = ["Canon EOS 5D Mark IV", "iPhone 13 Pro", "Samsung Galaxy S21", "Sony A7 III"]
-    software = ["Adobe Photoshop 2024", "GIMP 2.10", "Microsoft Office 365", "Preview (macOS)"]
+    cameras = [
+        "Canon EOS 5D Mark IV",
+        "iPhone 13 Pro",
+        "Samsung Galaxy S21",
+        "Sony A7 III",
+    ]
+    software = [
+        "Adobe Photoshop 2024",
+        "GIMP 2.10",
+        "Microsoft Office 365",
+        "Preview (macOS)",
+    ]
     return {
         "file_name": filepath,
         "file_size": f"{random.randint(100, 5000)} KB",
-        "mime_type": random.choice(["image/jpeg", "application/pdf", "application/docx"]),
-        "created": f"2024-{random.randint(1,12):02d}-{random.randint(1,28):02d} {random.randint(0,23):02d}:{random.randint(0,59):02d}:{random.randint(0,59):02d}",
-        "modified": f"2025-{random.randint(1,12):02d}-{random.randint(1,28):02d} {random.randint(0,23):02d}:{random.randint(0,59):02d}:{random.randint(0,59):02d}",
+        "mime_type": random.choice(
+            ["image/jpeg", "application/pdf", "application/docx"]
+        ),
+        "created": f"2024-{random.randint(1, 12):02d}-{random.randint(1, 28):02d} {random.randint(0, 23):02d}:{random.randint(0, 59):02d}:{random.randint(0, 59):02d}",
+        "modified": f"2025-{random.randint(1, 12):02d}-{random.randint(1, 28):02d} {random.randint(0, 23):02d}:{random.randint(0, 59):02d}:{random.randint(0, 59):02d}",
         "camera": random.choice(cameras),
         "gps_lat": f"{random.uniform(40.0, 60.0):.6f}",
         "gps_lon": f"{random.uniform(30.0, 50.0):.6f}",
@@ -96,11 +134,11 @@ def _display_osint_help() -> None:
     console.print(Panel(help_text, title="OSINT HELP", border_style="yellow"))
 
 
-def handle_osint_search(username: str) -> tuple[str, bool]:
+def handle_osint_search(username: str) -> HandlerResult:
     """Обработать команду поиска по никнейму."""
     if not username or len(username) < 3:
         console.print("[red]Ошибка:[/red] Никнейм должен содержать минимум 3 символа.")
-        return "", True
+        return True, None, None, True
 
     accounts = _simulate_social_media(username)
 
@@ -118,24 +156,26 @@ def handle_osint_search(username: str) -> tuple[str, bool]:
     console.print(table)
 
     # Образовательный блок
-    console.print(Panel(
-        "[bold]Совет по OSINT:[/bold] Используйте инструменты like [cyan]Sherlock[/cyan] или [cyan]Maigret[/cyan] "
-        "для реального поиска по никнеймам. Они проверяют сотни сайтов одновременно.",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            "[bold]Совет по OSINT:[/bold] Используйте инструменты like [cyan]Sherlock[/cyan] или [cyan]Maigret[/cyan] "
+            "для реального поиска по никнеймам. Они проверяют сотни сайтов одновременно.",
+            border_style="blue",
+        )
+    )
 
     # Обновляем XP за OSINT активность
     state = get_context().state
     if hasattr(state, "xp"):
         state.xp += 10
-    return "", True
+    return True, None, None, True
 
 
-def handle_osint_email(email: str) -> tuple[str, bool]:
+def handle_osint_email(email: str) -> HandlerResult:
     """Обработать команду проверки email."""
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         console.print("[red]Ошибка:[/red] Неверный формат email.")
-        return "", True
+        return True, None, None, True
 
     breaches = _simulate_breaches(email)
 
@@ -151,52 +191,58 @@ def handle_osint_email(email: str) -> tuple[str, bool]:
 
     console.print(table)
 
-    console.print(Panel(
-        "[bold]Рекомендация:[/bold] Проверьте свой email на [cyan]haveibeenpwned.com[/cyan]. "
-        "Используйте уникальные пароли для каждого сервиса и включите 2FA.",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            "[bold]Рекомендация:[/bold] Проверьте свой email на [cyan]haveibeenpwned.com[/cyan]. "
+            "Используйте уникальные пароли для каждого сервиса и включите 2FA.",
+            border_style="blue",
+        )
+    )
 
     state = get_context().state
     if hasattr(state, "xp"):
         state.xp += 15
-    return "", True
+    return True, None, None, True
 
 
-def handle_osint_phone(phone: str) -> tuple[str, bool]:
+def handle_osint_phone(phone: str) -> HandlerResult:
     """Обработать команду поиска по телефону."""
     clean_phone = re.sub(r"[^\d+]", "", phone)
     if len(clean_phone) < 10:
         console.print("[red]Ошибка:[/red] Номер телефона слишком короткий.")
-        return "", True
+        return True, None, None, True
 
     info = _simulate_phone_info(clean_phone)
 
-    panel_content = f"""[bold]Оператор:[/bold] {info['carrier']}
-[bold]Регион:[/bold] {info['region']}
-[bold]Часовой пояс:[/bold] {info['timezone']}
-[bold]Тип:[/bold] {info['type']}
-[bold]Валиден:[/bold] {'Да' if info['valid'] else 'Нет'}"""
+    panel_content = f"""[bold]Оператор:[/bold] {info["carrier"]}
+[bold]Регион:[/bold] {info["region"]}
+[bold]Часовой пояс:[/bold] {info["timezone"]}
+[bold]Тип:[/bold] {info["type"]}
+[bold]Валиден:[/bold] {"Да" if info["valid"] else "Нет"}"""
 
-    console.print(Panel(panel_content, title=f"Телефон: {clean_phone}", border_style="cyan"))
+    console.print(
+        Panel(panel_content, title=f"Телефон: {clean_phone}", border_style="cyan")
+    )
 
-    console.print(Panel(
-        "[bold]Для реального поиска:[/bold] Используйте [cyan]PhoneInfoga[/cyan] или API операторов. "
-        "В некоторых странах доступны публичные реестры номеров.",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            "[bold]Для реального поиска:[/bold] Используйте [cyan]PhoneInfoga[/cyan] или API операторов. "
+            "В некоторых странах доступны публичные реестры номеров.",
+            border_style="blue",
+        )
+    )
 
     state = get_context().state
     if hasattr(state, "xp"):
         state.xp += 10
-    return "", True
+    return True, None, None, True
 
 
-def handle_osint_metadata(filepath: str) -> tuple[str, bool]:
+def handle_osint_metadata(filepath: str) -> HandlerResult:
     """Обработать команду анализа метаданных."""
     if not filepath:
         console.print("[red]Ошибка:[/red] Укажите путь к файлу.")
-        return "", True
+        return True, None, None, True
 
     meta = _simulate_metadata(filepath)
 
@@ -210,24 +256,26 @@ def handle_osint_metadata(filepath: str) -> tuple[str, bool]:
 
     console.print(table)
 
-    console.print(Panel(
-        "[bold]Важно:[/bold] Метаданные могут раскрыть местоположение, устройство и автора. "
-        "Используйте [cyan]ExifTool[/cyan] для просмотра и очистки метаданных перед публикацией файлов.",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            "[bold]Важно:[/bold] Метаданные могут раскрыть местоположение, устройство и автора. "
+            "Используйте [cyan]ExifTool[/cyan] для просмотра и очистки метаданных перед публикацией файлов.",
+            border_style="blue",
+        )
+    )
 
     state = get_context().state
     if hasattr(state, "xp"):
         state.xp += 15
-    return "", True
+    return True, None, None, True
 
 
-def handle_osint(args: str) -> tuple[str, bool]:
+def handle_osint(args: str) -> HandlerResult:
     """Главный обработчик команды /osint."""
     parts = args.strip().split(maxsplit=1)
     if not parts:
         _display_osint_help()
-        return "", True
+        return True, None, None, True
 
     subcommand = parts[0].lower()
     query = parts[1] if len(parts) > 1 else ""
@@ -242,8 +290,8 @@ def handle_osint(args: str) -> tuple[str, bool]:
         return handle_osint_metadata(query)
     elif subcommand == "help":
         _display_osint_help()
-        return "", True
+        return True, None, None, True
     else:
         console.print(f"[red]Неизвестная подкоманда OSINT:[/red] {subcommand}")
         _display_osint_help()
-        return "", True
+        return True, None, None, True

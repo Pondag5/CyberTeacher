@@ -51,7 +51,7 @@ class Task:
         self.difficulty = difficulty
 
 
-def generate_task(vectordb=None, category=None):
+def generate_task(vectordb=None, category: str | None = None) -> Task | None:
     """Генерация практической задачи"""
     categories = {
         "network": "Сетевая безопасность (Network Security)",
@@ -66,7 +66,7 @@ def generate_task(vectordb=None, category=None):
 
     topic_name = categories.get(category, category)
     relevant_docs = (
-        get_relevant_docs(vectordb, f"{topic_name} практическая задача", k=3)
+        get_relevant_docs(vectordb, f"{topic_name} практическая задача", top_k=3)
         if vectordb
         else []
     )
@@ -99,6 +99,8 @@ def generate_task(vectordb=None, category=None):
 
     try:
         llm = get_llm()
+        if llm is None:
+            return None
         response = llm.invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
@@ -116,7 +118,9 @@ def generate_task(vectordb=None, category=None):
     return None
 
 
-def generate_quiz(vectordb=None, topic=None, count=5):
+def generate_quiz(
+    vectordb=None, topic: str | None = None, count: int = 5
+) -> dict[str, Any]:
     """Генерация квиза с фильтрацией тем.
 
     Returns:
@@ -128,7 +132,7 @@ def generate_quiz(vectordb=None, topic=None, count=5):
         topic = random.choice(ALLOWED_TOPICS)
         console.print(f"[dim]Выбрана тема: {topic}[dim]")
 
-    relevant_docs = get_relevant_docs(vectordb, topic, k=3)
+    relevant_docs = get_relevant_docs(vectordb, topic, top_k=3)
     docs_context = (
         "\n\n📖 Контекст:\n" + "\n".join([d.page_content[:300] for d in relevant_docs])
         if relevant_docs
@@ -158,7 +162,10 @@ def generate_quiz(vectordb=None, topic=None, count=5):
 Только JSON."""  # двойные фигурные скобки экранированы
 
     try:
-        response = get_llm().invoke(prompt)
+        llm = get_llm()
+        if llm is None:
+            return {"topic": topic, "questions": []}
+        response = llm.invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, list):
             return {"topic": topic, "questions": json_block}
@@ -168,13 +175,13 @@ def generate_quiz(vectordb=None, topic=None, count=5):
     return {"topic": topic, "questions": []}
 
 
-def generate_mermaid(vectordb):
+def generate_mermaid(vectordb=None) -> None:
     """Генерация Mermaid схемы"""
 
     console.print("[cyan]🗺️ Генерация схемы[cyan]")
     topic = Prompt.ask("О чём?", default="аутентификация")
 
-    relevant_docs = get_relevant_docs(vectordb, topic, k=3)
+    relevant_docs = get_relevant_docs(vectordb, topic, top_k=3)
 
     prompt = f"""Создай структуру для Mermaid на тему: {topic}
 
@@ -190,7 +197,11 @@ JSON:
 
 Только JSON."""  # экранирование фигурных скобок в f-строке
     try:
-        response = get_llm().invoke(prompt)
+        llm = get_llm()
+        if llm is None:
+            console.print("[yellow]LLM недоступна для генерации схемы[/yellow]")
+            return
+        response = llm.invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
             from pedagogy import MermaidGenerator
@@ -217,10 +228,12 @@ JSON:
         console.print(f"[red]Ошибка: {e}[red]")
 
 
-def generate_open_quiz(vectordb, topic=None):
+def generate_open_quiz(
+    vectordb=None, topic: str | None = None
+) -> dict[str, Any] | None:
     """Генерация вопросов со свободным ответом"""
     topic = topic or "кибербезопасность"
-    relevant_docs = get_relevant_docs(vectordb, topic, k=3)
+    relevant_docs = get_relevant_docs(vectordb, topic, top_k=3)
     docs_context = (
         "\n".join([d.page_content[:300] for d in relevant_docs])
         if relevant_docs
@@ -243,7 +256,10 @@ def generate_open_quiz(vectordb, topic=None):
 
 Только JSON."""  # экранирование фигурных скобок
     try:
-        response = get_llm().invoke(prompt)
+        llm = get_llm()
+        if llm is None:
+            return None
+        response = llm.invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
             return json_block
@@ -253,7 +269,9 @@ def generate_open_quiz(vectordb, topic=None):
     return None
 
 
-def check_open_answer(question, user_answer, key_points):
+def check_open_answer(
+    question: str, user_answer: str, key_points: str
+) -> dict[str, Any]:
     """Проверка ответа через LLM на соответствие ключевым моментам"""
     prompt = f"""Ты — экзаменатор.
 Вопрос: {question}
@@ -270,10 +288,13 @@ def check_open_answer(question, user_answer, key_points):
 
 Только JSON."""  # экранирование фигурных скобок
     try:
-        response = get_llm().invoke(prompt)
+        llm = get_llm()
+        if llm is None:
+            return {"score": 0, "feedback": "LLM недоступна для проверки."}
+        response = llm.invoke(prompt)
         json_block = extract_json_block(response)
         if isinstance(json_block, dict):
             return json_block
-    except Exception:
+    except (ValueError, RuntimeError, KeyError):
         pass
     return {"score": 0, "feedback": "Не удалось проверить ответ."}

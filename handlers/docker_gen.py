@@ -2,15 +2,26 @@
 """Автоматическое создание docker-compose.yml для практических заданий."""
 
 import os
-from typing import Any
+from typing import Any, Dict, TypedDict
 
 import yaml
 from rich.console import Console
 from rich.panel import Panel
+from handlers.types import HandlerResult
+
 
 console = Console()
 
-LAB_IMAGES = {
+
+# Определяем TypedDict для описания образа лаборатории
+class LabImageTypedDict(TypedDict, total=False):
+    image: str
+    ports: Dict[str, str]
+    description: str
+    category: str
+
+
+LAB_IMAGES: Dict[str, LabImageTypedDict] = {
     "dvwa": {
         "image": "vulnerables/web-dvwa:latest",
         "ports": {"8080": "80"},
@@ -51,6 +62,7 @@ LAB_IMAGES = {
         "image": "offensivesecurity/exploitdb:latest",
         "description": "Exploit Database",
         "category": "tools",
+        "ports": {},
     },
     "nginx_vuln": {
         "image": "nginx:1.14.0",
@@ -61,23 +73,25 @@ LAB_IMAGES = {
 }
 
 
-def handle_docker_gen(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_docker_gen(action: str) -> HandlerResult:
     """Генерация docker-compose для заданий."""
     parts = action.split(maxsplit=2)
 
     if len(parts) == 1:
-        console.print(Panel(
-            "[bold cyan]🐳 Генератор Docker Compose[/bold cyan]\n\n"
-            "Использование:\n"
-            "  /dockergen list              — доступные образы\n"
-            "  /dockergen create <лабы...>  — создать docker-compose\n"
-            "  /dockergen sqli              — лаба для SQLi\n"
-            "  /dockergen web               — веб-лаборатории\n"
-            "  /dockergen network           — сетевые лаборатории\n"
-            "  /dockergen custom <имя> <image> [ports] — кастомный",
-            title="DOCKER GEN",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel(
+                "[bold cyan]🐳 Генератор Docker Compose[/bold cyan]\n\n"
+                "Использование:\n"
+                "  /dockergen list              — доступные образы\n"
+                "  /dockergen create <лабы...>  — создать docker-compose\n"
+                "  /dockergen sqli              — лаба для SQLi\n"
+                "  /dockergen web               — веб-лаборатории\n"
+                "  /dockergen network           — сетевые лаборатории\n"
+                "  /dockergen custom <имя>  \[ports] — кастомный",
+                title="DOCKER GEN",
+                border_style="cyan",
+            )
+        )
         return True, None, None, True
 
     subcommand = parts[1].lower()
@@ -110,22 +124,23 @@ def handle_docker_gen(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _list_images() -> tuple[bool, Any | None, Any | None, bool]:
+def _list_images() -> HandlerResult:
     """Показать доступные образы."""
     console.print("[bold cyan]📦 Доступные Docker образы[/bold cyan]\n")
     for lid, lab in LAB_IMAGES.items():
-        console.print(f"  [cyan]{lid:<18}[/cyan] — {lab['description']}")
-        console.print(f"  [dim]{' ' * 20}Image: {lab['image']}[/dim]")
-        if "ports" in lab:
-            ports_str = ", ".join(f"{h}:{c}" for c, h in lab["ports"].items())
+        console.print(f"  [cyan]{lid:<18}[/cyan] — {lab.get('description', '')}")
+        console.print(f"  [dim]{' ' * 20}Image: {lab.get('image', '')}[/dim]")
+        ports = lab.get("ports")
+        if ports:
+            ports_str = ", ".join(f"{host}:{cont}" for host, cont in ports.items())
             console.print(f"  [dim]{' ' * 20}Ports: {ports_str}[/dim]")
         console.print()
     return True, None, None, True
 
 
-def _create_compose(labs: list[str]) -> tuple[bool, Any | None, Any | None, bool]:
+def _create_compose(labs: list[str]) -> HandlerResult:
     """Создать docker-compose.yml для списка лаб."""
-    services = {}
+    services: Dict[str, Any] = {}
 
     for lab_name in labs:
         lab = LAB_IMAGES.get(lab_name)
@@ -133,14 +148,16 @@ def _create_compose(labs: list[str]) -> tuple[bool, Any | None, Any | None, bool
             console.print(f"[yellow]⚠️ Лаба '{lab_name}' не найдена, пропускаю[/yellow]")
             continue
 
-        service = {
+        service: Dict[str, Any] = {
             "image": lab["image"],
             "container_name": f"ct_{lab_name}",
             "restart": "unless-stopped",
+            "networks": ["ct_lab_net"],
         }
 
-        if "ports" in lab:
-            service["ports"] = [f"{h}:{c}" for c, h in lab["ports"].items()]
+        ports = lab.get("ports")
+        if ports:
+            service["ports"] = [f"{host}:{cont}" for host, cont in ports.items()]
 
         services[lab_name] = service
 
@@ -148,19 +165,12 @@ def _create_compose(labs: list[str]) -> tuple[bool, Any | None, Any | None, bool
         console.print("[red]❌ Нет валидных лаб для создания[/red]")
         return True, None, None, True
 
-    compose = {
+    compose: Dict[str, Any] = {
         "version": "3.8",
         "services": services,
-        "networks": {
-            "ct_lab_net": {"driver": "bridge"}
-        }
+        "networks": {"ct_lab_net": {"driver": "bridge"}},
     }
 
-    # Добавить network к каждому сервису
-    for svc in compose["services"]:
-        compose["services"][svc]["networks"] = ["ct_lab_net"]
-
-    # Сохранить
     output_dir = "./lab_configs"
     os.makedirs(output_dir, exist_ok=True)
     filename = f"lab_{'_'.join(labs[:3])}.yml"
@@ -171,34 +181,37 @@ def _create_compose(labs: list[str]) -> tuple[bool, Any | None, Any | None, bool
     with open(filepath, "w", encoding="utf-8") as f:
         yaml.dump(compose, f, default_flow_style=False, allow_unicode=True)
 
-    # Показать
-    console.print(Panel(
-        f"[green]✅ Docker Compose создан![/green]\n\n"
-        f"Файл: {filepath}\n"
-        f"Сервисов: {len(services)}\n\n"
-        f"[bold]Запуск:[/bold]\n"
-        f"  docker-compose -f {filepath} up -d\n\n"
-        f"[bold]Остановка:[/bold]\n"
-        f"  docker-compose -f {filepath} down",
-        title="🐳 DOCKER COMPOSE",
-        border_style="green",
-    ))
-
+    console.print(
+        Panel(
+            f"[green]✅ Docker Compose создан![/green]\n\n"
+            f"Файл: {filepath}\n"
+            f"Сервисов: {len(services)}\n\n"
+            f"[bold]Запуск:[/bold]\n"
+            f"  docker-compose -f {filepath} up -d\n\n"
+            f"[bold]Остановка:[/bold]\n"
+            f"  docker-compose -f {filepath} down",
+            title="🐳 DOCKER COMPOSE",
+            border_style="green",
+        )
+    )
     return True, None, None, True
 
 
-def _create_custom(name: str, image: str, ports_str: str | None) -> tuple[bool, Any | None, Any | None, bool]:
+def _create_custom(
+    name: str, image: str, ports_str: str | None
+) -> HandlerResult:
     """Создать кастомный docker-compose."""
-    service = {
+    service: Dict[str, Any] = {
         "image": image,
         "container_name": f"ct_{name}",
         "restart": "unless-stopped",
+        "ports": [],
     }
 
     if ports_str:
         service["ports"] = [p.strip() for p in ports_str.split(",")]
 
-    compose = {
+    compose: Dict[str, Any] = {
         "version": "3.8",
         "services": {name: service},
     }

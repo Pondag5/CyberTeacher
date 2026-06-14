@@ -3,7 +3,7 @@ Shop, themes, and inventory management.
 """
 
 import time
-from typing import List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -11,33 +11,31 @@ from pydantic import BaseModel, Field
 class ShopState(BaseModel):
     """Shop, themes, and inventory management."""
     
-    # Магазин (C-14)
     owned_themes: list[str] = Field(default_factory=list)
     current_theme: str = Field(default="default")
     unlocked_topics: list[str] = Field(default_factory=list)
-    hint_credits: int = Field(default=0, ge=0)  # available manual hints
+    hint_credits: int = Field(default=0, ge=0)
 
-    # XP Boosts (хранятся здесь для удобства, хотя логически относятся к достижениям)
+    # XP Boosts
     xp_boost_multiplier: float = Field(default=1.0, ge=0.0)
-    xp_boost_expiry: float = Field(default=0.0, ge=0.0)  # timestamp
+    xp_boost_expiry: float = Field(default=0.0, ge=0.0)
 
-    # Экипировка (H-02) — выбранные инструменты и их использование
+    # Equipment (H-02)
     selected_tools: list[str] = Field(default_factory=list)
 
-    # Таймер Trace (H-03) — для лабораторий с ограничением времени
+    # Trace timer (H-03)
     trace_deadline: float | None = None
     trace_hint: str | None = None
 
-    # Прогресс миссий (H-05)
+    # Missions (H-05)
     missions_completed: list[str] = Field(default_factory=list)
     active_mission: str | None = None
 
-    def apply_item_effect(self, item: dict) -> str:
+    def apply_item_effect(self, item: dict[str, Any]) -> str | None:
         """Применить эффект купленного предмета к состоянию.
-        
+
         Returns:
             str: The type of effect applied, or None if not handled.
-                Possible values: "theme", "unlock_topic", "xp_boost", "hint_credit"
         """
         item_type = item.get("type")
         if item_type == "theme":
@@ -65,15 +63,11 @@ class ShopState(BaseModel):
         return None
 
     def get_xp_multiplier(self) -> float:
-        """Возвращает текущий множитель XP с учетом активного буста."""
         now = time.time()
         if self.xp_boost_expiry > 0 and now < self.xp_boost_expiry:
             return self.xp_boost_multiplier
-        # Бонус истек или не установлен — сбрасываем
         self.xp_boost_multiplier = 1.0
         self.xp_boost_expiry = 0.0
         return 1.0
 
-    model_config = {
-        "validate_assignment": True
-    }
+    model_config = {"validate_assignment": True}

@@ -7,11 +7,13 @@ from typing import Any
 from rich.console import Console
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 
-def handle_dashboard(action: str, args: str = "") -> tuple[bool, str, Any]:
+def handle_dashboard(action: str, args: str = "") -> HandlerResult:
     """Display learner dashboard with stats and insights"""
     ctx = get_context()
     state = ctx.state
@@ -80,6 +82,7 @@ def handle_dashboard(action: str, args: str = "") -> tuple[bool, str, Any]:
     # SKL-02: Skill-based recommendations
     try:
         from services.skill_tracker_service import get_all_skills
+
         skills = get_all_skills(getattr(state, "skill_tracker", {}))
         if skills:
             low_skills = [s for s in skills if s["level"] < 3]
@@ -91,8 +94,10 @@ def handle_dashboard(action: str, args: str = "") -> tuple[bool, str, Any]:
                         f"попробуй /quiz по теме '{s['name']}'"
                     )
             else:
-                lines.append("\n[bold]Навыки:[/bold] [green]Все на хорошем уровне![/green]")
-    except Exception:
+                lines.append(
+                    "\n[bold]Навыки:[/bold] [green]Все на хорошем уровне![/green]"
+                )
+    except (AttributeError, KeyError, TypeError):
         pass
 
     # Footer tip
@@ -100,4 +105,4 @@ def handle_dashboard(action: str, args: str = "") -> tuple[bool, str, Any]:
         "\n[dim]Tip: Use /adaptive to focus on weak topics. Use /tracks for structured learning paths.[/dim]"
     )
 
-    return True, "\n".join(lines), None
+    return True, None, "\n".join(lines), True

@@ -8,7 +8,7 @@ services:
     networks:
     - ct_lab_net
     ports:
-    - 80:8080
+    - 8080:80
     restart: unless-stopped
   juice_shop:
     container_name: ct_juice_shop

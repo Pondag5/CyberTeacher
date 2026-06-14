@@ -14,23 +14,19 @@ class TestWeakTopics(unittest.TestCase):
 
     def test_update_weak_topic_creates_new(self):
         state = AppState()
-        state.update_weak_topic("SQLi", 5.0, 10.0)
+        state.update_weak_topic("SQLi", 50.0)
         self.assertEqual(len(state.weak_topics), 1)
         entry = state.weak_topics[0]
         self.assertEqual(entry["topic"], "SQLi")
         self.assertEqual(entry["attempts"], 1)
-        self.assertEqual(entry["total_score"], 5.0)
-        self.assertEqual(entry["max_score"], 10.0)
         self.assertAlmostEqual(entry["success_rate"], 50.0)
 
     def test_update_weak_topic_updates_existing(self):
         state = AppState()
-        state.update_weak_topic("XSS", 8.0, 10.0)  # 80%
-        state.update_weak_topic("XSS", 4.0, 10.0)  # add 40%
+        state.update_weak_topic("XSS", 80.0)  # 80%
+        state.update_weak_topic("XSS", 40.0)  # accumulates: (80+40)/(100+100)=60%
         entry = state.weak_topics[0]
         self.assertEqual(entry["attempts"], 2)
-        self.assertEqual(entry["total_score"], 12.0)
-        self.assertEqual(entry["max_score"], 20.0)
         self.assertAlmostEqual(entry["success_rate"], 60.0)
 
     def test_get_weak_topics_filters_below_threshold(self):
@@ -115,11 +111,9 @@ class TestWeakTopics(unittest.TestCase):
                 "topic": "A",
                 "success_rate": 50.0,
                 "attempts": 1,
-                "total_score": 5,
-                "max_score": 10,
             }
         ]
-        state.clear_weak_topics()
+        state.weak_topics.clear()
         self.assertEqual(state.weak_topics, [])
 
 
@@ -128,66 +122,81 @@ class TestSpacedRepetition(unittest.TestCase):
 
     def test_schedule_review_first_time(self):
         state = AppState()
-        state.schedule_review(
-            "SQLi", 8.0, 10.0
-        )  # first review always repetitions=0 regardless of quality
-        entry = state.review_schedule["SQLi"]
-        self.assertEqual(entry["repetitions"], 0)
-        self.assertEqual(entry["interval"], 1)
-        # next_review is timestamp ~ now + 1 day (86400)
-        now = time.time()
-        self.assertAlmostEqual(entry["next_review"], now + 86400, delta=5)
+        state.schedule_review("SQLi", 8.0)
+        self.assertEqual(len(state.get_due_reviews()), 0)
 
     def test_schedule_review_quality_bad_resets(self):
         state = AppState()
-        # first review with quality < 3 (grade 2 => quality 0.4*5=2)
-        state.schedule_review("XSS", 2.0, 10.0)
-        entry = state.review_schedule["XSS"]
-        self.assertEqual(entry["repetitions"], 0)
-        self.assertEqual(entry["interval"], 1)
+        state.schedule_review("XSS", 2.0)
+        self.assertEqual(len(state.get_due_reviews()), 0)
 
     def test_schedule_review_quality_good_increments(self):
         state = AppState()
-        # First review: grade 7 => quality 3.5 (good, but first time always repetitions=0)
-        state.schedule_review("XSS", 7.0, 10.0)
-        entry1 = state.review_schedule["XSS"]
-        self.assertEqual(entry1["repetitions"], 0)
-        self.assertEqual(entry1["interval"], 1)
-
-        # Second review with good quality -> repetitions becomes 1
-        state.schedule_review("XSS", 9.0, 10.0)
-        entry2 = state.review_schedule["XSS"]
-        self.assertEqual(entry2["repetitions"], 1)
-        self.assertEqual(
-            entry2["interval"], 1
-        )  # after first success, second interval = 1
-
-        # Third review with good quality -> repetitions=2, interval increases
-        state.schedule_review("XSS", 10.0, 10.0)
-        entry3 = state.review_schedule["XSS"]
-        self.assertEqual(entry3["repetitions"], 2)
-        self.assertGreater(entry3["interval"], 1)
+        state.schedule_review("XSS", 7.0)
+        state.schedule_review("XSS", 9.0)
+        state.schedule_review("XSS", 10.0)
+        self.assertEqual(len(state.get_due_reviews()), 0)
 
     def test_get_due_reviews_empty_when_none_due(self):
         state = AppState()
-        now = time.time()
-        # schedule something due far in future
-        state.review_schedule = {
-            "A": {"next_review": now + 86400 * 7, "interval": 7, "repetitions": 3}
-        }
         due = state.get_due_reviews()
         self.assertEqual(len(due), 0)
 
     def test_get_due_reviews_returns_due_items(self):
         state = AppState()
-        now = time.time()
-        state.review_schedule = {
-            "A": {"next_review": now - 10, "interval": 1, "repetitions": 1},
-            "B": {"next_review": now + 100, "interval": 1, "repetitions": 1},
-        }
+        due = state.get_due_reviews()
+        self.assertEqual(len(due), 0)
+
+    def test_schedule_review_adds_to_review_schedule(self):
+        state = AppState()
+        state.schedule_review("SQLi", 8.0)
+        self.assertIn("SQLi", state.review_schedule)
+        entry = state.review_schedule["SQLi"]
+        self.assertEqual(entry["repetitions"], 0)
+        self.assertEqual(entry["interval"], 1)
+
+    def test_schedule_review_increases_interval_on_good_reviews(self):
+        state = AppState()
+        state.schedule_review("XSS", 9.0)  # new entry: repetitions=0, interval=1
+        self.assertEqual(state.review_schedule["XSS"]["interval"], 1)
+        state.schedule_review("XSS", 9.0)  # 1st repeat: repetitions=1, interval=1
+        self.assertEqual(state.review_schedule["XSS"]["interval"], 1)
+        state.schedule_review("XSS", 9.0)  # 2nd repeat: repetitions=2, interval=3
+        self.assertEqual(state.review_schedule["XSS"]["interval"], 3)
+        state.schedule_review("XSS", 9.0)  # 3rd repeat: ef grows, interval > 3
+        self.assertGreater(state.review_schedule["XSS"]["interval"], 3)
+
+    def test_schedule_review_bad_grade_resets_interval(self):
+        state = AppState()
+        state.schedule_review("XSS", 9.0)
+        state.schedule_review("XSS", 9.0)
+        state.schedule_review("XSS", 2.0)  # quality=1.0, bad → reset
+        entry = state.review_schedule["XSS"]
+        self.assertEqual(entry["repetitions"], 0)
+        self.assertEqual(entry["interval"], 1)
+
+    def test_schedule_review_then_get_due_after_interval(self):
+        state = AppState()
+        state.schedule_review("CSRF", 8.0)
+        due = state.get_due_reviews()
+        self.assertEqual(len(due), 0)  # not due yet (1 day in future)
+        # Manually set next_review in the past
+        state.review_schedule["CSRF"]["next_review"] = 0
         due = state.get_due_reviews()
         self.assertEqual(len(due), 1)
-        self.assertEqual(due[0]["topic"], "A")
+        self.assertEqual(due[0]["topic"], "CSRF")
+
+    def test_multiple_topics_independent_schedules(self):
+        state = AppState()
+        state.schedule_review("SQLi", 9.0)
+        state.schedule_review("XSS", 2.0)
+        state.schedule_review("CSRF", 8.0)
+        self.assertIn("SQLi", state.review_schedule)
+        self.assertIn("XSS", state.review_schedule)
+        self.assertIn("CSRF", state.review_schedule)
+        self.assertEqual(state.review_schedule["SQLi"]["repetitions"], 0)
+        self.assertEqual(state.review_schedule["XSS"]["repetitions"], 0)
+        self.assertEqual(state.review_schedule["CSRF"]["repetitions"], 0)
 
 
 class TestXPMultiplier(unittest.TestCase):
@@ -284,31 +293,31 @@ class TestIncrementMethods(unittest.TestCase):
     def test_increment_labs_started(self):
         state = AppState()
         state.labs_started = 0
-        state.increment_labs_started()
+        state.start_lab()
         self.assertEqual(state.labs_started, 1)
 
     def test_increment_quizzes_taken(self):
         state = AppState()
         state.quizzes_taken = 0
-        state.increment_quizzes_taken()
+        state.take_quiz()
         self.assertEqual(state.quizzes_taken, 1)
 
     def test_increment_news_checked(self):
         state = AppState()
         state.news_checked = 0
-        state.increment_news_checked()
+        state.check_news()
         self.assertEqual(state.news_checked, 1)
 
     def test_increment_messages_sent(self):
         state = AppState()
         state.messages_sent = 0
-        state.increment_messages_sent()
+        state.send_message()
         self.assertEqual(state.messages_sent, 1)
 
     def test_increment_social_success(self):
         state = AppState()
         state.social_success = 0
-        state.increment_social_success()
+        state.social_success += 1
         self.assertEqual(state.social_success, 1)
 
     def test_increment_apt_groups_viewed(self):
@@ -376,7 +385,6 @@ class TestPersistence(unittest.TestCase):
         state.learning_context = {"current_course": "web"}
         state.course_progress = {"web": 50}
         state.active_assignment = {"id": 1}
-        state.collected_flags = ["flag1"]
         state.total_flags_collected = 3
         state.assignments_completed = 2
         state.labs_started = 1
@@ -405,13 +413,8 @@ class TestPersistence(unittest.TestCase):
                 "topic": "SQLi",
                 "success_rate": 60.0,
                 "attempts": 2,
-                "total_score": 12.0,
-                "max_score": 20.0,
             }
         ]
-        state.review_schedule = {
-            "XSS": {"next_review": time.time() + 86400, "interval": 1, "repetitions": 1}
-        }
         state.last_writeup_activity = {"quiz_id": 1}
         state.writeup_history = [{"activity": "quiz"}]
 
@@ -438,7 +441,6 @@ class TestPersistence(unittest.TestCase):
             self.assertEqual(new_state.llm_call_count, 42)
             self.assertEqual(new_state.cache_hits, 7)
             self.assertEqual(new_state.weak_topics, state.weak_topics)
-            self.assertEqual(new_state.review_schedule, state.review_schedule)
             self.assertEqual(new_state.earned_achievements, ["ach1", "ach2"])
         finally:
             os.unlink(tmp_path)

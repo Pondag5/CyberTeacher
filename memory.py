@@ -1,259 +1,253 @@
+"""
+💾 Операции с БД — SQLAlchemy abstraction layer
+Поддерживает SQLite и PostgreSQL.
+"""
+
+import logging
 import os
-import sqlite3
-from datetime import UTC, datetime
+from datetime import timedelta
+from typing import Any
 
-from config import DB_FILE
-from ui import console
+from config import sanitize_log
+from db import (
+    Message,
+    QueryCache,
+    SessionLocal,
+    Stat,
+    TopicProgress,
+    _utc_now_naive,
+)
+from db import (
+    init_db as init_db_models,
+)
+
+logger = logging.getLogger(__name__)
 
 
-def init_db():
-    """Инициализация БД с безопасной миграцией"""
-    os.makedirs("./memory", exist_ok=True)
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+def init_db() -> Any:
+    """Инициализация БД через SQLAlchemy"""
+    from settings import get_settings
 
-    # 1. Таблица сообщений
-    c.execute("""CREATE TABLE IF NOT EXISTS messages
-                 (id INTEGER PRIMARY KEY, role TEXT, content TEXT,
-                  timestamp TEXT, mode TEXT DEFAULT 'teacher')""")
+    mem_dir = str(get_settings().state_file.parent)
+    os.makedirs(mem_dir, exist_ok=True)
+    init_db_models()
+    return SessionLocal()
 
-    # 2. Таблица статистики
-    c.execute("""CREATE TABLE IF NOT EXISTS stats
-                 (id INTEGER PRIMARY KEY,
-                  points INTEGER DEFAULT 0,
-                  quizzes_passed INTEGER DEFAULT 0,
-                  tasks_solved INTEGER DEFAULT 0,
-                  last_activity TEXT)""")
 
-    # 3. Таблица прогресса (Адаптивное обучение)
-    # Проверяем, существует ли таблица
-    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='progress'")
-    table_exists = c.fetchone()
+MAX_MESSAGE_LENGTH = 50000
 
-    if not table_exists:
-        # Если таблицы нет — создаем новую
-        c.execute("""CREATE TABLE progress
-                     (topic TEXT PRIMARY KEY,
-                      correct INTEGER DEFAULT 0,
-                      total INTEGER DEFAULT 0,
-                      last_seen TEXT)""")
-        print("База данных: Создана таблица прогресса.")
-    else:
-        # Если таблица есть — проверяем наличие колонок (МИГРАЦИЯ)
-        c.execute("PRAGMA table_info(progress)")
-        columns = [info[1] for info in c.fetchall()]
 
-        if "correct" not in columns:
-            c.execute("ALTER TABLE progress ADD COLUMN correct INTEGER DEFAULT 0")
-            print("База данных: Добавлена колонка 'correct'.")
-
-        if "total" not in columns:
-            c.execute("ALTER TABLE progress ADD COLUMN total INTEGER DEFAULT 0")
-            print("База данных: Добавлена колонка 'total'.")
-
-        if "last_seen" not in columns:
-            c.execute("ALTER TABLE progress ADD COLUMN last_seen TEXT")
-            print("База данных: Добавлена колонка 'last_seen'.")
-
-    # 4. Таблица кэша ответов LLM (с TTL)
-    c.execute("""CREATE TABLE IF NOT EXISTS query_cache
-                 (query_hash TEXT PRIMARY KEY,
-                  response TEXT,
-                  created_at TEXT,
-                  expires_at TEXT,
-                  ttl_seconds INTEGER)""")
-
-    # Проверяем, есть ли запись статистики
-    c.execute("SELECT count(*) FROM stats")
-    if c.fetchone()[0] == 0:
-        c.execute(
-            "INSERT INTO stats (points, last_activity) VALUES (0, ?)",
-            (datetime.now(UTC).isoformat(),),
+def save_message(conn: Any, role: str, content: str, mode: str = "teacher") -> None:
+    """Сохранить сообщение (обрезка до MAX_MESSAGE_LENGTH символов)"""
+    if len(content) > MAX_MESSAGE_LENGTH:
+        logger.warning(
+            f"Truncating {role} message from {len(content)} to {MAX_MESSAGE_LENGTH}"
         )
-
-    conn.commit()
-    return conn
-
-
-def save_message(conn, role: str, content: str, mode: str = "teacher"):
-    """Сохранить сообщение (с санитизацией)"""
-    from config import sanitize_log
-
-    # Санитизируем контент перед сохранением
+        content = content[:MAX_MESSAGE_LENGTH]
     sanitized_content = sanitize_log(content)
-
-    c = conn.cursor()
-    c.execute(
-        "INSERT INTO messages (role, content, timestamp, mode) VALUES (?, ?, ?, ?)",
-        (role, sanitized_content, datetime.now(UTC).isoformat(), mode),
+    conn.add(
+        Message(
+            role=role,
+            content=sanitized_content,
+            timestamp=_utc_now_naive(),
+            mode=mode,
+        )
     )
     conn.commit()
 
 
-def get_chat_history(conn, limit: int = 10):
+def get_chat_history(conn: Any, limit: int = 10) -> list[dict[str, str]]:
     """Получить историю чата"""
-    c = conn.cursor()
-    c.execute(
-        "SELECT role, content, mode FROM messages ORDER BY id DESC LIMIT ?", (limit,)
-    )
-    rows = c.fetchall()
+    rows = conn.query(Message).order_by(Message.id.desc()).limit(limit).all()
     return [
-        {"role": row[0], "content": row[1], "mode": row[2]} for row in reversed(rows)
+        {"role": r.role, "content": r.content, "mode": r.mode} for r in reversed(rows)
     ]
 
 
-def clear_chat(conn):
+def clear_chat(conn: Any) -> None:
     """Очистить чат"""
-    c = conn.cursor()
-    c.execute("DELETE FROM messages")
+    conn.query(Message).delete()
     conn.commit()
 
 
 # === ГЕЙМИФИКАЦИЯ ===
-def update_stats(conn, points: int, field: str = "points"):
+
+
+def update_stats(conn: Any, points: int, field: str = "points") -> None:
     """Обновить статистику"""
-    c = conn.cursor()
-    now = datetime.now(UTC).isoformat()
-
-    # ✅ Безопасное обновление - все поля параметризованы
-    quizzes_inc = 1 if field == "quizzes_passed" else 0
-    tasks_inc = 1 if field == "tasks_solved" else 0
-
-    c.execute(
-        "UPDATE stats SET points = points + ?, quizzes_passed = quizzes_passed + ?, tasks_solved = tasks_solved + ?, last_activity = ?",
-        (points, quizzes_inc, tasks_inc, now),
-    )
-    conn.commit()
+    stat = conn.query(Stat).first()
+    if stat:
+        stat.points += points
+        stat.last_activity = _utc_now_naive()
+        if field == "quizzes_passed":
+            stat.quizzes_passed += 1
+        elif field == "tasks_solved":
+            stat.tasks_solved += 1
+        conn.commit()
 
 
-def get_stats(conn):
+def get_stats(conn: Any) -> dict[str, int]:
     """Получить статистику"""
-    c = conn.cursor()
-    c.execute("SELECT points, quizzes_passed, tasks_solved FROM stats LIMIT 1")
-    row = c.fetchone()
-    if row:
-        return {"points": row[0], "quizzes": row[1], "tasks": row[2]}
+    stat = conn.query(Stat).first()
+    if stat:
+        return {
+            "points": stat.points,
+            "quizzes": stat.quizzes_passed,
+            "tasks": stat.tasks_solved,
+        }
     return {"points": 0, "quizzes": 0, "tasks": 0}
 
 
 # === АДАПТИВНОЕ ОБУЧЕНИЕ ===
-def update_topic_progress(conn, topic: str, is_correct: bool):
-    """Обновить прогресс по конкретной теме"""
-    c = conn.cursor()
-    c.execute("SELECT correct, total FROM progress WHERE topic = ?", (topic,))
-    row = c.fetchone()
 
-    now = datetime.now(UTC).isoformat()
+
+def update_topic_progress(conn: Any, topic: str, is_correct: bool) -> None:
+    """Обновить прогресс по конкретной теме"""
+    row = conn.query(TopicProgress).filter_by(topic=topic).first()
+    now = _utc_now_naive()
     correct_inc = 1 if is_correct else 0
 
     if row:
-        new_correct = row[0] + correct_inc
-        new_total = row[1] + 1
-        c.execute(
-            "UPDATE progress SET correct = ?, total = ?, last_seen = ? WHERE topic = ?",
-            (new_correct, new_total, now, topic),
-        )
+        row.correct += correct_inc
+        row.total += 1
+        row.last_seen = now
     else:
-        c.execute(
-            "INSERT INTO progress (topic, correct, total, last_seen) VALUES (?, ?, ?, ?)",
-            (topic, correct_inc, 1, now),
+        conn.add(
+            TopicProgress(
+                topic=topic,
+                correct=correct_inc,
+                total=1,
+                last_seen=now,
+            )
         )
     conn.commit()
 
 
-def get_weak_topics(conn, limit=3):
+def get_weak_topics(conn: Any, limit: int = 3) -> list[dict[str, Any]]:
     """Получить темы с худшим результатом (< 60% успеха)"""
-    c = conn.cursor()
-    c.execute(
-        """
-        SELECT topic, correct, total FROM progress
-        WHERE total > 0 AND (CAST(correct AS FLOAT) / total) < 0.6
-        ORDER BY (CAST(correct AS FLOAT) / total) ASC
-        LIMIT ?
-    """,
-        (limit,),
-    )
+    rows = conn.query(TopicProgress).filter(TopicProgress.total > 0).all()
 
-    rows = c.fetchall()
-    return [
+    weak: list[dict[str, Any]] = [
         {
-            "topic": r[0],
-            "correct": r[1],
-            "total": r[2],
-            "rate": int(r[1] / r[2] * 100) if r[2] > 0 else 0,
+            "topic": r.topic,
+            "correct": r.correct,
+            "total": r.total,
+            "rate": int(r.correct / r.total * 100) if r.total > 0 else 0,
         }
         for r in rows
+        if r.total > 0 and (r.correct / r.total) < 0.6
     ]
 
+    weak.sort(key=lambda x: x["rate"])
+    return weak[:limit]
 
-# === КЭШИРОВАНИЕ LLM ОТВЕТОВ (SQLite + TTL) ===
+
+# === КЭШИРОВАНИЕ LLM ОТВЕТОВ ===
 
 
-def cleanup_expired_cache(conn):
+def cleanup_expired_cache(conn: Any) -> None:
     """Удалить просроченные записи кэша"""
-    c = conn.cursor()
-    now = datetime.now(UTC).isoformat()
-    c.execute(
-        "DELETE FROM query_cache WHERE expires_at IS NOT NULL AND expires_at < ?",
-        (now,),
-    )
+    now = _utc_now_naive()
+    conn.query(QueryCache).filter(
+        QueryCache.expires_at.isnot(None),
+        QueryCache.expires_at < now,
+    ).delete()
     conn.commit()
 
 
-def get_cached_response(conn, query_hash: str):
+def get_cached_response(conn: Any, query_hash: str) -> str | None:
     """Получить ответ из кэша если не просрочен"""
     from state import get_state
 
-    c = conn.cursor()
-    c.execute(
-        "SELECT response, expires_at FROM query_cache WHERE query_hash = ?",
-        (query_hash,),
-    )
-    row = c.fetchone()
+    row = conn.query(QueryCache).filter_by(query_hash=query_hash).first()
     state = get_state()
     if row:
-        response, expires_at = row
-        if expires_at is None or expires_at > datetime.now(UTC).isoformat():
+        now = _utc_now_naive()
+        if row.expires_at is None or row.expires_at > now:
             state.cache_hits += 1
-            return response
-        # Просрочен — удаляем
-        c.execute("DELETE FROM query_cache WHERE query_hash = ?", (query_hash,))
+            result: str | None = row.response
+            return result
+        conn.delete(row)
         conn.commit()
     state.cache_misses += 1
     return None
 
 
 def cache_response(
-    conn, query_hash: str, response: str, ttl_seconds: int | None = None
-):
+    conn: Any, query_hash: str, response: str, ttl_seconds: int | None = None
+) -> None:
     """Сохранить ответ в кэш с TTL"""
-    c = conn.cursor()
-    created_at = datetime.now(UTC).isoformat()
+    now = _utc_now_naive()
     expires_at = None
     if ttl_seconds:
-        from datetime import timedelta
+        expires_at = now + timedelta(seconds=ttl_seconds)
 
-        expires = datetime.now(UTC) + timedelta(seconds=ttl_seconds)
-        expires_at = expires.isoformat()
-
-    c.execute(
-        """
-        INSERT OR REPLACE INTO query_cache (query_hash, response, created_at, expires_at, ttl_seconds)
-        VALUES (?, ?, ?, ?, ?)
-    """,
-        (query_hash, response, created_at, expires_at, ttl_seconds),
-    )
+    existing = conn.query(QueryCache).filter_by(query_hash=query_hash).first()
+    if existing:
+        existing.response = response
+        existing.created_at = now
+        existing.expires_at = expires_at
+        existing.ttl_seconds = ttl_seconds
+    else:
+        conn.add(
+            QueryCache(
+                query_hash=query_hash,
+                response=response,
+                created_at=now,
+                expires_at=expires_at,
+                ttl_seconds=ttl_seconds,
+            )
+        )
     conn.commit()
+    total = conn.query(QueryCache).count()
+    if total > 1000:
+        now2 = _utc_now_naive()
+        deleted = (
+            conn.query(QueryCache)
+            .filter(
+                (QueryCache.expires_at.isnot(None)) & (QueryCache.expires_at < now2)
+            )
+            .delete()
+        )
+        if not deleted:
+            newest = (
+                conn.query(QueryCache.id)
+                .order_by(QueryCache.created_at.desc())
+                .limit(1000)
+                .all()
+            )
+            if newest:
+                min_keep = min(r[0] for r in newest)
+                conn.query(QueryCache).filter(QueryCache.id < min_keep).delete()
+        conn.commit()
 
 
-def get_cache_stats(conn):
+def get_cache_stats(conn: Any) -> dict[str, int]:
     """Статистика кэша"""
-    c = conn.cursor()
-    c.execute("SELECT count(*) FROM query_cache")
-    total = c.fetchone()[0]
-    c.execute(
-        "SELECT count(*) FROM query_cache WHERE expires_at IS NULL OR expires_at > ?",
-        (datetime.now(UTC).isoformat(),),
+    now = _utc_now_naive()
+    total = conn.query(QueryCache).count()
+    valid = (
+        conn.query(QueryCache)
+        .filter((QueryCache.expires_at.is_(None)) | (QueryCache.expires_at > now))
+        .count()
     )
-    valid = c.fetchone()[0]
     return {"total": total, "valid": valid, "expired": total - valid}
+
+
+def cleanup_old_messages(conn: Any, keep_last: int = 500) -> None:
+    """
+    Удаляет старые сообщения, оставляя только последние `keep_last` записей.
+    Вызывать при старте или периодически.
+    """
+    from db import Message
+
+    oldest_to_keep = (
+        conn.query(Message.id).order_by(Message.id.desc()).limit(keep_last).all()
+    )
+    if not oldest_to_keep:
+        return
+    min_id_to_keep = min(row[0] for row in oldest_to_keep)
+    deleted = conn.query(Message).filter(Message.id < min_id_to_keep).delete()
+    if deleted:
+        logger.info(f"Очищено старых сообщений: {deleted}")
+    conn.commit()

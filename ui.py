@@ -1,20 +1,19 @@
-from typing import Optional
+from typing import Any
 
 from rich.console import Console
-from rich.live import Live
 from rich.panel import Panel
 from rich.prompt import Prompt
-from rich.text import Text
+
 from shared_types import Mode
 
 console = Console()
 
 
-def print_banner():
+def print_banner() -> None:
     banner = """
 +========================================================+
 |                                                        |
-|   CyberTeacher v3.2 - Обучение кибербезопасности!      |
+|   CyberTeacher v5.0 - Обучение кибербезопасности!      |
 |                                                        |
 |   CTF | Анализ кода | Викторины | Обучение             |
 |                                                        |
@@ -23,7 +22,7 @@ def print_banner():
     console.print(banner, style="bold cyan")
 
 
-def show_menu():
+def show_menu() -> None:
     from config import NUMERIC_MENU
 
     menu = """
@@ -117,7 +116,7 @@ def show_menu():
     console.print(menu)
 
 
-def show_help():
+def show_help() -> None:
     help_text = """
 [bold cyan]КОМАНДЫ:[/bold cyan]
 
@@ -126,6 +125,7 @@ def show_help():
   /expert      - Экспертный режим (краткие ответы)
   /ctf         - CTF режим (флаги, соревнования)
   /review      - Анализ кода (безопасность)
+  /hybrid      - Адаптивный режим (подстраивается под уровень)
 
 [bold blue]📚 ОБУЧЕНИЕ:[/bold blue]
   /quiz        - Викторина (адаптивная, фокус на слабых темах)
@@ -159,9 +159,11 @@ def show_help():
   /practice    - Практика (CTF/HTB)
   /htb         - Интеграция HackTheBox (машины, флаги)
   /walkthrough - Пошаговый разбор эксплойта
-  /exploit     - Поиск эксплойтов по CVE
+   /exploit     - Поиск эксплойтов по CVE
+   /exploits_log- История успешных эксплойтов
   /lab         - Docker лаборатории (21 шт.)
-  /courses     - Учебные курсы (6 курсов)
+   /courses     - Учебные курсы (6 курсов)
+   /topics      - Все темы курсов (прогресс, поиск)
   /next        - Следующая тема курса
   /adaptive    - Показать слабые темы
   /repeat      - Интервальные повторения (SM-2)
@@ -181,8 +183,9 @@ def show_help():
 
 [bold green]📝 ОТЧЁТЫ:[/bold green]
   /summary     - Генерация конспекта (Markdown)
-  /writeup     - Шаблон writeup
-  /auto_writeup- Автоматический writeup
+   /writeup     - Шаблон writeup
+   /writeups    - История writeups (поиск, просмотр)
+   /auto_writeup- Автоматический writeup
 
 [bold magenta]⚙️ УПРАВЛЕНИЕ:[/bold magenta]
   /flag        - Проверить флаг
@@ -198,16 +201,19 @@ def show_help():
   /version     - Версия приложения
   /clear       - Очистить чат
   /menu        - Показать цифровое меню
-  /usage       - Статистика использования команд
+   /usage       - Статистика использования команд
+   /heatmap     - Heatmap активности (28 дней)
   /export      - Экспорт истории чата (Markdown/JSON)
-  /config      - Интерактивный мастер настройки
+   /config      - Интерактивный мастер настройки
+   /state       - Экспорт/импорт состояния (бэкапы)
    /theme       - Смена цветовой схемы
    /lang        - Язык интерфейса (ru/en)
    /features    - Вкл/выкл модулей
   /summarize   - Суммаризация истории диалога
   /phishing    - Конструктор фишинговых писем
   /mermaid     - Mermaid-инфографика
-  /skills      - Трекер практических навыков
+   /skills      - Трекер практических навыков
+   /certificates- Сертификаты мастерства (lvl 5)
   /reputation  - Репутация и хэндлы
   /depth       - Глубина объяснений (beginner/normal/expert)
   /fixcode     - Генерация безопасной версии кода
@@ -216,28 +222,27 @@ def show_help():
   /dockergen   - Генерация docker-compose для лаб
   /ctf         - Динамические CTF-флаги
   /profile     - Профиль пользователя (имя, аватар, статистика)
-  /daily       - Ежедневный челлендж со стриком
-  /sync        - Синхронизация прогресса между устройствами
-  /pwa         - Мобильное приложение (PWA)
-  /mindmap     - ASCII карта тем
-  /api         - REST API сервер
-  /kb          - Управление базой знаний
-  /vision      - Анализ изображений (LLaVA)
-  /telegram    - Telegram бот
-  /subscribe   - Подписка на угрозы
+   /daily       - Ежедневный челлендж со стриком
+   /shop        - Магазин (темы, бусты, подсказки)
+   /sync        - Синхронизация прогресса между устройствами
+   /pwa         - Мобильное приложение (PWA)
+   /versus      - LLM-Соперник (режим дуэли)
+   /offline     - Офлайн-режим (без LLM)
+   /mood        - Стиль общения (hacker/formal/casual/minimal)
+   /api         - REST API сервер
 
   [bold cyan]❓ СПРАВКА:[/bold cyan]
   /help        - Краткая справка (эта команда)
   /help detail - Подробная справка с примерами
   /exit        - Выход из приложения
 
-[dim]Примечание: можно использовать цифры 0-44 вместо команд (см. /menu).[/dim]
+[dim]Примечание: можно использовать цифры 0-72 вместо команд (см. /menu).[/dim]
 [dim]Для команд с аргументами: /flag FLAG{...}, /model qwen2.5:7b, /sandbox python print('hello')[/dim]
     """
     console.print(help_text)
 
 
-def show_help_detail():
+def show_help_detail() -> None:
     """Подробная справка по каждой команде"""
     help_detail = """
 [bold cyan]ПОДРОБНАЯ СПРАВКА ПО КОМАНДАМ[/bold cyan]
@@ -507,7 +512,7 @@ def show_help_detail():
     console.print(help_detail)
 
 
-def print_response(text: str, mode: str):
+def print_response(text: str, mode: str) -> None:
     color_map = {
         "teacher": "green",
         "expert": "blue",
@@ -525,13 +530,13 @@ def print_response(text: str, mode: str):
     console.print(Panel(text, title=f"БОТ: {mode}", border_style=color))
 
 
-def print_thinking(thinking: str):
+def print_thinking(thinking: str) -> None:
     console.print(
         Panel(thinking, title="МЫСЛИ", border_style="dim cyan", style="italic")
     )
 
 
-def print_panel(text: str, title: str = "", border_style: str = "cyan"):
+def print_panel(text: str, title: str = "", border_style: str = "cyan") -> None:
     console.print(Panel(text, title=title, border_style=border_style))
 
 
@@ -539,7 +544,9 @@ import io
 import sys
 
 
-def print_streaming_response(generator, mode: str, sources: list[str] | None = None):
+def print_streaming_response(
+    generator: Any, mode: str, sources: list[str] | None = None
+) -> None:
     """Вывод ответа без стриминга (для Windows)"""
     color_map = {
         "teacher": "green",
@@ -566,5 +573,3 @@ def print_streaming_response(generator, mode: str, sources: list[str] | None = N
 
     if sources:
         console.print(f"[dim]Источники: {', '.join(sources)}[/dim]")
-
-    return text

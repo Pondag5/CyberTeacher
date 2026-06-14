@@ -2,28 +2,27 @@
 
 import sys
 
-from handlers import handle_command  # Исправлено импорт
+from handlers import handle_commands  # Исправлено импорт
 
 sys.path.append(".")
-
-from llm import LLM, StreamingResponse
 
 
 def load_llm():
     try:
-        return LLM()
+        from config import get_llm
+
+        return get_llm()
     except Exception as e:
         print(f"Error loading LLM: {e}")
         return None
 
 
 def get_streaming_response(model, input_message):
-    response = model.predict(input_message)
-    if isinstance(response, StreamingResponse):
-        for chunk in response.streaming():
-            print(chunk)
+    if hasattr(model, "predict"):
+        response = model.predict(input_message)
+        print(f"Response: {response}")
     else:
-        print(f"No streaming response: {response}")
+        print(f"No model to get response from: {model}")
 
 
 if __name__ == "__main__":
@@ -37,14 +36,8 @@ if __name__ == "__main__":
     # Проверка обработки команд
     command_tests = ["help", "quiz", "stats"]
     for cmd in command_tests:
-        response = handle_command(cmd)
-        if isinstance(LLM_model, LLM):
-            streaming_response = LLM_model.predict(f"Command: {cmd}")
-            print(f"Response to '{cmd}':")
-            for chunk in streaming_response.streaming():
-                print(chunk)
-        else:
-            print(f"Response to '{cmd}': {response}")
+        result = handle_commands(cmd, None, lambda: LLM_model)
+        print(f"Response to '{cmd}': {result}")
 
     # Пример запроса для проверки streaming-ответов
     input_message = "Your input message"

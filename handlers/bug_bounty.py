@@ -6,10 +6,12 @@ Learner discovers a simulated vulnerability and writes a professional report.
 LLM acts as triage reviewer, scoring the report and awarding XP.
 """
 
+import json
 import logging
+import random
 import time
 import uuid
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
@@ -17,11 +19,12 @@ from rich.prompt import Prompt
 
 from config import get_llm
 from di import get_context
+from handlers.types import HandlerResult
+
 
 logger = logging.getLogger(__name__)
 console = Console()
 
-# Sample scenarios for bug bounty simulation
 BOUNTY_SCENARIOS = [
     {
         "id": "sqli_login",
@@ -66,17 +69,20 @@ BOUNTY_SCENARIOS = [
 ]
 
 
-def _select_scenario():
-    """Select a random scenario for the bounty hunt"""
-    import random
-
-    scenario = random.choice(BOUNTY_SCENARIOS)
-    return scenario
+def _select_scenario() -> Dict[str, Any]:
+    return random.choice(BOUNTY_SCENARIOS)
 
 
-def _get_llm_review(report: dict) -> dict:
-    """Send report to LLM for review and get score/feedback"""
+def _get_llm_review(report: Dict[str, Any]) -> Dict[str, Any]:
     llm = get_llm()
+    if llm is None:
+        return {
+            "score": 30,
+            "feedback": "LLM не доступна. Отчёт принят с минимальным баллом.",
+            "strengths": [],
+            "improvements": ["Настройте LLM для подробной проверки"],
+            "badges": [],
+        }
     prompt = (
         "Ты — эксперт по безопасности, работающий в bug bounty программе. "
         "Оцени этот отчёт об уязвимости.\n\n"
@@ -107,20 +113,14 @@ def _get_llm_review(report: dict) -> dict:
 
     try:
         response = llm.invoke(prompt)
-        # Parse JSON from response
-        import json
-
-        # Try to extract JSON block
         text = response.content if hasattr(response, "content") else str(response)
-        # Find JSON braces
         start = text.find("{")
         end = text.rfind("}") + 1
         if start != -1 and end != -1:
             json_str = text[start:end]
-            result = json.loads(json_str)
+            result: Dict[str, Any] = json.loads(json_str)
             return result
         else:
-            # Fallback: parse manually
             return {
                 "score": 50,
                 "feedback": "Невозможно распарсить ответ LLM. Отчёт принят, но перепроверь форматирование.",
@@ -139,32 +139,28 @@ def _get_llm_review(report: dict) -> dict:
         }
 
 
-def handle_bounty(action: str = "bounty", args: str = "") -> tuple[bool, str, Any]:
-    """Bug bounty simulation command"""
+def handle_bounty(
+    action: str = "bounty", args: str = ""
+) -> HandlerResult:
     ctx = get_context()
     state = ctx.state
 
-    # For now, only interactive start; subcommands could be added later
     if action != "bounty" and not action.startswith("bounty "):
-        return False, "❌ Использование: /bounty (интерактивный режим)", None
+        return False, None, "❌ Использование: /bounty (интерактивный режим)", True
 
     console.print(
         Panel(
-            "🐛 Bug Bounty Simulation\n"
-            "Вы — white-hat хакер. Вам предоставлен тестовый стенд с уязвимостью.\n"
-            "Ваша задача: составить профессиональный отчет для разработчиков.",
+            "🐛 Bug Bounty Simulation\nВы — white-hat хакер. Вам предоставлен тестовый стенд с уязвимостью.\nВаша задача: составить профессиональный отчет для разработчиков.",
             title="Bug Bounty",
             border_style="magenta",
         )
     )
 
-    # Select scenario
     scenario = _select_scenario()
     console.print(f"\n[bold cyan]Цель:[/bold cyan] {scenario['title']}")
     console.print(f"[dim]{scenario['description']}[/dim]")
     console.print(f"[yellow]Контекст:[/yellow] {scenario['context']}\n")
 
-    # Interactive report collection
     console.print("[bold]Заполните отчет:[/bold]\n")
     title = Prompt.ask("Краткий заголовок отчета", default=scenario["title"])
     vuln_type = Prompt.ask("Тип уязвимости", default=scenario["vulnerability"])
@@ -195,11 +191,9 @@ def handle_bounty(action: str = "bounty", args: str = "") -> tuple[bool, str, An
     strengths = review.get("strengths", [])
     improvements = review.get("improvements", [])
 
-    # Calculate XP reward: base 50 + score*2
     xp_earned = 50 + int(score * 2)
     state.points += xp_earned
 
-    # Save report with review
     report["review"] = review
     report["xp_earned"] = xp_earned
     if not hasattr(state, "bounty_reports"):
@@ -207,7 +201,6 @@ def handle_bounty(action: str = "bounty", args: str = "") -> tuple[bool, str, An
     state.bounty_reports.append(report)
     ctx.save_state()
 
-    # Display results
     result_lines = [
         "[bold green]✅ Отчет принят![/bold green]",
         f"ID отчета: [cyan]{report_id}[/cyan]",
@@ -231,5 +224,4 @@ def handle_bounty(action: str = "bounty", args: str = "") -> tuple[bool, str, An
     console.print(
         Panel("\n".join(result_lines), border_style="green", title="Результат")
     )
-
-    return True, "Bug bounty отчет завершён.", None
+    return True, None, "Bug bounty отчет завершён.", True

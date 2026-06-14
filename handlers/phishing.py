@@ -9,6 +9,8 @@ from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
@@ -49,7 +51,7 @@ PHISHING_CRITERIA = [
 ]
 
 
-def handle_phishing(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_phishing(action: str) -> HandlerResult:
     """Конструктор фишинговых писем."""
     parts = action.split(maxsplit=2)
 
@@ -117,7 +119,7 @@ def _show_tips() -> None:
     ))
 
 
-def _generate_phishing(template_type: str | None) -> tuple[bool, Any | None, Any | None, bool]:
+def _generate_phishing(template_type: str | None) -> HandlerResult:
     """Сгенерировать фишинговое письмо через LLM."""
     from config import LazyLoader
 
@@ -171,7 +173,7 @@ def _generate_phishing(template_type: str | None) -> tuple[bool, Any | None, Any
     return True, None, None, True
 
 
-def _analyze_phishing() -> tuple[bool, Any | None, Any | None, bool]:
+def _analyze_phishing() -> HandlerResult:
     """Проанализировать письмо пользователя."""
     from config import LazyLoader
 

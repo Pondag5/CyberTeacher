@@ -3,11 +3,14 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from knowledge import get_knowledge_status, get_relevant_docs
+from knowledge import clear_kb_cache, get_knowledge_status, get_relevant_docs
 
 
 class TestGetRelevantDocs(unittest.TestCase):
     """Тесты гибридного поиска документов"""
+
+    def setUp(self):
+        clear_kb_cache()
 
     def test_get_relevant_docs_none_vectordb(self):
         results = get_relevant_docs(None, "query")
@@ -15,7 +18,7 @@ class TestGetRelevantDocs(unittest.TestCase):
 
     @patch("knowledge._current_vectordb")
     @patch("knowledge.BM25_ENABLED", False)
-    @patch("knowledge.RERANKER", False)
+    @patch("config.RERANKER", "")
     def test_get_relevant_docs_simple(self, mock_vectordb):
         # Мокаем векторный поиск: возвращаем список Document-подобных объектов
         fake_doc1 = MagicMock()
@@ -26,18 +29,21 @@ class TestGetRelevantDocs(unittest.TestCase):
         fake_doc2.metadata = {"source": "doc2"}
         mock_vectordb.similarity_search.return_value = [fake_doc1, fake_doc2]
 
-        results = get_relevant_docs(mock_vectordb, "query", k=1)
+        results = get_relevant_docs(mock_vectordb, "query", top_k=1)
         self.assertGreaterEqual(len(results), 1)
         self.assertTrue(hasattr(results[0], "page_content"))
 
     @patch("knowledge._current_vectordb")
+    @patch("knowledge.BM25_ENABLED", False)
+    @patch("config.RERANKER", "")
     def test_get_relevant_docs_empty_vector_results(self, mock_vectordb):
         mock_vectordb.similarity_search.return_value = []
-        results = get_relevant_docs(mock_vectordb, "query", k=3)
+        results = get_relevant_docs(mock_vectordb, "query", top_k=3)
         self.assertEqual(results, [])
 
     @patch("knowledge._current_vectordb")
-    @patch("knowledge.RERANKER", False)
+    @patch("knowledge.BM25_ENABLED", False)
+    @patch("config.RERANKER", "")
     def test_get_relevant_docs_respects_k(self, mock_vectordb):
         # Return many docs and ensure final slice uses k
         docs = []
@@ -48,7 +54,7 @@ class TestGetRelevantDocs(unittest.TestCase):
             docs.append(d)
         mock_vectordb.similarity_search.return_value = docs
 
-        results = get_relevant_docs(mock_vectordb, "query", k=3)
+        results = get_relevant_docs(mock_vectordb, "query", top_k=3)
         self.assertEqual(len(results), 3)
 
 

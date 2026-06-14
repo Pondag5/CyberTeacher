@@ -1,15 +1,19 @@
 """Equipment (tool selection) handling"""
 
+from typing import Any, Tuple
+
 from rich.console import Console
 from rich.table import Table
 
 from di import get_context
 from tools_ram import MAX_RAM, TOOL_RAM_COSTS
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 
-def handle_tools(action: str):
+def handle_tools(action: str) -> HandlerResult:
     """Показать доступные инструменты и текущую экипировку."""
     ctx = get_context()
     state = ctx.state
@@ -30,7 +34,7 @@ def handle_tools(action: str):
     return True, None, None, True
 
 
-def handle_equip(action: str):
+def handle_equip(action: str) -> HandlerResult:
     """Экипировать/снять инструмент: /equip <tool>."""
     ctx = get_context()
     state = ctx.state

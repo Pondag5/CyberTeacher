@@ -130,7 +130,7 @@ class TestAnalytics(unittest.TestCase):
         mock_response.content = "1. Practice more"
         mock_get_llm.return_value.invoke.return_value = mock_response
 
-        success, msg, _ = handle_analytics("analytics", "")
+        success, _, msg, _ = handle_analytics("analytics", "")
         self.assertTrue(success)
         self.assertIn("Advanced Analytics", msg)
         self.assertIn("Total XP", msg)

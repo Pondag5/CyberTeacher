@@ -52,7 +52,7 @@ class TestBugBounty(unittest.TestCase):
                 "Use params",  # fix
             ]
 
-            success, _, __ = handle_bounty("bounty", "")
+            success, _, __, ___ = handle_bounty("bounty", "")
             self.assertTrue(success)
             self.assertEqual(mock_state.points, 220)  # base 50 + 85*2
             self.assertEqual(len(mock_state.bounty_reports), 1)
@@ -89,7 +89,7 @@ class TestBugBounty(unittest.TestCase):
             }
             mock_ask.side_effect = ["R", "V", "S", "St", "I", "F"]
 
-            success, _, __ = handle_bounty("bounty", "")
+            success, _, __, ___ = handle_bounty("bounty", "")
             self.assertTrue(success)
             # Despite error, report saved with default score 30
             self.assertEqual(mock_state.points, 110)  # 50+60

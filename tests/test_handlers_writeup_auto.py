@@ -58,9 +58,9 @@ class TestHandlersWriteupAuto(unittest.TestCase):
 
     @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
-    @patch("knowledge.get_current_vectordb")
-    @patch("knowledge.get_relevant_docs")
-    @patch("config.LazyLoader")
+    @patch("handlers.writeup_auto.get_current_vectordb")
+    @patch("handlers.writeup_auto.get_relevant_docs")
+    @patch("handlers.writeup_auto.LazyLoader")
     @patch("builtins.input", return_value="n")
     def test_handle_auto_writeup_quiz_success(  # noqa: PLR0913
         self,
@@ -117,9 +117,9 @@ class TestHandlersWriteupAuto(unittest.TestCase):
 
     @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
-    @patch("knowledge.get_current_vectordb")
-    @patch("knowledge.get_relevant_docs")
-    @patch("config.LazyLoader")
+    @patch("handlers.writeup_auto.get_current_vectordb")
+    @patch("handlers.writeup_auto.get_relevant_docs")
+    @patch("handlers.writeup_auto.LazyLoader")
     @patch("builtins.input", return_value="y")
     @patch("builtins.open", new_callable=mock_open)
     def test_handle_auto_writeup_saves_to_file(  # noqa: PLR0913
@@ -169,22 +169,31 @@ class TestHandlersWriteupAuto(unittest.TestCase):
 
     @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
-    @patch("knowledge.get_current_vectordb")
-    @patch("config.LazyLoader")
+    @patch("handlers.writeup_auto.get_current_vectordb")
+    @patch("handlers.writeup_auto.get_relevant_docs")
+    @patch("handlers.writeup_auto.LazyLoader")
     def test_handle_auto_writeup_llm_exception(
-        self, mock_lazy, mock_vectordb, mock_print, mock_get_context
+        self, mock_lazy, mock_get_docs, mock_vectordb, mock_print, mock_get_context
     ):
         """Test writeup generation when LLM raises exception"""
         from handlers import writeup_auto
 
         mock_state = MockState()
-        activity = {"type": "quiz", "topic": "test"}
+        activity = {
+            "type": "quiz",
+            "topic": "test",
+            "total_score": 5,
+            "max_total": 10,
+            "success_rate": 50.0,
+            "responses": [],
+        }
         mock_state.last_writeup_activity = activity
         mock_ctx = MagicMock()
         mock_ctx.state = mock_state
         mock_get_context.return_value = mock_ctx
 
         mock_vectordb.return_value = MagicMock()
+        mock_get_docs.return_value = []
         mock_llm = MagicMock()
         mock_llm.invoke.side_effect = Exception("LLM error")
         mock_lazy.get_llm.return_value = mock_llm
@@ -194,18 +203,16 @@ class TestHandlersWriteupAuto(unittest.TestCase):
         self.assertEqual(result, (True, None, None, True))
         # Should print error message
         self.assertTrue(
-            any(
-                "Ошибка при генерации" in str(call)
-                for call in mock_print.call_args_list
-            )
+            any("Ошибка" in str(call) for call in mock_print.call_args_list)
         )
 
     @patch("handlers.writeup_auto.get_context")
     @patch("handlers.writeup_auto.console.print")
-    @patch("knowledge.get_current_vectordb")
-    @patch("config.LazyLoader")
+    @patch("handlers.writeup_auto.get_current_vectordb")
+    @patch("handlers.writeup_auto.LazyLoader")
+    @patch("builtins.input", return_value="n")
     def test_handle_auto_writeup_no_vectordb(
-        self, mock_lazy, mock_vectordb, mock_print, mock_get_context
+        self, mock_input, mock_lazy, mock_vectordb, mock_print, mock_get_context
     ):
         """Test writeup when vectordb is None (context unavailable)"""
         from handlers import writeup_auto

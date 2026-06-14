@@ -1,151 +1,149 @@
-"""Exploit walkthrough handler - step-by-step guidance"""
+# handlers/cve.py
+import json
+import os
+import time
+from typing import Any, Dict, Optional, Tuple
 
-import logging
-from typing import Any
-
+import requests
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
+from handlers.types import HandlerResult
 
-from config import get_llm
-from handlers.cve import CACHE_TTL, _cve_cache, _fetch_cve
 
 console = Console()
-logger = logging.getLogger(__name__)
 
-# Simple cache for walkthroughs
-_walkthrough_cache: dict[str, tuple[float, str]] = {}
-WALKTHROUGH_CACHE_TTL = 3600  # 1 hour
+CVE_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+CACHE_TTL = 3600 * 24  # 24 часа
 
 
-def handle_walkthrough(action: str) -> tuple[bool, None, None, bool]:
-    """Handle /walkthrough <topic> - generate step-by-step exploit guide."""
+def _fetch_cve(cve_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_id}"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        vulnerabilities = data.get("vulnerabilities", [])
+        if not vulnerabilities:
+            return None
+        cve_data = vulnerabilities[0].get("cve", {})
+        return {
+            "id": cve_data.get("id"),
+            "description": cve_data.get("descriptions", [{}])[0].get("value", ""),
+            "published": cve_data.get("published"),
+            "severity": cve_data.get("metrics", {})
+            .get("cvssMetricV31", [{}])[0]
+            .get("cvssData", {})
+            .get("baseSeverity", "UNKNOWN"),
+            "score": cve_data.get("metrics", {})
+            .get("cvssMetricV31", [{}])[0]
+            .get("cvssData", {})
+            .get("baseScore", 0),
+            "references": [
+                {"url": ref.get("url")} for ref in cve_data.get("references", [])
+            ],
+        }
+    except (ValueError, KeyError, IndexError, TypeError):
+        return None
+
+
+def handle_cve(action: str) -> HandlerResult:
     parts = action.split(maxsplit=1)
     if len(parts) < 2:
-        console.print("[cyan]Использование: /walkthrough <тема>[/cyan]")
-        console.print("[dim]Примеры:[/dim]")
-        console.print("  /walkthrough SQL Injection")
-        console.print("  /walkthrough buffer overflow")
-        console.print("  /walkthrough XSS reflected")
+        console.print("[cyan]Использование: /cve CVE-YYYY-XXXX[/cyan]")
+        return True, None, None, True
+
+    cve_id = parts[1].strip().upper()
+    cached = CVE_CACHE.get(cve_id)
+    cve_data: Optional[Dict[str, Any]] = None
+    if cached and (time.time() - cached[0] < CACHE_TTL):
+        cve_data = cached[1]
+    else:
+        cve_data = _fetch_cve(cve_id)
+        if cve_data is None:
+            console.print(f"[red]❌ CVE {cve_id} не найден[/red]")
+            return True, None, None, True
+        CVE_CACHE[cve_id] = (time.time(), cve_data)
+
+    out = f"""[bold]🔍 {cve_data["id"]}[/bold]
+[yellow]Severity: {cve_data["severity"]} (Score: {cve_data["score"]})[/yellow]
+[dim]Published: {cve_data["published"]}[/dim]
+
+[bold]📝 Description:[/bold]
+{cve_data["description"][:500]}...
+
+[bold]🔗 References:[/bold]
+"""
+    for ref in cve_data.get("references", [])[:5]:
+        out += f"  • {ref['url']}\n"
+
+    console.print(Panel(out, title=f"CVE Details", border_style="red"))
+    return True, None, None, True
+
+
+def handle_walkthrough(action: str) -> HandlerResult:
+    """Handle /walkthrough command."""
+    parts = action.split(maxsplit=1)
+    if len(parts) < 2:
+        console.print("[cyan]Использование: /walkthrough <topic>[/cyan]")
+        console.print("[dim]Пример: /walkthrough SQL Injection[/dim]")
         return True, None, None, True
 
     topic = parts[1].strip()
-
-    # Check cache
-    cached = _walkthrough_cache.get(topic.lower())
-    if cached and (__import__("time").time() - cached[0] < WALKTHROUGH_CACHE_TTL):
-        walkthrough = cached[1]
-        console.print(
-            Panel(walkthrough, title=f"Walkthrough: {topic}", border_style="green")
+    console.print(
+        Panel(
+            f"[bold]📚 Walkthrough: {topic}[/bold]\n\n"
+            "Для получения walkthrough по машине HackTheBox используйте:\n"
+            "  /htb walkthrough <machine_id>",
+            title="Walkthrough",
+            border_style="cyan",
         )
-        return True, None, None, True
-
-    try:
-        llm = get_llm()
-        prompt = f"""
-Ты - опытный пентестер и преподаватель кибербезопасности.
-Создай подробные пошаговые инструкции по exploitation для темы: "{topic}"
-
-Требования к структуре:
-
-1. **Введение**: Кратко объясни, что это за уязвимость и где встречается.
-
-2. **Предварительные условия**: Что нужно для exploitation (доступ, инструменты, условия).
-
-3. **Пошаговое руководство**:
-   - Шаг 1: [Название]
-     * Цель: ...
-     * Команды/действия:
-       ```bash
-       # пример
-       $ nmap -sV target.com
-       ```
-     * Что должно произойти / ожидаемый результат
-     * Альтернативные варианты если что-то пошло не так
-
-   - Шаг 2: ...
-   (и так далее, минимум 5 шагов)
-
-4. **Проверка успеха**: Как понять, что эксплуатация удалась?
-
-5. **Пост-эксплуатация** (если применимо): Что делать после получения доступа?
-
-6. **Защита**: Как предотвратить эту уязвимость?
-
-7. **Тестирование в legal environment**: Где практиковаться (HTB, DVWA, TryHackMe, etc.)
-
-Форматирование:
-- Используй markdown
-- Выделяй команды в блоки кода
-- Используй эмодзи для визуального различения типов шагов (🔍 👣 💥 🛡️)
-- Будь конкретным, но安全 (без запрещённых деталей)
-"""
-
-        resp = llm.invoke(prompt)
-        walkthrough = resp.content if hasattr(resp, "content") else str(resp)
-
-        # Cache it
-        _walkthrough_cache[topic.lower()] = (__import__("time").time(), walkthrough)
-
-        console.print(
-            Panel(walkthrough, title=f"📘 Walkthrough: {topic}", border_style="cyan")
-        )
-        return True, None, None, True
-
-    except Exception as e:
-        console.print(f"[red]❌ Ошибка генерации walkthrough: {e!s}[/red]")
-        return True, None, None, True
+    )
+    return True, None, None, True
 
 
-def handle_exploit_search(action: str) -> tuple[bool, None, None, bool]:
-    """Handle /exploit <cve> or /exploit <tech> - search for exploits."""
-    parts = action.split()
+def handle_exploit_search(action: str) -> HandlerResult:
+    """Handle /exploit command — search exploits or CVE details."""
+    parts = action.split(maxsplit=1)
     if len(parts) < 2:
-        console.print("[cyan]Использование: /exploit <CVE-ID>[/cyan]")
-        console.print("[dim]Пример: /exploit CVE-2021-44228[/dim]")
+        console.print("[cyan]Использование: /exploit <query>[/cyan]")
+        console.print("[dim]Примеры:[/dim]")
+        console.print("  /exploit CVE-2024-1234  — поиск информации о CVE")
+        console.print("  /exploit buffer overflow — поиск эксплойтов")
         return True, None, None, True
 
-    query = parts[1].upper()
+    query = parts[1].strip()
+    query_upper = query.upper()
 
-    # If it looks like a CVE
-    if query.startswith("CVE-"):
-        # Check CVE cache first (from handlers.cve)
-        import time
+    if query_upper.startswith("CVE-"):
+        cve_data = _fetch_cve(query_upper)
+        if cve_data is None:
+            console.print(f"[red]❌ CVE {query_upper} не найден[/red]")
+            return True, None, None, True
 
-        cached = _cve_cache.get(query)
-        if cached and (time.time() - cached[0] < CACHE_TTL):
-            cve_data = cached[1]
-        else:
-            cve_data = _fetch_cve(query)
-            if cve_data is None:
-                console.print(f"[red]CVE {query} не найден[/red]")
-                return True, None, None, True
-            _cve_cache[query] = (time.time(), cve_data)
+        out = f"""[bold]🔍 Exploit search for {cve_data["id"]}[/bold]
+[yellow]Severity: {cve_data["severity"]} (Score: {cve_data["score"]})[/yellow]
+[dim]Published: {cve_data["published"]}[/dim]
 
-        # Extract references (exploit links)
-        refs = cve_data.get("references", [])
-        exploit_refs = [
-            r.get("url")
-            for r in refs
-            if "exploit" in r.get("url", "").lower()
-            or "exploit-db" in r.get("url", "").lower()
-        ]
+[bold]📝 Description:[/bold]
+{cve_data["description"][:500]}...
 
-        out = f"[bold]🔎 Результаты для {query}[/bold]\n\n"
-        if exploit_refs:
-            out += "[cyan]Найдены ссылки на эксплойты:[/cyan]\n"
-            for url in exploit_refs[:5]:
-                out += f"  • {url}\n"
-        else:
-            out += "[yellow]Прямых ссылок на эксплойты не найдено[/yellow]\n"
-            out += "[dim]Попробуй поискать на:[/dim]\n"
-            out += "  • https://www.exploit-db.com\n"
-            out += "  • https://nvd.nist.gov\n"
-            out += "  • https://github.com/search?q=" + query + "\n"
+[bold]🔗 References:[/bold]
+"""
+        for ref in cve_data.get("references", [])[:5]:
+            out += f"  • {ref['url']}\n"
 
-        console.print(Panel(out, title="Exploit Search", border_style="magenta"))
-        return True, None, None, True
+        console.print(Panel(out, title="Exploit / CVE Info", border_style="red"))
     else:
-        console.print(f"[yellow]🔎 Поиск эксплойтов для: {query}[/yellow]")
-        console.print("[dim]Для CVE используй формат: CVE-YYYY-NNNN[/dim]")
-        console.print("[dim]Или попробуй /walkthrough для пошагового разбора[/dim]")
-        return True, None, None, True
+        console.print(
+            Panel(
+                f"[bold]🔍 Поиск эксплойтов: {query}[/bold]\n\n"
+                "Для поиска CVE используйте /exploit CVE-YYYY-XXXX\n"
+                "Для HTB walkthrough: /htb walkthrough <machine_id>",
+                title="Exploit Search",
+                border_style="yellow",
+            )
+        )
+
+    return True, None, None, True

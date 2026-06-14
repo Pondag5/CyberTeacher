@@ -1,73 +1,82 @@
-"""CVE lookup handler"""
-
+# handlers/cve.py
+import json
+import os
 import time
-from typing import Any
+from typing import Any, Dict, Optional, Tuple
 
+import requests
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
+from handlers.types import HandlerResult
 
-from di import get_context
 
 console = Console()
 
-# Simple in-memory cache: {cve_id: (timestamp, data)}
-_cve_cache: dict[str, tuple[float, dict[str, Any]]] = {}
-CACHE_TTL = 3600  # 1 hour
+CVE_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+CACHE_TTL = 3600 * 24  # 24 часа
 
 
-def _fetch_cve(cve_id: str) -> dict[str, Any] | None:
-    """Fetch CVE from NVD API."""
-    import requests
-
-    url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_id}"
+def _fetch_cve(cve_id: str) -> Optional[Dict[str, Any]]:
     try:
-        r = requests.get(url, timeout=10)
-        if r.status_code != 200:
+        url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_id}"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code != 200:
             return None
-        data = r.json()
-        # Extract the first CVE
-        vulns = data.get("vulnerabilities", [])
-        if not vulns:
+        data = resp.json()
+        vulnerabilities = data.get("vulnerabilities", [])
+        if not vulnerabilities:
             return None
-        return vulns[0]["cve"]
-    except Exception:
+        cve_data = vulnerabilities[0].get("cve", {})
+        return {
+            "id": cve_data.get("id"),
+            "description": cve_data.get("descriptions", [{}])[0].get("value", ""),
+            "published": cve_data.get("published"),
+            "severity": cve_data.get("metrics", {})
+            .get("cvssMetricV31", [{}])[0]
+            .get("cvssData", {})
+            .get("baseSeverity", "UNKNOWN"),
+            "score": cve_data.get("metrics", {})
+            .get("cvssMetricV31", [{}])[0]
+            .get("cvssData", {})
+            .get("baseScore", 0),
+            "references": [
+                {"url": ref.get("url")} for ref in cve_data.get("references", [])
+            ],
+        }
+    except (ValueError, KeyError, IndexError, TypeError):
         return None
 
 
-def handle_cve(action: str):
-    """Обработка команды /cve <id>."""
-    parts = action.split()
+def handle_cve(action: str) -> HandlerResult:
+    parts = action.split(maxsplit=1)
     if len(parts) < 2:
-        console.print("[cyan]Использование: /cve <CVE-ID>[/cyan]")
+        console.print("[cyan]Использование: /cve CVE-YYYY-XXXX[/cyan]")
         return True, None, None, True
 
-    cve_id = parts[1].upper()
-
-    # Check cache
-    cached = _cve_cache.get(cve_id)
+    cve_id = parts[1].strip().upper()
+    cached = CVE_CACHE.get(cve_id)
+    cve_data: Optional[Dict[str, Any]] = None
     if cached and (time.time() - cached[0] < CACHE_TTL):
-        data = cached[1]
+        cve_data = cached[1]
     else:
-        data = _fetch_cve(cve_id)
-        if data is None:
-            console.print(f"[red]CVE {cve_id} не найден[/red]")
+        cve_data = _fetch_cve(cve_id)
+        if cve_data is None:
+            console.print(f"[red]❌ CVE {cve_id} не найден[/red]")
             return True, None, None, True
-        _cve_cache[cve_id] = (time.time(), data)
+        CVE_CACHE[cve_id] = (time.time(), cve_data)
 
-    # Build output
-    desc = data.get("descriptions", [{}])[0].get("value", "Нет описания")
-    severity = "N/A"
-    metrics = data.get("metrics", {}).get("cvssMetricV31", [{}])[0]
-    if metrics:
-        severity = metrics.get("cvssData", {}).get("baseScore", "N/A")
-    refs = [ref.get("url") for ref in data.get("references", []) if ref.get("url")]
-    ref_lines = "\n".join(f"  • {url}" for url in refs[:5])
+    out = f"""[bold]🔍 {cve_data["id"]}[/bold]
+[yellow]Severity: {cve_data["severity"]} (Score: {cve_data["score"]})[/yellow]
+[dim]Published: {cve_data["published"]}[/dim]
 
-    out = f"""[bold]CVE: {cve_id}[/bold]
-[magenta]Уровень CVSS: {severity}[/magenta]
-[white]Описание: {desc}[/white]
-[cyan]Ссылки:[/cyan]
-{ref_lines}
+[bold]📝 Description:[/bold]
+{cve_data["description"][:500]}...
+
+[bold]🔗 References:[/bold]
 """
-    console.print(Panel(out, title="CVE lookup", border_style="cyan"))
+    for ref in cve_data.get("references", [])[:5]:
+        out += f"  • {ref['url']}\n"
+
+    console.print(Panel(out, title=f"CVE Details", border_style="red"))
     return True, None, None, True

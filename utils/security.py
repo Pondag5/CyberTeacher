@@ -10,7 +10,17 @@ import os
 
 def _get_key() -> bytes:
     """Получить ключ шифрования из machine-specific данных."""
-    seed = os.environ.get("CYBERTEACHER_ENC_KEY", "cyber-teacher-default-key-2026")
+    seed = os.environ.get("CYBERTEACHER_ENC_KEY", "")
+    if not seed:
+        import secrets
+
+        seed = secrets.token_hex(16)
+        import logging
+
+        logging.warning(
+            "CYBERTEACHER_ENC_KEY not set — using ephemeral key. "
+            "Previously encrypted data may become unreadable. Set CYBERTEACHER_ENC_KEY in .env."
+        )
     return hashlib.sha256(seed.encode()).digest()
 
 
@@ -33,7 +43,7 @@ def decrypt_value(hex_str: str) -> str:
         data = bytes.fromhex(hex_str)
         decrypted = bytes(b ^ key[i % len(key)] for i, b in enumerate(data))
         return decrypted.decode("utf-8")
-    except Exception:
+    except (ValueError, TypeError, IndexError):
         return ""
 
 

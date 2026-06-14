@@ -2,19 +2,21 @@
 """Конструктор кастомных заданий с валидацией через YAML."""
 
 import os
-from typing import Any
+from typing import Any, Tuple, Dict, List, Optional
 
 import yaml
 from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 TEMPLATES_DIR = "./assignment_templates"
 
-DEFAULT_TEMPLATES = {
+DEFAULT_TEMPLATES: dict[str, dict[str, Any]] = {
     "web_discovery": {
         "name": "Веб-разведка",
         "category": "recon",
@@ -93,23 +95,27 @@ DEFAULT_TEMPLATES = {
 }
 
 
-def handle_assignment_templates(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_assignment_templates(
+    action: str,
+) -> HandlerResult:
     """Управление YAML шаблонами заданий."""
     parts = action.split(maxsplit=2)
 
     if len(parts) == 1:
-        console.print(Panel(
-            "[bold cyan]📋 Шаблоны заданий[/bold cyan]\n\n"
-            "Использование:\n"
-            "  /templates list              — показать шаблоны\n"
-            "  /templates show <имя>        — показать детали\n"
-            "  /templates create <имя>      — создать новый шаблон\n"
-            "  /templates generate <имя>    — сгенерировать задание\n"
-            "  /templates validate <файл>   — валидировать YAML\n\n"
-            f"Директория: {TEMPLATES_DIR}/",
-            title="ШАБЛОНЫ ЗАДАНИЙ",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel(
+                "[bold cyan]📋 Шаблоны заданий[/bold cyan]\n\n"
+                "Использование:\n"
+                "  /templates list              — показать шаблоны\n"
+                "  /templates show <имя>        — показать детали\n"
+                "  /templates create <имя>      — создать новый шаблон\n"
+                "  /templates generate <имя>    — сгенерировать задание\n"
+                "  /templates validate <файл>   — валидировать YAML\n\n"
+                f"Директория: {TEMPLATES_DIR}/",
+                title="ШАБЛОНЫ ЗАДАНИЙ",
+                border_style="cyan",
+            )
+        )
         return True, None, None, True
 
     subcommand = parts[1].lower()
@@ -138,15 +144,19 @@ def _ensure_dir() -> None:
     os.makedirs(TEMPLATES_DIR, exist_ok=True)
 
 
-def _list_templates() -> tuple[bool, Any | None, Any | None, bool]:
+def _list_templates() -> HandlerResult:
     """Показать список шаблонов."""
     _ensure_dir()
 
     # Встроенные
     console.print("[bold cyan]📚 Встроенные шаблоны:[/bold cyan]\n")
     for tid, t in DEFAULT_TEMPLATES.items():
-        diff_color = {"easy": "green", "medium": "yellow", "hard": "red"}.get(t["difficulty"], "white")
-        console.print(f"  [cyan]{tid:<20}[/cyan] [{diff_color}]{t['difficulty']}[/] — {t['name']} ({t['category']})")
+        diff_color = {"easy": "green", "medium": "yellow", "hard": "red"}.get(
+            t["difficulty"], "white"
+        )
+        console.print(
+            f"  [cyan]{tid:<20}[/cyan] [{diff_color}]{t['difficulty']}[/] — {t['name']} ({t['category']})"
+        )
 
     # Пользовательские
     user_templates = []
@@ -155,7 +165,9 @@ def _list_templates() -> tuple[bool, Any | None, Any | None, bool]:
             user_templates.append(f)
 
     if user_templates:
-        console.print(f"\n[bold cyan]📁 Пользовательские шаблоны ({len(user_templates)}):[/bold cyan]\n")
+        console.print(
+            f"\n[bold cyan]📁 Пользовательские шаблоны ({len(user_templates)}):[/bold cyan]\n"
+        )
         for f in user_templates:
             console.print(f"  [green]{f}[/green]")
     else:
@@ -164,7 +176,7 @@ def _list_templates() -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _show_template(name: str) -> tuple[bool, Any | None, Any | None, bool]:
+def _show_template(name: str) -> HandlerResult:
     """Показать детали шаблона."""
     template = DEFAULT_TEMPLATES.get(name)
 
@@ -181,7 +193,9 @@ def _show_template(name: str) -> tuple[bool, Any | None, Any | None, bool]:
         console.print(f"[red]❌ Шаблон '{name}' не найден[/red]")
         return True, None, None, True
 
-    diff_color = {"easy": "green", "medium": "yellow", "hard": "red"}.get(template.get("difficulty", ""), "white")
+    diff_color = {"easy": "green", "medium": "yellow", "hard": "red"}.get(
+        template.get("difficulty", ""), "white"
+    )
 
     content = (
         f"[bold]Название:[/bold] {template.get('name', '?')}\n"
@@ -198,11 +212,13 @@ def _show_template(name: str) -> tuple[bool, Any | None, Any | None, bool]:
     for i, hint in enumerate(template.get("hints", []), 1):
         content += f"\n  {i}. {hint}"
 
-    console.print(Panel(content, title=f"📋 {template.get('name', name)}", border_style="cyan"))
+    console.print(
+        Panel(content, title=f"📋 {template.get('name', name)}", border_style="cyan")
+    )
     return True, None, None, True
 
 
-def _create_template(name: str) -> tuple[bool, Any | None, Any | None, bool]:
+def _create_template(name: str) -> HandlerResult:
     """Создать новый шаблон через wizard."""
     _ensure_dir()
 
@@ -225,7 +241,7 @@ def _create_template(name: str) -> tuple[bool, Any | None, Any | None, bool]:
         "xp_reward": "XP награда (число)",
     }
 
-    template = {}
+    template: Dict[str, Any] = {}
     for key, label in fields.items():
         value = input(f"{label}: ").strip()
         if key == "tools":
@@ -240,9 +256,9 @@ def _create_template(name: str) -> tuple[bool, Any | None, Any | None, bool]:
 
     # Подсказки
     console.print("\nПодсказки (пустая строка для завершения):")
-    hints = []
+    hints: List[str] = []
     while True:
-        hint = input(f"  Подсказка {len(hints)+1}: ").strip()
+        hint = input(f"  Подсказка {len(hints) + 1}: ").strip()
         if not hint:
             break
         hints.append(hint)
@@ -256,7 +272,7 @@ def _create_template(name: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _generate_assignment(name: str) -> tuple[bool, Any | None, Any | None, bool]:
+def _generate_assignment(name: str) -> HandlerResult:
     """Сгенерировать задание из шаблона."""
     template = DEFAULT_TEMPLATES.get(name)
 
@@ -282,21 +298,23 @@ def _generate_assignment(name: str) -> tuple[bool, Any | None, Any | None, bool]
     }
     state.save_to_file()
 
-    console.print(Panel(
-        f"[bold]🎯 Задание: {template.get('name', name)}[/bold]\n\n"
-        f"{template.get('description', '')}\n\n"
-        f"[bold]Цель:[/bold] {template.get('objective', '')}\n"
-        f"[bold]Инструменты:[/bold] {', '.join(template.get('tools', []))}\n"
-        f"[bold]XP награда:[/bold] {template.get('xp_reward', 0)}\n\n"
-        "[yellow]Используй /hint для подсказки, /submit для отправки результата[/yellow]",
-        title="АКТИВНОЕ ЗАДАНИЕ",
-        border_style="green",
-    ))
+    console.print(
+        Panel(
+            f"[bold]🎯 Задание: {template.get('name', name)}[/bold]\n\n"
+            f"{template.get('description', '')}\n\n"
+            f"[bold]Цель:[/bold] {template.get('objective', '')}\n"
+            f"[bold]Инструменты:[/bold] {', '.join(template.get('tools', []))}\n"
+            f"[bold]XP награда:[/bold] {template.get('xp_reward', 0)}\n\n"
+            "[yellow]Используй /hint для подсказки, /submit для отправки результата[/yellow]",
+            title="АКТИВНОЕ ЗАДАНИЕ",
+            border_style="green",
+        )
+    )
 
     return True, None, None, True
 
 
-def _validate_template(filepath: str) -> tuple[bool, Any | None, Any | None, bool]:
+def _validate_template(filepath: str) -> HandlerResult:
     """Валидировать YAML шаблон."""
     if not os.path.exists(filepath):
         # Проверить в директории шаблонов
@@ -319,21 +337,27 @@ def _validate_template(filepath: str) -> tuple[bool, Any | None, Any | None, boo
         missing = [k for k in required if k not in data]
 
         if missing:
-            console.print(f"[red]❌ Отсутствуют обязательные поля: {', '.join(missing)}[/red]")
+            console.print(
+                f"[red]❌ Отсутствуют обязательные поля: {', '.join(missing)}[/red]"
+            )
             return True, None, None, True
 
         if data.get("difficulty") not in ("easy", "medium", "hard"):
-            console.print("[red]❌ difficulty должен быть: easy, medium, или hard[/red]")
+            console.print(
+                "[red]❌ difficulty должен быть: easy, medium, или hard[/red]"
+            )
             return True, None, None, True
 
-        console.print(Panel(
-            f"[green]✅ Шаблон валиден![/green]\n\n"
-            f"Файл: {filepath}\n"
-            f"Полей: {len(data)}\n"
-            f"Обязательные: все присутствуют",
-            title="ВАЛИДАЦИЯ",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"[green]✅ Шаблон валиден![/green]\n\n"
+                f"Файл: {filepath}\n"
+                f"Полей: {len(data)}\n"
+                f"Обязательные: все присутствуют",
+                title="ВАЛИДАЦИЯ",
+                border_style="green",
+            )
+        )
     except yaml.YAMLError as e:
         console.print(f"[red]❌ YAML ошибка: {e}[/red]")
     except Exception as e:

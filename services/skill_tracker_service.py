@@ -34,7 +34,7 @@ def track_skill(
 def get_skill_level(skill_tracker: dict[str, Any], skill: str) -> int:
     """Получить уровень навыка (0-5)."""
     if skill in skill_tracker:
-        return skill_tracker[skill]["level"]
+        return int(skill_tracker[skill]["level"])
     return 0
 
 
@@ -42,17 +42,19 @@ def get_all_skills(skill_tracker: dict[str, Any]) -> list[dict[str, Any]]:
     """Получить все навыки с прогрессом."""
     result = []
     for name, data in skill_tracker.items():
-        result.append({
-            "name": name,
-            "level": data["level"],
-            "xp": data["xp"],
-            "attempts": data["attempts"],
-            "successes": data["successes"],
-            "success_rate": round(
-                data["successes"] / data["attempts"] * 100, 1
-            ) if data["attempts"] > 0 else 0,
-            "last_practice": data.get("last_practice", 0),
-        })
+        result.append(
+            {
+                "name": name,
+                "level": data["level"],
+                "xp": data["xp"],
+                "attempts": data["attempts"],
+                "successes": data["successes"],
+                "success_rate": round(data["successes"] / data["attempts"] * 100, 1)
+                if data["attempts"] > 0
+                else 0,
+                "last_practice": data.get("last_practice", 0),
+            }
+        )
     return sorted(result, key=lambda x: x["level"], reverse=True)
 
 
@@ -62,7 +64,7 @@ def apply_skill_decay(
     decay_rate: float = 0.10,
 ) -> list[str]:
     """Применить decay к навыкам, которые не практиковались decay_days дней.
-    
+
     Возвращает список навыков, которые были уменьшены.
     """
     now = time.time()

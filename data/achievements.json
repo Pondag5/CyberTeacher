@@ -99,225 +99,236 @@
         "threshold": 1
       }
     },
-     {
-       "id": "news_follower",
-       "name": "Следящий за новостями",
-       "description": "Проверили новости хотя бы раз",
-       "icon": "📰",
-       "points": 5,
-       "condition": {
-         "type": "news_checked",
-         "threshold": 1
-       }
-     },
-     {
-       "id": "social_engineer_5",
-       "name": "Социальный инженер",
-       "description": "Успешно провели 5 сценариев социальной инженерии",
-       "icon": "🎭",
-       "points": 30,
-       "condition": {
-         "type": "social_success",
-         "threshold": 5
-       }
-     },
-     {
-       "id": "social_engineer_20",
-       "name": "Мастер социальной инженерии",
-       "description": "Успешно провели 20 сценариев социальной инженерии",
-       "icon": "🎪",
-       "points": 75,
-       "condition": {
-         "type": "social_success",
-         "threshold": 20
-       }
-     },
-     {
-       "id": "apt_hunter_10",
-       "name": "APT Охотник",
-       "description": "Изучили 10 досье на APT-группы",
-       "icon": "🔍",
-       "points": 40,
-       "condition": {
-         "type": "apt_groups_viewed",
-         "threshold": 10
-       }
-     },
-     {
-       "id": "apt_hunter_25",
-       "name": "APT Охотник Эксперт",
-       "description": "Изучили 25 досье на APT-группы",
-       "icon": "🛡️",
-       "points": 100,
-       "condition": {
-         "type": "apt_groups_viewed",
-         "threshold": 25
-       }
-     },
-     {
-       "id": "ghost_in_the_shell_5",
-       "name": "Призрак в Сети",
-       "description": "Завершили 5 заданий с низким уровнем риска (риск < 20)",
-       "icon": "👻",
-       "points": 50,
-       "condition": {
-         "type": "stealth_ops",
-         "threshold": 5
-       }
-     },
-     {
-       "id": "ghost_in_the_shell_15",
-       "name": "Призрак в Стелле",
-       "description": "Завершили 15 заданий с низким уровнем риска (риск < 20)",
-       "icon": "🌑",
-       "points": 150,
-       "condition": {
-         "type": "stealth_ops",
-         "threshold": 15
-       }
-     },
-     {
-       "id": "snowden_10",
-       "name": "Сноуден",
-       "description": "Изучили 10 угроз через аналитические сводки",
-       "icon": "📊",
-       "points": 60,
-       "condition": {
-         "type": "threat_exposures",
-         "threshold": 10
-       }
-     },
-      {
-        "id": "snowden_25",
-        "name": "Сноуден Легенда",
-        "description": "Изучили 25 угроз через аналитические сводки",
-        "icon": "🗽",
-        "points": 200,
-        "condition": {
-          "type": "threat_exposures",
-          "threshold": 25
-        }
-      },
-      {
-        "id": "streak_3",
-        "name": "Начало привычки",
-        "description": "3 дня подряд",
-        "icon": "🔥",
-        "points": 15,
-        "condition": {
-          "type": "daily_streak",
-          "threshold": 3
-        }
-      },
-      {
-        "id": "streak_7",
-        "name": "Неделя подряд",
-        "description": "7 дней стрик",
-        "icon": "🔥",
-        "points": 50,
-        "condition": {
-          "type": "daily_streak",
-          "threshold": 7
-        }
-      },
-      {
-        "id": "streak_30",
-        "name": "Месяц подряд",
-        "description": "30 дней стрик",
-        "icon": "⭐",
-        "points": 100,
-        "condition": {
-          "type": "daily_streak",
-          "threshold": 30
-        }
-      },
-      {
-        "id": "track_completer_1",
-        "name": "Первый трек",
-        "description": "Завершили 1 учебный трек",
-        "icon": "🛤️",
-        "points": 25,
-        "condition": {
-          "type": "tracks_completed",
-          "threshold": 1
-        }
-      },
-      {
-        "id": "track_completer_5",
-        "name": "Мастер треков",
-        "description": "Завершили 5 учебных треков",
-        "icon": "🏆",
-        "points": 100,
-        "condition": {
-          "type": "tracks_completed",
-          "threshold": 5
-        }
-      },
-      {
-        "id": "bounty_reporter_1",
-        "name": "Первый отчёт",
-        "description": "Написали первый bug bounty отчёт",
-        "icon": "🐛",
-        "points": 20,
-        "condition": {
-          "type": "bounty_reports",
-          "threshold": 1
-        }
-      },
-      {
-        "id": "bounty_reporter_10",
-        "name": "Bug Hunter",
-        "description": "Написали 10 bug bounty отчётов",
-        "icon": "🎯",
-        "points": 75,
-        "condition": {
-          "type": "bounty_reports",
-          "threshold": 10
-        }
-      },
-      {
-        "id": "skill_master_3",
-        "name": "Умелец",
-        "description": "Достигли уровня 3 в любом навыке",
-        "icon": "⚔️",
-        "points": 30,
-        "condition": {
-          "type": "skill_level",
-          "threshold": 3
-        }
-      },
-      {
-        "id": "skill_master_5",
-        "name": "Мастер навыков",
-        "description": "Достигли уровня 5 в любом навыке",
-        "icon": "💎",
-        "points": 100,
-        "condition": {
-          "type": "skill_level",
-          "threshold": 5
-        }
-      },
-      {
-        "id": "review_streak_5",
-        "name": "Повторение — мать учения",
-        "description": "5 интервальных повторений",
-        "icon": "🔄",
-        "points": 15,
-        "condition": {
-          "type": "reviews_completed",
-          "threshold": 5
-        }
-      },
-      {
-        "id": "review_streak_25",
-        "name": "Мастер повторений",
-        "description": "25 интервальных повторений",
-        "icon": "🧠",
-        "points": 50,
-        "condition": {
-          "type": "reviews_completed",
-          "threshold": 25
-        }
+    {
+      "id": "news_follower",
+      "name": "Следящий за новостями",
+      "description": "Проверили новости хотя бы раз",
+      "icon": "📰",
+      "points": 5,
+      "condition": {
+        "type": "news_checked",
+        "threshold": 1
       }
-    ]
-  }
+    },
+    {
+      "id": "social_engineer_5",
+      "name": "Социальный инженер",
+      "description": "Успешно провели 5 сценариев социальной инженерии",
+      "icon": "🎭",
+      "points": 30,
+      "condition": {
+        "type": "social_success",
+        "threshold": 5
+      }
+    },
+    {
+      "id": "social_engineer_20",
+      "name": "Мастер социальной инженерии",
+      "description": "Успешно провели 20 сценариев социальной инженерии",
+      "icon": "🎪",
+      "points": 75,
+      "condition": {
+        "type": "social_success",
+        "threshold": 20
+      }
+    },
+    {
+      "id": "apt_hunter_10",
+      "name": "APT Охотник",
+      "description": "Изучили 10 досье на APT-группы",
+      "icon": "🔍",
+      "points": 40,
+      "condition": {
+        "type": "apt_groups_viewed",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "apt_hunter_25",
+      "name": "APT Охотник Эксперт",
+      "description": "Изучили 25 досье на APT-группы",
+      "icon": "🛡️",
+      "points": 100,
+      "condition": {
+        "type": "apt_groups_viewed",
+        "threshold": 25
+      }
+    },
+    {
+      "id": "ghost_in_the_shell_5",
+      "name": "Призрак в Сети",
+      "description": "Завершили 5 заданий с низким уровнем риска (риск < 20)",
+      "icon": "👻",
+      "points": 50,
+      "condition": {
+        "type": "stealth_ops",
+        "threshold": 5
+      }
+    },
+    {
+      "id": "ghost_in_the_shell_15",
+      "name": "Призрак в Стелле",
+      "description": "Завершили 15 заданий с низким уровнем риска (риск < 20)",
+      "icon": "🌑",
+      "points": 150,
+      "condition": {
+        "type": "stealth_ops",
+        "threshold": 15
+      }
+    },
+    {
+      "id": "snowden_10",
+      "name": "Сноуден",
+      "description": "Изучили 10 угроз через аналитические сводки",
+      "icon": "📊",
+      "points": 60,
+      "condition": {
+        "type": "threat_exposures",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "snowden_25",
+      "name": "Сноуден Легенда",
+      "description": "Изучили 25 угроз через аналитические сводки",
+      "icon": "🗽",
+      "points": 200,
+      "condition": {
+        "type": "threat_exposures",
+        "threshold": 25
+      }
+    },
+    {
+      "id": "streak_3",
+      "name": "Начало привычки",
+      "description": "3 дня подряд",
+      "icon": "🔥",
+      "points": 15,
+      "condition": {
+        "type": "daily_streak",
+        "threshold": 3
+      }
+    },
+    {
+      "id": "streak_7",
+      "name": "Неделя подряд",
+      "description": "7 дней стрик",
+      "icon": "🔥",
+      "points": 50,
+      "condition": {
+        "type": "daily_streak",
+        "threshold": 7
+      }
+    },
+    {
+      "id": "streak_30",
+      "name": "Месяц подряд",
+      "description": "30 дней стрик",
+      "icon": "⭐",
+      "points": 100,
+      "condition": {
+        "type": "daily_streak",
+        "threshold": 30
+      }
+    },
+    {
+      "id": "track_completer_1",
+      "name": "Первый трек",
+      "description": "Завершили 1 учебный трек",
+      "icon": "🛤️",
+      "points": 25,
+      "condition": {
+        "type": "tracks_completed",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "track_completer_5",
+      "name": "Мастер треков",
+      "description": "Завершили 5 учебных треков",
+      "icon": "🏆",
+      "points": 100,
+      "condition": {
+        "type": "tracks_completed",
+        "threshold": 5
+      }
+    },
+    {
+      "id": "bounty_reporter_1",
+      "name": "Первый отчёт",
+      "description": "Написали первый bug bounty отчёт",
+      "icon": "🐛",
+      "points": 20,
+      "condition": {
+        "type": "bounty_reports",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "bounty_reporter_10",
+      "name": "Bug Hunter",
+      "description": "Написали 10 bug bounty отчётов",
+      "icon": "🎯",
+      "points": 75,
+      "condition": {
+        "type": "bounty_reports",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "skill_master_3",
+      "name": "Умелец",
+      "description": "Достигли уровня 3 в любом навыке",
+      "icon": "⚔️",
+      "points": 30,
+      "condition": {
+        "type": "skill_level",
+        "threshold": 3
+      }
+    },
+    {
+      "id": "skill_master_5",
+      "name": "Мастер навыков",
+      "description": "Достигли уровня 5 в любом навыке",
+      "icon": "💎",
+      "points": 100,
+      "condition": {
+        "type": "skill_level",
+        "threshold": 5
+      }
+    },
+    {
+      "id": "review_streak_5",
+      "name": "Повторение — мать учения",
+      "description": "5 интервальных повторений",
+      "icon": "🔄",
+      "points": 15,
+      "condition": {
+        "type": "reviews_completed",
+        "threshold": 5
+      }
+    },
+    {
+      "id": "review_streak_25",
+      "name": "Мастер повторений",
+      "description": "25 интервальных повторений",
+      "icon": "🧠",
+      "points": 50,
+      "condition": {
+        "type": "reviews_completed",
+        "threshold": 25
+      }
+    },
+    {
+      "id": "broken_circle",
+      "name": "Разорванный круг",
+      "description": "Использована машина времени — учитель потерял часть воспоминаний",
+      "icon": "⏮",
+      "points": 50,
+      "condition": {
+        "type": "custom",
+        "threshold": 1
+      }
+    }
+  ]
+}

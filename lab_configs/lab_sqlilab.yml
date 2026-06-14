@@ -1,0 +1,11 @@
+networks:
+  ct_lab_net:
+    driver: bridge
+services:
+  sqlilab:
+    container_name: ct_sqlilab
+    image: citizenstig/nowasp
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+version: '3.8'

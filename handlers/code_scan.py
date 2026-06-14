@@ -9,6 +9,8 @@ import tempfile
 from typing import Any
 
 from rich.console import Console
+from handlers.types import HandlerResult
+
 
 console = Console()
 
@@ -64,12 +66,12 @@ def _scan_directory(path: str) -> list[tuple[str, int, str, str]]:
                                     m.group(),
                                 )
                             )
-            except Exception:
+            except (OSError, IOError, UnicodeDecodeError):
                 continue
     return matches
 
 
-def handle_code_scan(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_code_scan(action: str) -> HandlerResult:
     """Обработка /scan <repo_url> [branch]"""
     parts = action.split()
     if len(parts) < 2:

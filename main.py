@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+CyberTeacher v5.21 - Main entry point with Context Budget Manager + auto cleanup
+"""
+
 import json
 import os
 import random
@@ -10,29 +14,20 @@ if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
 
-# Настройка консоли для корректного вывода UTF-8 (эмодзи, спецсимволы)
 from utils.console_encoding import setup_utf8_console
 
 setup_utf8_console()
 
 import atexit
 import contextlib
-import hashlib
 import logging
+import logging.handlers
+from typing import Optional, Callable
 
-# ===== НАСТРОЙКА ЛОГИРОВАНИЯ ЧТОБЫ УБРАТЬ ШУМ =====
-import os
-import sqlite3
-
-from config import NUMERIC_MENU
-from handlers.core import _response_cache, handle_commands
-from memory import cache_response, cleanup_expired_cache, get_cached_response
-
-# Отключаем прогресс-бары и лишние логи от библиотек
+# Подавление шумных логов
 os.environ["TQDM_DISABLE"] = "1"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
-# Подавляем логи от сторонних библиотек (huggingface, transformers, httpx и т.д.)
 _noisy_prefixes = [
     "sentence_transformers",
     "transformers",
@@ -42,230 +37,71 @@ _noisy_prefixes = [
     "urllib3",
     "filelock",
     "torch",
+    "tqdm",
+    "asyncio",
+    "uvicorn.access",
+    "starlette",
 ]
 for _p in _noisy_prefixes:
     logging.getLogger(_p).setLevel(logging.WARNING)
 
-# Также подавляем специфические предупреждения transformers о непредвиденных весах
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+
+# Structured file logging with 7-day rotation
 try:
-    from transformers import logging as hf_logging
+    from logging_config import setup_logging
 
-    hf_logging.set_verbosity_error()
-except Exception:
-    pass  # Если transformers не установлен, игнорируем
+    setup_logging()
+except ImportError:
+    pass
 
-# Конфигурация корневого логгера (our own logs)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(),
+    ],
 )
 
-# ===== НАСТРОЙКА ЛОГИРОВАНИЯ ЧТОБЫ УБРАТЬ ШУМ =====
-import logging
-
-# Подавляем INFO-логи от сторонних библиотек (huggingface, transformers, httpx и т.д.)
-_noisy_loggers = [
-    "sentence_transformers",
-    "transformers",
-    "huggingface_hub",
-    "httpx",
-    "httpcore",
-    "urllib3",
-    "filelock",
-    "torch",
-    "tqdm",
-]
-for _ln in _noisy_loggers:
-    logging.getLogger(_ln).setLevel(logging.WARNING)
-
-
-class CachedLLM:
-    """Обёртка для LLM с кэшированием ответов в SQLite"""
-
-    def __init__(self, llm, conn):
-        self.llm = llm
-        self.conn = conn
-
-    def invoke(self, prompt):
-        import hashlib
-
-        # Хешируем запрос + модель (разные модели — разные ответы)
-        model_id = getattr(self.llm, "model", "default")
-        query_string = f"{prompt}|{model_id}"
-        query_hash = hashlib.sha256(query_string.encode()).hexdigest()
-
-        # Проверяем кэш
-        cached = get_cached_response(self.conn, query_hash)
-        if cached:
-            # Возвращаем объект с атрибутом content для совместимости
-            class CachedResponse:
-                def __init__(self, content):
-                    self.content = content
-
-            return CachedResponse(cached)
-
-        # Кэша нет — вызываем реальный LLM
-        response = self.llm.invoke(prompt)
-        text = response.content if hasattr(response, "content") else str(response)
-
-        # Сохраняем в кэш с TTL 1 день (актуальные данные)
-        cache_response(self.conn, query_hash, text, ttl_seconds=86400)
-        return response
-
-    def stream(self, prompt):
-        """Стриминг с кэшированием полного ответа в SQLite."""
-        model_id = getattr(self.llm, "model", "default")
-        query_string = f"{prompt}|{model_id}"
-        query_hash = hashlib.sha256(query_string.encode()).hexdigest()
-
-        cached = get_cached_response(self.conn, query_hash)
-        if cached:
-            # Возвращаем кэшированный ответ как один чанк
-            yield cached
-            return
-
-        # Кэша нет — стримим от реального LLM и накапливаем
-        full_chunks = []
-        for chunk in self.llm.stream(prompt):
-            full_chunks.append(chunk)
-            yield chunk
-
-        # После завершения стрима собираем полный текст и кэшируем
-        full_text = "".join(
-            str(ch.content) if hasattr(ch, "content") else str(ch) for ch in full_chunks
-        )
-        if full_text:
-            cache_response(self.conn, query_hash, full_text, ttl_seconds=86400)
-
-
-# Конфигурация корневого логгера (our own logs)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-
-# === МОДУЛИ ===
-from config import (
-    CHUNK_OVERLAP,
-    CHUNK_SIZE,
-    DB_FILE,
-    KNOWLEDGE_DIR,
-    MAX_WORKERS,
-    METADATA_FILE,
-    PERSIST_DIR,
-    SOCRATIC_ENABLED,
-    THINKING_ENABLED,
-    LazyLoader,
-)
-from handlers.hints import generate_contextual_hint
-from state import get_state
-
-
-# Функции для lazy loading
-def get_llm():
-    return LazyLoader.get_llm()
-
-
-def get_cached_llm(conn):
-    llm = get_llm()
-    if llm is None:
-        return None
-    return CachedLLM(llm, conn)
-
-
-# Новости (lazy)
-_news_cache = None
-
-
-def set_learning_context(course=None, topic=None, lab=None, action=None):
-    """Установить контекст обучения через state"""
-    state = get_state()
-    state.set_learning_context(course, topic, lab, action)
-
-
-def get_learning_context():
-    """Получить контекст обучения через state"""
-    return get_state().get_learning_context()
-
-
-def get_news_context():
-    global _news_cache  # noqa: PLW0603
-    if _news_cache is None:
-        try:
-            try:
-                from news_fetcher import NewsFetcher
-
-                nf = NewsFetcher()
-                nf.fetch_all()
-                _news_cache = nf.get_formatted_news()
-            except ImportError:
-                _news_cache = ""
-        except Exception:
-            _news_cache = ""
-    return _news_cache
-
-
-def get_embeddings():
-    return LazyLoader.get_embeddings()
-
-
-from code_review import code_review_function as code_review
-from generators import generate_quiz, generate_task
-from knowledge import get_relevant_docs, load_knowledge_base
+# Импорты проекта
+logger = logging.getLogger(__name__)
+from config import NUMERIC_MENU, LazyLoader, THINKING_ENABLED, SOCRATIC_ENABLED
+from context_budget import ContextBudgetManager
+from handlers.core import _response_cache, handle_commands
+from memory import init_db, cleanup_expired_cache, get_cached_response, cache_response
 from memory import (
     get_chat_history,
     get_stats,
     get_weak_topics,
-    init_db,
     save_message,
     update_stats,
 )
-from pedagogy import TeacherPersona, ThinkingVisualizer
-from terminal_log import get_terminal_log, init_terminal_log, log_command
-from ui import (
-    Mode,
-    Panel,
-    console,
-    print_banner,
-    print_panel,
-    print_response,
-    print_streaming_response,
-    print_thinking,
-    show_help,
-    show_menu,
-)
+from memory import cleanup_old_messages  # <-- НОВЫЙ ИМПОРТ
+from knowledge import get_relevant_docs, load_knowledge_base
+from ui import Mode, console, print_banner, show_help, show_menu, print_thinking
+from pedagogy import ThinkingVisualizer
+from terminal_log import init_terminal_log, log_command
+from state import get_state
+from code_review import code_review_function as code_review
+from generators import generate_quiz, generate_task
 
-# Voice Assistant (M-34)
-try:
-    from handlers.voice import speak_if_enabled
-except Exception:
-    speak_if_enabled = None
-
-
-# === КОНСТАНТЫ ===
-MODEL_NAME = "qwen2.5:3b"
-
-
-# === ПРОМПТЫ ===
+# ===== ПРОМПТЫ =====
 PROMPT_FILE = "./teacher_prompt.txt"
 STORIES_FILE = "./stories.json"
 
 
 def load_teacher_prompt() -> str:
-    """Загрузить промпт учителя из файла и добавить случайную байку"""
     persona = ""
     if os.path.exists(PROMPT_FILE):
         try:
             with open(PROMPT_FILE, "r", encoding="utf-8") as f:
                 persona = f.read()
-        except Exception:
+        except (OSError, IOError):
             persona = "Ты - хакер-ветеран из 90-х, учитель кибербезопасности."
     else:
         persona = "Ты - хакер-ветеран из 90-х, учитель кибербезопасности."
 
-    # Добавляем случайную байку из файла
     story = ""
     if os.path.exists(STORIES_FILE):
         try:
@@ -274,45 +110,39 @@ def load_teacher_prompt() -> str:
                 stories = data.get("stories", [])
                 if stories:
                     story = random.choice(stories)
-        except Exception:
+        except (OSError, IOError, json.JSONDecodeError):
             pass
-
     if story:
-        return f"{persona}\n\nВОТ ТВОЯ ИСТОРИЯ ДЛЯ ЭТОГО ОТВЕТА (используй её если уместно): {story}"
+        return f"{persona}\n\nВОТ ТВОЯ ИСТОРИЯ ДЛЯ ЭТОГО ОТВЕТА: {story}"
     return persona
 
 
 def get_mode_prompt(
     mode: Mode, context_str: str, docs_context: str, study_context: str = ""
 ) -> str:
-    """Строит промпт на основе выбранной персоны из state."""
     state = get_state()
     persona = state.get_persona()
-
-    # Загружаем промпты из JSON
     prompts_path = os.path.join("config", "teacher_prompts.json")
     try:
         with open(prompts_path, "r", encoding="utf-8") as f:
             prompts_data = json.load(f)
-    except Exception as e:
-        console.print(
-            f"[yellow]⚠️ Не удалось загрузить teacher_prompts.json: {e}[/yellow]"
-        )
+    except (OSError, IOError, json.JSONDecodeError):
         prompts_data = {}
-
     base_prompt = prompts_data.get("system_prompt", "Ты - учитель кибербезопасности.")
-
-    # Получаем инструкции для текущей персоны
     personas = prompts_data.get("personas", {})
     persona_instructions = personas.get(persona, {}).get("instructions", [])
-
     if persona_instructions:
         base_prompt += "\n\nИнструкции для режима:\n" + "\n".join(
             [f"- {p}" for p in persona_instructions]
         )
+    comm_mood = getattr(state, "communication_mood", "normal")
+    if comm_mood != "normal":
+        from handlers.mood import MOODS
 
-    # Добавляем контекст
-    context = f"""{base_prompt}
+        mood_modifier = MOODS.get(comm_mood, {}).get("prompt_modifier", "")
+        if mood_modifier:
+            base_prompt += f"\n\nСТИЛЬ ОБЩЕНИЯ: {mood_modifier}"
+    return f"""{base_prompt}
 
 КОНТЕКСТ УЧЕНИКА:
 {study_context}
@@ -320,28 +150,152 @@ def get_mode_prompt(
 ДАННЫЕ ИЗ БАЗЫ ЗНАНИЙ:
 {docs_context}
 """
-    return context
 
 
-# === ГЛАВНЫЙ ЦИКЛ ===
+# ===== ОБЁРТКА LLM С КЭШИРОВАНИЕМ =====
+class CachedLLM:
+    def __init__(self, llm, conn):
+        self.llm = llm
+        self.conn = conn
+
+    def invoke(self, prompt: str):
+        import hashlib
+
+        model_id = getattr(self.llm, "model", "default")
+        query_string = f"{prompt}|{model_id}"
+        query_hash = hashlib.sha256(query_string.encode()).hexdigest()
+        cached = get_cached_response(self.conn, query_hash)
+        if cached:
+
+            class CachedResponse:
+                def __init__(self, content):
+                    self.content = content
+
+            return CachedResponse(cached)
+        try:
+            response = self.llm.invoke(prompt)
+        except Exception as e:
+            logger.error(f"LLM invoke failed: {e}")
+            raise
+        text = response.content if hasattr(response, "content") else str(response)
+        cache_response(self.conn, query_hash, text, ttl_seconds=86400)
+        # Track LLM stats
+        from state import get_state as _gs
+
+        _s = _gs()
+        _s.llm_call_count += 1
+        _s.llm_total_tokens += len(text) // 4
+        return response
+
+    def stream(self, prompt: str):
+        import hashlib
+
+        model_id = getattr(self.llm, "model", "default")
+        query_string = f"{prompt}|{model_id}"
+        query_hash = hashlib.sha256(query_string.encode()).hexdigest()
+        cached = get_cached_response(self.conn, query_hash)
+        if cached:
+            yield cached
+            return
+        full_chunks = []
+        for chunk in self.llm.stream(prompt):
+            full_chunks.append(chunk)
+            yield chunk
+        full_text = "".join(
+            str(ch.content) if hasattr(ch, "content") else str(ch) for ch in full_chunks
+        )
+        if full_text:
+            cache_response(self.conn, query_hash, full_text, ttl_seconds=86400)
+            # Track LLM stats for streaming
+            try:
+                from state import get_state as _gs
+
+                _s = _gs()
+                _s.llm_call_count += 1
+                _s.llm_total_tokens += len(full_text) // 4
+            except (ValueError, RuntimeError):
+                pass
+
+
+def get_llm():
+    return LazyLoader.get_llm()
+
+
+def get_cached_llm(conn):
+    llm = get_llm()
+    return CachedLLM(llm, conn) if llm else None
+
+
+def set_learning_context(course=None, topic=None, lab=None, action=None):
+    get_state().set_learning_context(course, topic, lab, action)
+
+
+def get_learning_context():
+    return get_state().get_learning_context()
+
+
+_news_cache = None
+
+
+def get_news_context():
+    global _news_cache
+    if _news_cache is None:
+        try:
+            from news_fetcher import NewsFetcher
+
+            nf = NewsFetcher()
+            nf.fetch_all()
+            _news_cache = nf.get_formatted_news()
+        except (ImportError, OSError):
+            _news_cache = ""
+    return _news_cache
+
+
+def get_embeddings():
+    return LazyLoader.get_embeddings()
+
+
+def _save_session_summary():
+    state = get_state()
+    start_time: float = state.metrics.get("start_time", 0)
+    if start_time > 0:
+        elapsed = time.time() - start_time
+        hours = int(elapsed // 3600)
+        mins = int((elapsed % 3600) // 60)
+        state.last_session_summary = {
+            "duration": f"{hours}ч {mins}мин" if hours > 0 else f"{mins}мин",
+            "duration_seconds": int(elapsed),
+            "points": state.points,
+            "streak": state.daily_streak,
+            "timestamp": time.time(),
+        }
+
+
+# ===== ГЛАВНЫЙ ЦИКЛ =====
 def main():
     print_banner()
     console.print("[bold green]Loading...[/bold green]\n")
 
-    # Загружаем сохранённое состояние
     state = get_state()
-    state.load_from_file()
+    from settings import get_settings
 
-    # Инициализируем лог терминала
+    state.load_from_file(str(get_settings().state_file))
     init_terminal_log()
+    settings = get_settings()
+    state.maybe_auto_backup(
+        backup_dir=str(settings.backup_dir),
+        max_age_hours=settings.max_backup_age_hours,
+        max_backups=settings.max_backups,
+    )
 
-    # Автоматический бэкап при старте (Q-06)
-    state = get_state()
-    state.maybe_auto_backup()
+    # Инициализация менеджера контекста (восстанавливаем из сохранённого состояния)
+    budget_manager = ContextBudgetManager.from_dict(
+        getattr(state, "context_budget", None)
+    )
 
-    # === PROMPT_TOOLKIT (история команд) ===
-    session = None
+    # Prompt Toolkit
     have_prompt_toolkit = False
+    session_hist = None
     try:
         from prompt_toolkit import PromptSession
         from prompt_toolkit.history import FileHistory
@@ -349,81 +303,116 @@ def main():
         have_prompt_toolkit = True
         history_path = os.path.join(".", "memory", "command_history.txt")
         os.makedirs(os.path.dirname(history_path), exist_ok=True)
-        session = PromptSession(history=FileHistory(history_path))
+        session_hist = PromptSession(history=FileHistory(history_path))
     except ImportError:
-        have_prompt_toolkit = False
+        pass
     except Exception as e:
-        console.print(
-            f"[yellow]⚠️ Не удалось инициализировать prompt_toolkit: {e}[/yellow]"
-        )
-        have_prompt_toolkit = False
+        console.print(f"[yellow]⚠️ prompt_toolkit: {e}[/yellow]")
 
     conn = init_db()
-    cleanup_expired_cache(conn)  # Очистка просроченных записей кэша
+    cleanup_expired_cache(conn)
+    # ===== НОВОЕ: очистка старых сообщений (оставляем 500 последних) =====
+    cleanup_old_messages(conn, keep_last=500)
+    # ===================================================================
     vectordb = load_knowledge_base()
 
-    # === АДАПТИВНЫЙ СОВЕТ ПРИ СТАРТЕ ===
-    weak_topics = get_state().get_weak_topics(threshold=70.0)
+    # Советы при старте
+    weak_topics = state.get_weak_topics(threshold=70.0)
     if weak_topics:
-        rec = weak_topics[0]  # Берем самую слабую
+        rec = weak_topics[0]
         console.print(
-            f"[bold yellow]Совет:[/bold yellow] Твоя слабая тема - [cyan]{rec['topic']}[/cyan] (Успешность: {rec['success_rate']:.1f}%). Попробуй /quiz!"
+            f"[bold yellow]Совет:[/bold yellow] Слабая тема - [cyan]{rec['topic']}[/cyan] (успешность {rec['success_rate']:.1f}%). /quiz"
         )
-
-    # === SPACED REPETITION НАПОМИНАНИЕ ===
-    due_reviews = get_state().get_due_reviews()
+    due_reviews = state.get_due_reviews()
     if due_reviews:
         console.print(
-            f"[bold magenta]⏰ Напоминание:[/bold magenta] У тебя {len(due_reviews)} тем готовы для повторения (Spaced Repetition). Введи /repeat или 42 чтобы начать."
+            f"[bold magenta]⏰ Напоминание:[/bold magenta] {len(due_reviews)} тем для повторения. /repeat"
+        )
+
+    # Прошлая сессия
+    last = state.last_session_summary
+    if last and last.get("timestamp", 0) > 0:
+        from datetime import datetime
+
+        dt = datetime.fromtimestamp(last["timestamp"])
+        time_ago = datetime.now() - dt
+        if time_ago.days == 0:
+            when = f"сегодня в {dt.strftime('%H:%M')}"
+        elif time_ago.days == 1:
+            when = "вчера"
+        else:
+            when = f"{time_ago.days} дн. назад"
+        console.print(
+            f"[dim]📋 Прошлая сессия ({when}): {last.get('duration', '?')}, "
+            f"очки: {last.get('points', 0):.0f}, стрик: {last.get('streak', 0)}д[/dim]"
         )
 
     current_mode = Mode.TEACHER
-
     show_help()
     show_menu()
 
-    # Показываем текущую статистику
     stats = get_stats(conn)
+    weak_count = len(state.get_weak_topics(threshold=70.0))
+    due_count = len(state.get_due_reviews())
     console.print(
-        f"[bold]Режим:[/bold] {current_mode.value} | [bold]Очки:[/bold] {stats['points']}"
+        f"[bold]Режим:[/bold] {current_mode.value} | "
+        f"[bold]Очки:[/bold] {stats['points']:.0f} | "
+        f"[bold]Уровень:[/bold] {stats.get('level', 1)} | "
+        f"[bold]Стрик:[/bold] {state.daily_streak}д | "
+        f"[bold]Слабые темы:[/bold] {weak_count} | "
+        f"[bold]Повторения:[/bold] {due_count} готовы"
     )
 
     while True:
         try:
-            if have_prompt_toolkit and session:
-                user_input = session.prompt("\nТы: ").strip()
+            if have_prompt_toolkit and session_hist:
+                user_input = session_hist.prompt("\nТы: ").strip()
             else:
-                user_input = console.input(f"\n[bold]Ты:[/bold] ").strip()
+                user_input = console.input("\n[bold]Ты:[/bold] ").strip()
         except KeyboardInterrupt:
             console.print("\n[yellow]Пока![/yellow]")
             break
-
-        if not user_input.strip():
+        if not user_input:
             continue
-        user_input = user_input.strip()
-
-        # Валидация длины ввода (S-02)
         if len(user_input) > 2000:
             console.print("[red]❌ Слишком длинный ввод (максимум 2000 символов)[/red]")
             continue
 
-        # Rate limiting (Q-05): максимум 10 запросов в минуту
+        # Secret phrase detection
+        try:
+            from secret_language import detect_secret_phrase
+            secret = detect_secret_phrase(user_input)
+            if secret:
+                console.print(f"[bold magenta]🔐 Секретная фраза:[/bold magenta] {secret['phrase']}")
+                console.print(f"[magenta]{secret['response']}[/magenta]")
+                # Apply effect
+                if secret["effect"] == "hint":
+                    state.hint_credits = min(10, state.hint_credits + 1)
+                    console.print("[green]💡 Получен кредит подсказки![/green]")
+                elif secret["effect"] == "mood_serious":
+                    state.current_mood = "serious"
+                    console.print("[yellow]🎭 Настроение учителя: серьёзное[/yellow]")
+                elif secret["effect"] == "unlock_ghost_log":
+                    console.print("[green]📜 Ghost Log разблокирован![/green]")
+                # Don't process further - secret phrase handled
+                continue
+        except ImportError:
+            pass
+
         state = get_state()
         if not state.can_make_request():
             console.print("[red]❌ Слишком много запросов. Подождите минуту.[/red]")
             continue
         state.record_request()
 
-        # Trace timeout (H-03)
-        if state.trace_deadline is not None and time.time() > state.trace_deadline:
+        if state.trace_deadline and time.time() > state.trace_deadline:
             console.print("[red]⏰ Время на лабораторию истекло![/red]")
             if state.trace_hint:
                 console.print(f"[yellow]💡 Подсказка: {state.trace_hint}[/yellow]")
             state.trace_deadline = None
             state.trace_hint = None
 
-        # Real-time hints (M-30): automatic pattern-based hints
-        # Only if hints enabled, not a command (not starting with / or digit), and credits/cooldown allow
+        # Автоматическая подсказка (без LLM)
         if (
             not user_input.startswith("/")
             and not user_input.isdigit()
@@ -432,121 +421,162 @@ def main():
             and state.hint_credits > 0
             and time.time() - state.last_hint_time > state.hint_cooldown
         ):
+            from handlers.hints import generate_contextual_hint
+
             hint = generate_contextual_hint(user_input, state.get_learning_context())
             if hint:
                 console.print(f"[yellow]💡 Подсказка: {hint}[/yellow]")
                 state.hints_used += 1
                 state.last_hint_time = time.time()
-                # Penalty: reduce points by 10% (minimum 0)
                 state.points = max(0, state.points * 0.9)
                 console.print(
                     f"[dim]Использовано подсказок: {state.hints_used}/3[/dim]"
                 )
 
-        # Отмечаем отправку сообщения в state (для статистики)
-        with contextlib.suppress(Exception):
-            get_state().send_message()
+        state.send_message()
+        log_command(user_input, is_input=True)
 
-        # Автозапись ввода в терминал
-        with contextlib.suppress(Exception):
-            from terminal_log import log_command
-
-            log_command(user_input, is_input=True)
-
-        # Нормализуем ввод: если цифра -> команда, иначе убираем /
         if user_input.isdigit() and user_input in NUMERIC_MENU:
             action = NUMERIC_MENU[user_input]
         else:
             action = user_input[1:] if user_input.startswith("/") else user_input
 
-        continue_loop, new_mode, _, action_taken = handle_commands(
-            action, conn, lambda: get_cached_llm(conn)
-        )
+        cli_log = logging.getLogger("cyberteacher.cli")
+        cli_log.info(f"COMMAND: {action}")
+        try:
+            continue_loop, new_mode, _, action_taken = handle_commands(
+                action, conn, lambda: get_cached_llm(conn)
+            )
+            cli_log.info(
+                f"RESULT: action={action}, taken={action_taken}, continue={continue_loop}"
+            )
+        except Exception as e:
+            cli_log.exception(f"COMMAND FAILED: {action}")
+            raise
+
+        # Check narrative events after any state change
+        try:
+            from handlers.event_engine import check_events
+
+            fired_events = check_events()
+            for evt in fired_events:
+                console.print(
+                    f"[bold magenta]⚡ {evt['title']}:[/bold magenta] {evt['message']}"
+                )
+                if evt["effects"]:
+                    console.print(f"[dim]{', '.join(evt['effects'])}[/dim]")
+        except ImportError:
+            pass
+
+        # Check hidden knowledge unlocks
+        try:
+            from world_state import get_world_state
+
+            world = get_world_state()
+            unlocked = world.check_unlock_knowledge(state)
+            if unlocked:
+                console.print(
+                    f"[bold cyan]🔓 Скрытые знания разблокированы:[/bold cyan] {unlocked['title']}"
+                )
+                console.print(f"[cyan]{unlocked['desc']}[/cyan]")
+        except ImportError:
+            pass
+
+        # World Stability auto-adjustments based on action
+        if action_taken:
+            try:
+                # Negative impacts
+                if "fail" in action.lower() or "fail" in str(action).lower():
+                    state.adjust_world_stability(-2)
+                if state.trace_active:
+                    state.adjust_world_stability(-1)
+                if state.watcher_attack_active:
+                    state.adjust_world_stability(-3)
+                # Positive impacts
+                if "complete" in action.lower() and ("mission" in action.lower() or "track" in action.lower()):
+                    state.adjust_world_stability(2)
+                if "achievement" in action.lower() or "earned" in str(action).lower():
+                    state.adjust_world_stability(1)
+            except Exception:
+                pass
 
         if action_taken:
             if not continue_loop:
                 break
             if new_mode:
                 current_mode = new_mode
-                # Сохраняем персону в state
                 get_state().set_persona(
                     current_mode.value
                     if hasattr(current_mode, "value")
                     else str(current_mode)
                 )
-            # Обновляем отображение режима
-            mode_display = current_mode.value if current_mode else "Учитель"
-            console.print(f"\n[bold]Режим:[/bold] {mode_display}")
+            console.print(
+                f"\n[bold]Режим:[/bold] {current_mode.value if current_mode else 'Учитель'}"
+            )
             continue
 
-        # Если не команда - отправляем LLM (вопрос)
+        # === ОБРАБОТКА ВОПРОСА К LLM ===
         history = get_chat_history(conn)
+        # Управление контекстом — токен-осознанное обрезание
+        trimmed_history, warn_msg = budget_manager.prepare_context(
+            history,
+            max_messages=30,
+            user_input=user_input,
+        )
+        if warn_msg:
+            console.print(warn_msg)
         context_str = "\n".join(
-            [f"{m['role']}: {m['content'][:200]}..." for m in history]
+            [f"{m['role']}: {m['content']}" for m in trimmed_history]
         )
 
-        # === RAG + ИСТОЧНИКИ ===
+        # RAG
         relevant_docs = get_relevant_docs(vectordb, user_input) if vectordb else []
         docs_context = ""
-        sources = set()
         if relevant_docs:
             docs_context = "\n📖 Контекст:\n" + "\n".join(
                 [f"- {d.page_content}" for d in relevant_docs]
             )
-            for doc in relevant_docs:
-                src = doc.metadata.get("source", None)
-                if src:
-                    sources.add(os.path.basename(src))
 
-        # === КОНТЕКСТ ОБУЧЕНИЯ + КОНТЕЙНЕРЫ ===
+        # Контекст обучения
         learning_ctx = get_learning_context()
         container_info = ""
         terminal_info = ""
         kb_info = ""
         weak_info = ""
         risk_info = ""
-
         try:
-            # Данные о базе знаний
             from knowledge import get_knowledge_status
 
             status = get_knowledge_status()
             kb_info = f"В базе знаний: {status.get('files_in_db', 0)} документов."
-
-            # Данные о слабых темах
             weak_topics = get_weak_topics(conn)
             if weak_topics:
                 topics_str = ", ".join(
                     [f"{t['topic']} ({t['rate']}% успеха)" for t in weak_topics]
                 )
                 weak_info = f"Слабые темы ученика: {topics_str}."
-
-            # ДОБАВЛЕНО: Информация об уровне риска для CTF/Story режимов
-            state = get_state()
             if state.get_persona() in ("ctf", "story"):
                 risk_status = state.get_risk_status()
-                risk_info = f"⚠️ Уровень риска (trace/compromise): {risk_status} ({state.risk_level}/100).\n"
-
+                risk_info = (
+                    f"⚠️ Уровень риска: {risk_status} ({state.risk_level}/100).\n"
+                )
             from practice import get_all_running_labs, get_container_logs
-            from terminal_log import get_terminal_log
 
             terminal_log = get_terminal_log(last_n=10)
             if terminal_log and terminal_log != "Лог пуст":
                 terminal_info = f"\n--- ТЕРМИНАЛ УЧЕНИКА ---\n{terminal_log}\n"
-
             running_labs = get_all_running_labs()
             if running_labs:
                 container_info = "\n--- ЗАПУЩЕННЫЕ КОНТЕЙНЕРЫ ---\n"
                 for lab_key, lab_info in running_labs.items():
                     container_info += f"  - {lab_info['name']}: {lab_info['status']}\n"
-                    web_name = f"{lab_key}-web"
-                    logs = get_container_logs(web_name, lines=10)
+                    logs = get_container_logs(f"{lab_key}-web", lines=10)
                     if logs and logs != "Логов нет":
                         container_info += f"    Логи: {logs[:200]}...\n"
         except Exception as e:
             container_info = f"\n(Контейнеры недоступны: {e})"
 
-        if learning_ctx["current_course"] or learning_ctx["current_lab"]:
+        if learning_ctx.get("current_course") or learning_ctx.get("current_lab"):
             study_context = f"""
 === ТЕКУЩИЙ КОНТЕКСТ ===
 - Курс: {learning_ctx.get("current_course", "не выбран")}
@@ -566,7 +596,134 @@ def main():
             current_mode, context_str, docs_context, study_context
         )
 
-        # Мысли (только для CTF)
+        # === Context Awareness + Personality Drift ===
+        try:
+            from context_awareness import get_context_info, get_atmosphere_hint
+            from personality import apply_personality_drift
+
+            ctx_info = get_context_info(
+                session_start=state.metrics.get("start_time", 0),
+                messages_this_session=len(trimmed_history),
+            )
+            atmosphere = get_atmosphere_hint(ctx_info)
+            personality_mod = apply_personality_drift(ctx_info)
+
+            if atmosphere:
+                system_prompt += f"\n\n{atmosphere}"
+            if personality_mod:
+                system_prompt += f"\n\n{personality_mod}"
+        except ImportError:
+            pass
+
+        # === Behavioral Archetype ===
+        try:
+            from behavior_profile import get_archetype_prompt_modifier
+
+            archetype_mod = get_archetype_prompt_modifier(state)
+            if archetype_mod:
+                system_prompt += archetype_mod
+        except ImportError:
+            pass
+
+        # === Persona Router (dynamic) ===
+        try:
+            from persona_router import select_persona, get_persona_prompt
+
+            user_msg = user_input if "user_input" in locals() else ""
+            persona_id = select_persona(state, user_msg)
+            persona_mod = get_persona_prompt(persona_id)
+            if persona_mod:
+                system_prompt += persona_mod
+        except ImportError:
+            pass
+
+        # === Persistent World State + Episode Memory ===
+        try:
+            from world_state import get_world_state
+            from episode_memory import get_episode_memory
+
+            world = get_world_state()
+            world.check_spawn_incident(state)
+            world_prompt = world.get_world_prompt()
+            if world_prompt:
+                system_prompt += f"\n\n{world_prompt}"
+
+            memory = get_episode_memory()
+            memory_prompt = memory.get_memory_prompt()
+            if memory_prompt:
+                system_prompt += f"\n\n{memory_prompt}"
+        except ImportError:
+            pass
+
+        # === Cyberpsychosis ===
+        try:
+            from cyberpsychosis import get_cyberpsychosis
+
+            cp = get_cyberpsychosis()
+            cp.decay(0.5)
+            cp_prompt = cp.get_system_prompt_addition()
+            if cp_prompt:
+                system_prompt += f"\n\n{cp_prompt}"
+        except ImportError:
+            pass
+
+        # === Atmosphere (ghost logs, echo, doubt) ===
+        try:
+            from atmosphere import maybe_get_atmospheric_message
+            from cyberpsychosis import get_cyberpsychosis as _cp
+
+            _cp_state = _cp()
+            atm_msg = maybe_get_atmospheric_message(
+                cyberpsychosis_level=_cp_state.get_level(),
+                stress=_cp_state.stress,
+                recklessness=_cp_state.recklessness,
+                memorable_events=getattr(state, "memorable_events", []),
+            )
+            if atm_msg:
+                system_prompt += f"\n\n{atm_msg}"
+        except ImportError:
+            pass
+
+        # === Adaptive UI difficulty prompt ===
+        try:
+            from adaptive_ui import (
+                get_system_prompt_prefix,
+                check_auto_promotion,
+                get_progress_hint,
+            )
+
+            level = getattr(state, "difficulty_level", "beginner")
+            diff_prefix = get_system_prompt_prefix(level)
+            if diff_prefix:
+                system_prompt += diff_prefix
+            # Auto-promotion check
+            new_level = check_auto_promotion(state)
+            if new_level:
+                state.difficulty_level = new_level
+                try:
+                    from episode_memory import get_episode_memory
+
+                    get_episode_memory().record(
+                        "milestone",
+                        f"Difficulty promoted to {new_level}",
+                        f"XP: {state.xp}, Quizzes: {state.quizzes_taken}",
+                        importance=8,
+                    )
+                except (ImportError, RuntimeError):
+                    pass
+                console.print(
+                    f"[bold cyan]\ud83d\udd25 \u0412\u044b \u043f\u0435\u0440\u0435\u0448\u043b\u0438 \u043d\u0430 \u0443\u0440\u043e\u0432\u0435\u043d\u044c {new_level.upper()}![/bold cyan]"
+                )
+        except ImportError:
+            pass
+
+        # Versus override
+        from handlers.versus import get_versus_system_prompt, increment_versus_attempts
+
+        versus_prompt = get_versus_system_prompt()
+        if versus_prompt:
+            system_prompt = versus_prompt
+
         if THINKING_ENABLED and current_mode == Mode.CTF:
             thinking = ThinkingVisualizer.generate_thinking(
                 context_str, user_input, "socratic"
@@ -575,39 +732,64 @@ def main():
 
         full_response = ""
         try:
-            llm = get_cached_llm(conn)
-            if llm is None:
+            if state.offline_mode:
                 console.print(
-                    "[red]❌ LLM недоступна. Проверьте настройки провайдера (OpenRouter API ключ или Ollama).[/red]"
+                    "[yellow]📴 Офлайн-режим: чат с LLM отключён. /offline off для включения.[/yellow]"
                 )
             else:
-                console.print(
-                    f"[bold green]БОТ ({current_mode.value}):[/bold green] ", end=""
-                )
-                for chunk in llm.stream(f"{system_prompt}\n\nВопрос: {user_input}"):
-                    chunk_text = (
-                        str(chunk.content) if hasattr(chunk, "content") else str(chunk)
+                llm = get_cached_llm(conn)
+                if llm is None:
+                    console.print(
+                        "[red]❌ LLM недоступна. Проверьте настройки провайдера (OpenRouter API ключ или Ollama).[/red]"
                     )
-                    full_response += chunk_text
-                    console.print(chunk_text, end="")
-                console.print()
-                # Voice output (M-34) - speak the full response if enabled
-                if speak_if_enabled and get_state().voice_enabled:
-                    try:
-                        speak_if_enabled(full_response)
-                    except Exception as e:
-                        logging.getLogger(__name__).error(f"Voice output error: {e}")
-        except Exception as e:
+                else:
+                    if versus_prompt:
+                        console.print(f"[bold cyan]Ты:[/bold cyan] {user_input}")
+                        increment_versus_attempts()
+                    console.print(
+                        f"[bold green]БОТ ({current_mode.value}):[/bold green] ", end=""
+                    )
+                    for chunk in llm.stream(f"{system_prompt}\n\nВопрос: {user_input}"):
+                        chunk_text = (
+                            str(chunk.content)
+                            if hasattr(chunk, "content")
+                            else str(chunk)
+                        )
+                        full_response += chunk_text
+                        console.print(chunk_text, end="")
+                    console.print()
+
+        except (ValueError, RuntimeError, KeyError, OSError) as e:
             console.print(f"[red]Ошибка: {e}[/red]")
 
         if full_response:
             save_message(conn, "user", user_input, current_mode.value)
             save_message(conn, "assistant", full_response, current_mode.value)
             update_stats(conn, 1)
+            # Track context budget usage
+            budget_manager.record_usage(len(user_input) + len(full_response))
+            # Auto-summarize periodically (every 20 messages)
+            try:
+                from handlers.summarize import check_auto_summarize
+
+                check_auto_summarize(conn)
+            except ImportError:
+                pass
+            # Periodic memory cleanup (every 50 messages)
+            msg_count = getattr(state, "_msg_count_since_summary", 0)
+            if msg_count > 0 and msg_count % 50 == 0:
+                cleanup_old_messages(conn, keep_last=500)
 
 
 if __name__ == "__main__":
-    # Save cache and state on exit
     atexit.register(_response_cache._save)
-    atexit.register(lambda: get_state().save_to_file())
+    atexit.register(_save_session_summary)
+    atexit.register(
+        lambda: (
+            setattr(get_state(), "context_budget", budget_manager.to_dict())
+            if budget_manager
+            else None,
+            get_state().save_to_file(),
+        )
+    )
     main()

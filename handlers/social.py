@@ -7,6 +7,8 @@ from rich.panel import Panel
 
 from config import LazyLoader
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
@@ -36,14 +38,14 @@ def _safe_print(text: Any) -> None:
     """Safe print fallback for encoding issues"""
     try:
         console.print(text)
-    except Exception:
+    except (UnicodeEncodeError, TypeError):
         if hasattr(text, "__str__"):
             print(str(text))
         else:
             print(text)
 
 
-def handle_social(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_social(action: str) -> HandlerResult:
     """Interactive social engineering trainer"""
     try:
         parts = action.split(maxsplit=1)

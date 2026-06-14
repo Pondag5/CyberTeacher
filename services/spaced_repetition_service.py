@@ -38,6 +38,9 @@ def schedule_review(
             repetitions = 0
             interval = 1
             ef = 2.5
+            entry["repetitions"] = repetitions
+            entry["interval"] = interval
+            entry["ef"] = ef
         else:
             repetitions += 1
             if repetitions == 1:
@@ -62,10 +65,12 @@ def get_due_reviews(review_schedule: dict[str, Any]) -> list[dict[str, Any]]:
     due = []
     for topic, entry in review_schedule.items():
         if entry.get("next_review", 0) <= now:
-            due.append({
-                "topic": topic,
-                "interval": entry.get("interval", 0),
-                "repetitions": entry.get("repetitions", 0),
-            })
+            due.append(
+                {
+                    "topic": topic,
+                    "interval": entry.get("interval", 0),
+                    "repetitions": entry.get("repetitions", 0),
+                }
+            )
     due.sort(key=lambda x: review_schedule[x["topic"]]["next_review"])
     return due

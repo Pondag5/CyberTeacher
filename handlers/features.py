@@ -1,16 +1,24 @@
 # handlers/features.py — Feature flags system (M-32)
 """Enable/disable modules via config."""
 
-from typing import Any
+from typing import Any, TypedDict
 
 from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
-DEFAULT_FEATURES = {
+
+class FeatureInfo(TypedDict):
+    enabled: bool
+    description: str
+
+
+DEFAULT_FEATURES: dict[str, FeatureInfo] = {
     "voice": {"enabled": False, "description": "Голосовой помощник (TTS)"},
     "hints": {"enabled": True, "description": "Подсказки в реальном времени"},
     "news": {"enabled": True, "description": "Новости кибербезопасности"},
@@ -30,7 +38,7 @@ DEFAULT_FEATURES = {
 }
 
 
-def handle_features(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_features(action: str) -> HandlerResult:
     """Manage feature flags."""
     ctx = get_context()
     state = ctx.state
@@ -61,7 +69,9 @@ def handle_features(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         feature = parts[2].lower()
         if feature not in DEFAULT_FEATURES:
             console.print(f"[red]❌ Модуль '{feature}' не найден[/red]")
-            console.print("[dim]Доступные: " + ", ".join(DEFAULT_FEATURES.keys()) + "[/dim]")
+            console.print(
+                "[dim]Доступные: " + ", ".join(DEFAULT_FEATURES.keys()) + "[/dim]"
+            )
             return True, None, None, True
 
         if subcommand == "enable":
@@ -94,18 +104,22 @@ def handle_features(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _list_features(state) -> None:
+def _list_features(state: Any) -> None:
     """Показать список всех модулей с статусом."""
-    console.print(Panel(
-        "[bold cyan]🔧 Управление модулями[/bold cyan]\n",
-        title="FEATURE FLAGS",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            "[bold cyan]🔧 Управление модулями[/bold cyan]\n",
+            title="FEATURE FLAGS",
+            border_style="cyan",
+        )
+    )
 
     for feature_id, info in DEFAULT_FEATURES.items():
         enabled = state.feature_flags.get(feature_id, info["enabled"])
         status = "[green]✓ ВКЛ[/green]" if enabled else "[red]✕ ВЫКЛ[/red]"
-        console.print(f"  {status} [cyan]{feature_id:<20}[/cyan] — {info['description']}")
+        console.print(
+            f"  {status} [cyan]{feature_id:<20}[/cyan] — {info['description']}"
+        )
 
     console.print()
     console.print("[dim]Управление: /features enable|disable|toggle <модуль>[/dim]")
@@ -116,5 +130,12 @@ def is_feature_enabled(feature: str) -> bool:
     ctx = get_context()
     state = ctx.state
     if not hasattr(state, "feature_flags"):
-        return DEFAULT_FEATURES.get(feature, {}).get("enabled", True)
-    return state.feature_flags.get(feature, DEFAULT_FEATURES.get(feature, {}).get("enabled", True))
+        feature_entry = DEFAULT_FEATURES.get(feature)
+        if feature_entry is not None:
+            return feature_entry["enabled"]
+        return True
+    return bool(
+        state.feature_flags.get(
+            feature, DEFAULT_FEATURES.get(feature, {"enabled": True})["enabled"]
+        )
+    )

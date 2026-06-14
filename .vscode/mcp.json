@@ -1,0 +1,18 @@
+{
+  "servers": {
+    "cyberteacher-knowledge": {
+      "type": "python",
+      "command": "python",
+      "args": ["mcp_server_faiss.py"],
+      "env": {},
+      "description": "FAISS knowledge base search for CyberTeacher — семантический поиск по базе знаний"
+    },
+    "cyberteacher-project": {
+      "type": "python",
+      "command": "python",
+      "args": ["mcp_server.py"],
+      "env": {},
+      "description": "CyberTeacher project context — файлы, структура, метаданные проекта"
+    }
+  }
+}

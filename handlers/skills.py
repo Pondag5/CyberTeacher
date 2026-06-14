@@ -4,37 +4,90 @@
 import os
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
+TOPIC_SKILL_MAP: Dict[str, str] = {
+    "sqli": "sql_injection",
+    "sql": "sql_injection",
+    "xss": "xss",
+    "csrf": "web_exploitation",
+    "network": "network_scanning",
+    "nmap": "network_scanning",
+    "scan": "network_scanning",
+    "privesc": "privilege_escalation",
+    "privilege": "privilege_escalation",
+    "crypto": "cryptography",
+    "cryptography": "cryptography",
+    "hash": "cryptography",
+    "social": "social_engineering",
+    "phish": "social_engineering",
+    "forensic": "forensics",
+    "forensics": "forensics",
+    "pcap": "forensics",
+    "reverse": "reverse_engineering",
+    "rev": "reverse_engineering",
+    "web": "web_exploitation",
+    "injection": "sql_injection",
+    "malware": "malware_analysis",
+    "virus": "malware_analysis",
+    "osint": "osint",
+    "recon": "osint",
+    "cloud": "cloud_security",
+    "aws": "cloud_security",
+}
+
+
+def guess_skill_from_topic(topic: str) -> str | None:
+    """Guess skill category from topic name using keyword matching."""
+    topic_lower = topic.lower()
+    for keyword, skill in TOPIC_SKILL_MAP.items():
+        if keyword in topic_lower:
+            return skill
+    return None
+
+
 SKILL_CATEGORIES = [
-    "sql_injection", "xss", "network_scanning", "privilege_escalation",
-    "cryptography", "social_engineering", "forensics", "reverse_engineering",
-    "web_exploitation", "malware_analysis", "osint", "cloud_security",
+    "sql_injection",
+    "xss",
+    "network_scanning",
+    "privilege_escalation",
+    "cryptography",
+    "social_engineering",
+    "forensics",
+    "reverse_engineering",
+    "web_exploitation",
+    "malware_analysis",
+    "osint",
+    "cloud_security",
 ]
 
 
-def handle_skills(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_skills(action: str) -> HandlerResult:
     """Управление навыками, репутацией, глубиной."""
     parts = action.split(maxsplit=2)
 
     if len(parts) == 1:
-        console.print(Panel(
-            "[bold cyan]🎯 Навыки, репутация, глубина[/bold cyan]\n\n"
-            "Использование:\n"
-            "  /skills                     — показать все навыки\n"
-            "  /skills track <навык> <ok/fail> — записать практику\n"
-            "  /reputation                 — показать репутацию\n"
-            "  /depth [beginner|normal|expert] — глубина объяснений",
-            title="НАВЫКИ",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel(
+                "[bold cyan]🎯 Навыки, репутация, глубина[/bold cyan]\n\n"
+                "Использование:\n"
+                "  /skills                     — показать все навыки\n"
+                "  /skills track <навык> <ok/fail> — записать практику\n"
+                "  /reputation                 — показать репутацию\n"
+                "  /depth [beginner|normal|expert] — глубина объяснений",
+                title="НАВЫКИ",
+                border_style="cyan",
+            )
+        )
         return True, None, None, True
 
     subcommand = parts[1].lower()
@@ -49,14 +102,13 @@ def handle_skills(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def handle_reputation(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_reputation(action: str) -> HandlerResult:
     """Show reputation and handle."""
     ctx = get_context()
     state = ctx.state
     handle = state.get_handle()
     rep = state.reputation
 
-    # Find next handle
     next_handle = None
     next_threshold = None
     for threshold, name in state.HANDLES:
@@ -72,17 +124,17 @@ def handle_reputation(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         bar = "█" * bar_len + "░" * (20 - bar_len)
         progress = f"\n  Прогресс: [{bar}] {pct:.0f}% до '{next_handle}'"
 
-    console.print(Panel(
-        f"[bold]🏆 Репутация: {rep}[/bold]\n"
-        f"[bold]Хэндл: {handle}[/bold]"
-        f"{progress}",
-        title="РЕПУТАЦИЯ",
-        border_style="yellow",
-    ))
+    console.print(
+        Panel(
+            f"[bold]🏆 Репутация: {rep}[/bold]\n[bold]Хэндл: {handle}[/bold]{progress}",
+            title="РЕПУТАЦИЯ",
+            border_style="yellow",
+        )
+    )
     return True, None, None, True
 
 
-def handle_depth(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_depth(action: str) -> HandlerResult:
     """Manage explanation depth."""
     ctx = get_context()
     state = ctx.state
@@ -95,15 +147,17 @@ def handle_depth(action: str) -> tuple[bool, Any | None, Any | None, bool]:
             "normal": "🟡 Стандарт — баланс деталей и краткости",
             "expert": "🔴 Эксперт — технически точно, без воды",
         }
-        console.print(Panel(
-            f"Текущая: [bold]{depth_names.get(current, current)}[/bold]\n\n"
-            "Доступные:\n"
-            f"  /depth beginner  — {depth_names['beginner']}\n"
-            f"  /depth normal    — {depth_names['normal']}\n"
-            f"  /depth expert    — {depth_names['expert']}",
-            title="ГЛУБИНА ОБЪЯСНЕНИЙ",
-            border_style="cyan",
-        ))
+        console.print(
+            Panel(
+                f"Текущая: [bold]{depth_names.get(current, current)}[/bold]\n\n"
+                "Доступные:\n"
+                f"  /depth beginner  — {depth_names['beginner']}\n"
+                f"  /depth normal    — {depth_names['normal']}\n"
+                f"  /depth expert    — {depth_names['expert']}",
+                title="ГЛУБИНА ОБЪЯСНЕНИЙ",
+                border_style="cyan",
+            )
+        )
         return True, None, None, True
 
     depth = parts[1].strip().lower()
@@ -117,7 +171,7 @@ def handle_depth(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _track_skill(skill: str, result: str) -> tuple[bool, Any | None, Any | None, bool]:
+def _track_skill(skill: str, result: str) -> HandlerResult:
     """Record skill practice."""
     ctx = get_context()
     state = ctx.state
@@ -132,45 +186,73 @@ def _track_skill(skill: str, result: str) -> tuple[bool, Any | None, Any | None,
     return True, None, None, True
 
 
-def handle_skills_list(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_skills_list(action: str) -> HandlerResult:
     """Show all skills."""
     ctx = get_context()
     state = ctx.state
-    skills = state.get_all_skills()
+    skills_data = state.get_all_skills()  # Dict[str, Dict]
 
-    if not skills:
-        console.print("[yellow]Нет записанных навыков. Используйте /skills track <навык> <ok/fail>[/yellow]")
+    if not skills_data:
+        console.print(
+            "[yellow]Нет записанных навыков. Используйте /skills track <навык> <ok/fail>[/yellow]"
+        )
         return True, None, None, True
 
     lines = []
-    for s in skills:
-        bar = "█" * s["level"] + "░" * (5 - s["level"])
+    for skill_id, sdata in skills_data.items():
+        level = state.get_skill_level(skill_id)
+        xp = sdata.get("xp", 0)
+        attempts = sdata.get("attempts", 0)
+        successes = sdata.get("successes", 0)
+        success_rate = int(successes / attempts * 100) if attempts > 0 else 0
+        bar = "█" * level + "░" * (5 - level)
         lines.append(
-            f"  [cyan]{s['name']:<25}[/cyan] [{bar}] L{s['level']} "
-            f"({s['xp']} XP, {s['success_rate']}% success, {s['attempts']} attempts)"
+            f"  [cyan]{skill_id:<25}[/cyan] [{bar}] L{level} "
+            f"({xp} XP, {success_rate}% success, {attempts} attempts)"
         )
 
-    console.print(Panel(
-        "\n".join(lines),
-        title="🎯 ПРАКТИЧЕСКИЕ НАВЫКИ",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            "\n".join(lines),
+            title="🎯 ПРАКТИЧЕСКИЕ НАВЫКИ",
+            border_style="cyan",
+        )
+    )
     return True, None, None, True
 
 
-def handle_certificates(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_certificates(action: str) -> HandlerResult:
     """SKL-03: Show skill mastery certificates."""
     ctx = get_context()
     state = ctx.state
-    skills = state.get_all_skills()
+    skills_data = state.get_all_skills()
 
-    if not skills:
+    if not skills_data:
         console.print("[yellow]Нет навыков для сертификатов[/yellow]")
         return True, None, None, True
 
-    mastered = [s for s in skills if s["level"] >= 5]
+    # Построим список освоенных навыков (level >= 5)
+    mastered = []
+    for skill_id, sdata in skills_data.items():
+        level = state.get_skill_level(skill_id)
+        if level >= 5:
+            attempts = sdata.get("attempts", 0)
+            successes = sdata.get("successes", 0)
+            success_rate = int(successes / attempts * 100) if attempts > 0 else 0
+            mastered.append(
+                {
+                    "name": skill_id,
+                    "level": level,
+                    "xp": sdata.get("xp", 0),
+                    "success_rate": success_rate,
+                    "attempts": attempts,
+                }
+            )
+
     if not mastered:
-        console.print("[yellow]Пока нет освоенных навыков (нужен lvl 5). Продолжайте практику![/yellow]")
+        console.print(
+            "[yellow]Пока нет освоенных навыков (нужен lvl 5). Продолжайте практику![/yellow]"
+        )
         return True, None, None, True
 
     parts = action.split()
@@ -180,29 +262,30 @@ def handle_certificates(action: str) -> tuple[bool, Any | None, Any | None, bool
         console.print("[bold cyan]🏆 Сертификаты мастерства[/bold cyan]")
         console.print(f"[dim]Всего: {len(mastered)}[/dim]\n")
         for s in mastered:
-            console.print(f"  ✅ {s['name']} — L{s['level']} ({s['xp']} XP, {s['success_rate']}% success)")
+            console.print(
+                f"  ✅ {s['name']} — L{s['level']} ({s['xp']} XP, {s['success_rate']}% success)"
+            )
         console.print("\n[yellow]Просмотр: /certificates <навык>[/yellow]")
-
     else:
-        # Find skill
         skill_name = " ".join(parts[1:])
-        skill = next((s for s in mastered if s["name"].lower() == skill_name.lower()), None)
+        skill = next(
+            (s for s in mastered if s["name"].lower() == skill_name.lower()), None
+        )
         if not skill:
             console.print(f"[red]Навык '{skill_name}' не освоен (нужен lvl 5)[/red]")
             return True, None, None, True
 
-        # Generate certificate
         now = datetime.now().strftime("%Y-%m-%d")
         cert = f"""
 ╔══════════════════════════════════════════════════════════╗
 ║                                                          ║
 ║              🏆  CERTIFICATE OF MASTERY  🏆              ║
 ║                                                          ║
-║   Навык: {skill['name'].upper():<42}║
-║   Уровень: {skill['level']}/5{' ' * 42}║
-║   XP: {skill['xp']:<48}║
-║   Успешность: {skill['success_rate']}%{' ' * 38}║
-║   Попыток: {skill['attempts']:<44}║
+║   Навык: {skill["name"].upper():<42}║
+║   Уровень: {skill["level"]}/5{" " * 42}║
+║   XP: {skill["xp"]:<48}║
+║   Успешность: {skill["success_rate"]}%{" " * 38}║
+║   Попыток: {skill["attempts"]:<44}║
 ║                                                          ║
 ║   Дата: {now:<46}║
 ║                                                          ║
@@ -211,7 +294,6 @@ def handle_certificates(action: str) -> tuple[bool, Any | None, Any | None, bool
 ╚══════════════════════════════════════════════════════════╝"""
         console.print(cert)
 
-        # Save to file
         os.makedirs("certificates", exist_ok=True)
         filename = f"certificates/{skill['name']}_{now}.txt"
         with open(filename, "w", encoding="utf-8") as f:

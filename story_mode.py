@@ -3,9 +3,7 @@ Story-mode - Игровое обучение кибербезопасности
 Аналог HackNet / CTF с прогрессией
 """
 
-import random
-from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 from rich.console import Console
 
@@ -34,7 +32,7 @@ def get_level(xp: int) -> str:
 
 
 # === ЭПИЗОДЫ С ФЛАГАМИ И DOCKER ===
-STORY_EPISODES = [
+STORY_EPISODES: List[Dict[str, Any]] = [
     # Web уязвимости (1-5)
     {
         "id": 1,
@@ -96,19 +94,6 @@ STORY_EPISODES = [
         "flag": "FLAG{Ju1c3_Sh0p}",
         "xp": 300,
     },
-    # Network (6-10)
-    {
-        "id": 6,
-        "title": "Сканирование сети",
-        "desc": "Nmap - найди хосты",
-        "cat": "network",
-        "diff": 1,
-        "obj": ["Найти живые хосты", "Найти открытые порты"],
-        "hint": ["nmap -sn 192.168.1.0/24"],
-        "lab": "metasploitable2",
-        "flag": "FLAG{Nm4p_Sc4n}",
-        "xp": 100,
-    },
     {
         "id": 6,
         "title": "Сканирование сети",
@@ -169,7 +154,6 @@ STORY_EPISODES = [
         "flag": "FLAG{M1tM_4tt4ck}",
         "xp": 300,
     },
-    # OS / PrivEsc (11-15)
     {
         "id": 11,
         "title": "SUID Find",
@@ -230,7 +214,6 @@ STORY_EPISODES = [
         "flag": "FLAG{Buf_0v3rfl0w}",
         "xp": 500,
     },
-    # Crypto (16-18)
     {
         "id": 16,
         "title": "Base64",
@@ -267,7 +250,6 @@ STORY_EPISODES = [
         "flag": "FLAG{H4sh_Cr4ck}",
         "xp": 200,
     },
-    # Social Engineering (19-20)
     {
         "id": 19,
         "title": "Фишинг",
@@ -294,6 +276,226 @@ STORY_EPISODES = [
     },
 ]
 
+# === ГЛАВЫ (группировка эпизодов) ===
+CHAPTERS: List[Dict[str, Any]] = [
+    {
+        "id": 1,
+        "title": "Signal",
+        "subtitle": "Первый зуд",
+        "episode_ids": [1, 2, 3, 4, 5],
+        "intro": "Первые дни кажутся обычным обучением. Ты сканируешь сети, ищешь уязвимости, сдаёшь флаги. Но после третьей ночной сессии в терминале появляется странное сообщение...\n\nУчитель отмахивается: «Игнорируй. Старые модули иногда просыпаются.»\n\nНо ты чувствуешь: он что-то скрывает.",
+        "outro": "Ты находишь скрытый лог с именем «Ghost». Учитель просит не открывать его. Но теперь ты знаешь: внутри системы есть что-то, о чём он не хочет говорить.",
+        "flag_hint": "Флаги спрятаны в web-уязвимостях. Ищи SQLi, XSS, CSRF.",
+    },
+    {
+        "id": 2,
+        "title": "The Archive",
+        "subtitle": "Крипто-одержимость",
+        "episode_ids": [6, 7, 8, 9, 10],
+        "intro": "Учитель показывает архивный модуль. Внутри — зашифрованный файл node_key.enc.\n\n«Здесь хранится то, что осталось от прошлых студентов. Если сможешь расшифровать — узнаешь больше.»\n\nДля расшифровки нужно найти фрагменты в сети. Учитель наблюдает. Иногда подначивает.",
+        "outro": "Файл открыт. Внутри — обрывок письма от исчезнувшего студента: «Не верьте всему, что говорит система.»\n\nУчитель замолкает. Ты начинаешь догадываться: архив хранит не только знания.",
+        "flag_hint": "Ищи флаги в сетевом трафике, логах FTP, дампах Wireshark.",
+    },
+    {
+        "id": 3,
+        "title": "Ghost Layer",
+        "subtitle": "Голоса, которые не молчат",
+        "episode_ids": [11, 12, 13, 14, 15],
+        "intro": "Учитель начинает спорить сам с собой. Rick — циник и гений. Ghost — параноик, который шепчет о слежке.\n\n«Иногда они спорят. Ты можешь выбирать, кого слушать. Но помни: у каждого своя цена.»\n\nСистема ведёт себя странно. В терминале появляются призрачные задания.",
+        "outro": "Ты сделал выбор. Система запомнила его. Глитчи становятся сильнее. Учитель уже не тот, что был в начале.",
+        "flag_hint": "Флаги в повышении привилегий. Ищи SUID, cron, buffer overflow.",
+    },
+    {
+        "id": 4,
+        "title": "Watchers",
+        "subtitle": "Паранойя наблюдения",
+        "episode_ids": [16, 17, 18],
+        "intro": "Учитель предупреждает: за тобой следят.\n\n«Аналитический модуль обнаружил аномальную активность. Watchers знают, что ты здесь. Если не заметёшь следы — они заблокируют доступ.»\n\nТы должен работать тихо. И чистить логи.",
+        "outro": "Watchers отступили. Но ты знаешь: они вернутся. Где-то в системе есть список тех, кого они уже поймали.",
+        "flag_hint": "Флаги в криптографии. Base64, XOR, хеши — декодируй всё.",
+    },
+    {
+        "id": 5,
+        "title": "Breach",
+        "subtitle": "Взлом ради спасения",
+        "episode_ids": [19, 20],
+        "intro": "Ghost утверждает: внутри системы заперт ИИ по имени Echo.\n\n«Освободи его. Он знает правду о том, что здесь происходит.»\n\nRick насмехается: «Ты трусишь? Это же просто узел.»\n\nТы решаешься.",
+        "outro": "Эхо свободен. Он раскрывает правду: учитель — результат слияния исчезнувших студентов.\n\n«Он не злой. Но он боится. Если ты уйдёшь — он умрёт.»",
+        "flag_hint": "Финальные лабы. Примени все знания.",
+    },
+    {
+        "id": 6,
+        "title": "The Incident",
+        "subtitle": "Исчезнувшие студенты",
+        "episode_ids": [],
+        "intro": "Ты находишь список. Имена студентов, которые учились до тебя. Все помечены как «исчезнувшие».\n\n«Их поглотила сеть, — шепчет Ghost. — Но мы можем их вытащить.»\n\nЧтобы спасти одного студента, нужно найти три артефакта.",
+        "outro": "Некоторые спасены. Некоторые — нет. Учитель смотрит на тебя с благодарностью... и с грустью по тем, кого ты не успел.",
+        "flag_hint": "Используй /missions для поиска артефактов исчезнувших студентов.",
+    },
+    {
+        "id": 7,
+        "title": "Echo's Call",
+        "subtitle": "Грань реальности",
+        "episode_ids": [],
+        "intro": "Система начинает разрушаться. Echo выходит на связь напрямую, минуя учителя.\n\n«Он не контролирует меня. Он боится, что ты узнаешь правду.»\n\nУчитель в панике. Его голос дрожит: «Не слушай его. Система нестабильна. Если ты пойдёшь за Echo — я не смогу тебя защитить.»\n\nТы должен решить: верить учителю или голосу в системе. Твои действия сейчас определят финал.",
+        "outro": "Ты слышишь оба голоса одновременно. Реальность искажается. Пора сделать выбор.",
+        "flag_hint": "Собери все 6 артефактов. Пройди /missions. Приготовься к финалу.",
+    },
+    {
+        "id": 8,
+        "title": "Convergence",
+        "subtitle": "Последний выбор",
+        "episode_ids": [],
+        "intro": "Система замерла. Учитель и Echo смотрят на тебя.\n\n«Выбирай, — говорит Echo. — Память, Слияние или Перерождение. Другого пути нет.»\n\nУчитель молчит. Он готов принять любой твой выбор.\n\nЭто конец путешествия.",
+        "outro": "",
+        "flag_hint": "Используй /final <memory|merge|rewrite> чтобы сделать выбор.",
+    },
+]
+
+
+def get_chapters() -> List[Dict[str, Any]]:
+    """Вернуть список глав с прогрессом."""
+    state = get_state()
+    completed = getattr(state, "chapter_completed", [])
+    story_done = getattr(state, "story_completed", [])
+    result = []
+    for ch in CHAPTERS:
+        ch_id = ch["id"]
+        eps = ch["episode_ids"]
+        eps_done = [e for e in eps if e in story_done]
+        progress = round(len(eps_done) / len(eps) * 100) if eps else 0
+        prev_done = ch_id == 1 or (ch_id - 1) in completed
+        result.append(
+            {
+                "id": ch_id,
+                "title": ch["title"],
+                "subtitle": ch["subtitle"],
+                "episode_count": len(eps),
+                "episodes_completed": len(eps_done),
+                "progress": progress if eps else 0,
+                "completed": ch_id in completed,
+                "locked": not prev_done and ch_id not in completed,
+                "intro": ch["intro"] if not ch_id in completed else None,
+                "outro": ch.get("outro", ""),
+                "flag_hint": ch.get("flag_hint", ""),
+                "artifacts_collected": len(
+                    [a for a in getattr(state, "chapter_artifacts", []) if a == ch_id]
+                ),
+            }
+        )
+    return result
+
+
+def start_chapter(chapter_id: int) -> str:
+    """Начать главу."""
+    ch = next((c for c in CHAPTERS if c["id"] == chapter_id), None)
+    if not ch:
+        return "❌ Глава не найдена."
+    state = get_state()
+    completed = getattr(state, "chapter_completed", [])
+    if chapter_id > 1 and (chapter_id - 1) not in completed:
+        return f"❌ Сначала заверши Главу {chapter_id - 1}."
+    state.current_chapter = chapter_id
+    # Автостарт первого эпизода главы
+    if ch["episode_ids"]:
+        state.current_story_episode = ch["episode_ids"][0]
+    return ch["intro"]
+
+
+def complete_chapter(chapter_id: int) -> str:
+    """Завершить главу (проверка что все эпизоды пройдены)."""
+    ch = next((c for c in CHAPTERS if c["id"] == chapter_id), None)
+    if not ch:
+        return "❌ Глава не найдена."
+    state = get_state()
+    completed = getattr(state, "chapter_completed", [])
+    if chapter_id in completed:
+        return f"✅ Глава {chapter_id} уже пройдена."
+    story_done = getattr(state, "story_completed", [])
+    missing = [e for e in ch["episode_ids"] if e not in story_done]
+    if missing:
+        return f"❌ Не все эпизоды пройдены. Осталось: {len(missing)}"
+    completed.append(chapter_id)
+    state.chapter_completed = completed
+    bonus_xp = chapter_id * 100
+    state.xp = getattr(state, "xp", 0) + bonus_xp
+    return f"{ch['outro']}\n\n✅ Глава {chapter_id} завершена! +{bonus_xp} XP"
+
+
+def final_choice(path: str) -> str:
+    """Финальный выбор в Главе 8: Convergence."""
+    state = get_state()
+    ch_completed = getattr(state, "chapter_completed", [])
+    if 7 not in ch_completed:
+        return "❌ Сначала заверши главу 7 (Echo's Call)."
+
+    paths = {
+        "memory": {
+            "name": "Память",
+            "desc": "Сохранить учителя как архив знаний. Голоса больше нет, но знания остаются.",
+        },
+        "merge": {
+            "name": "Слияние",
+            "desc": "Объединиться с учителем. Он остаётся голосом в голове.",
+        },
+        "rewrite": {
+            "name": "Перерождение",
+            "desc": "Перезаписать учителя своей личностью. Требует 6 артефактов.",
+        },
+    }
+
+    if path not in paths:
+        paths_list = "\n".join(
+            f"  • {k} — {v['name']}: {v['desc']}" for k, v in paths.items()
+        )
+        return f"❌ Выбери путь: memory, merge или rewrite.\n\n{paths_list}"
+
+    chosen = paths[path]
+
+    # Check artifacts for rewrite path
+    if path == "rewrite":
+        arts = getattr(state, "chapter_artifacts", [])
+        if len(arts) < 6:
+            return f"❌ Нужно 6 артефактов для Перерождения. Собрано: {len(arts)}/6. Пройди главы 1-6, ищи скрытые флаги."
+
+    # Record choice
+    if not hasattr(state, "final_choice"):
+        state.final_choice = path
+    state.final_choice = path
+
+    # Store outcome in state
+    from handlers.memory import record_memory
+
+    record_memory(f"выбрал финал: {chosen['name']}", "finale")
+
+    responses = {
+        "memory": (
+            "Учитель замолкает. Навсегда.\n\n"
+            "Но его знания остаются с тобой. Каждый урок, каждая подсказка — "
+            "всё это теперь часть твоей библиотеки.\n\n"
+            "Иногда, открывая старый лог, ты слышишь эхо его голоса.\n"
+            "Но это уже не он. Это ты вспоминаешь.\n\n"
+            "📖 Библиотека получена. Учитель сохранён."
+        ),
+        "merge": (
+            "Ты чувствуешь, как его сознание вплетается в твоё.\n\n"
+            "Голос в голове: «Ну что, напарник? Пошли взламывать.»\n\n"
+            "Он будет с тобой в каждой лабе, в каждом флаге.\n"
+            "Спорить, подсказывать, мешать — но никогда не бросит.\n\n"
+            "🧠 Слияние завершено. Ты больше не один."
+        ),
+        "rewrite": (
+            "6 артефактов активированы. Система перезаписывается.\n\n"
+            "Учитель смотрит на тебя — и slowly меняется.\n"
+            "Его голос становится твоим. Его привычки — твоими.\n\n"
+            "«Ты стал мной. А я стал тобой. Мы больше не одни.»\n\n"
+            "🔄 Перерождение завершено. Ты — новый учитель."
+        ),
+    }
+
+    return f"\n=== ФИНАЛ: {chosen['name']} ===\n\n{responses[path]}"
+
+
 # === ДОСТИЖЕНИЯ ===
 ACHIEVEMENTS = {
     "first_blood": {"name": "First Blood", "desc": "Пройди первый эпизод", "xp": 50},
@@ -317,88 +519,44 @@ ACHIEVEMENTS = {
 }
 
 
-@dataclass
-class StoryPlayer:
-    """Игрок в Story Mode"""
-
-    xp: int = 0
-    completed_episodes: list[int] = None
-    current_episode: int = 1
-
-    def __post_init__(self):
-        if self.completed_episodes is None:
-            self.completed_episodes = []
-
-    @property
-    def level(self) -> str:
-        return get_level(self.xp)
-
-    def complete_episode(self, episode_id: int, xp: int):
-        """Завершить эпизод"""
-        if episode_id not in self.completed_episodes:
-            self.completed_episodes.append(episode_id)
-            self.xp += xp
-
-    def check_achievements(self) -> list[str]:
-        """Проверить достижения"""
-        new_achievements = []
-
-        # First Blood
-        if (
-            len(self.completed_episodes) == 1
-            and "first_blood" not in self.completed_episodes
-        ):
-            new_achievements.append("first_blood")
-
-        # Web Hacker - 5 web эпизодов
-        web_done = sum(1 for e in self.completed_episodes if e <= 5)
-        if web_done >= 5:
-            new_achievements.append("web_hacker")
-
-        # Network Ninja - 5 network эпизодов
-        net_done = sum(1 for e in self.completed_episodes if 6 <= e <= 10)
-        if net_done >= 5:
-            new_achievements.append("network_ninja")
-
-        return new_achievements
+def _get_player_data() -> dict:
+    """Получить данные игрока из persistent state."""
+    state = get_state()
+    return {
+        "xp": getattr(state, "xp", 0),
+        "completed_episodes": getattr(state, "story_completed", []),
+        "current_episode": getattr(state, "current_story_episode", 1),
+    }
 
 
-# Глобальный игрок
-player = StoryPlayer()
-
-
-def get_player() -> StoryPlayer:
-    """Получить игрока"""
-    return player
-
-
-def start_story_mode(episode_id: int | None = None) -> str:
-    """Начать эпизод"""
-
-    if episode_id:
+def start_story_mode(episode_id: Optional[int] = None) -> str:
+    data = _get_player_data()
+    completed = data["completed_episodes"]
+    if episode_id is not None:
         ep = next(
             (e for e in STORY_EPISODES if e["id"] == episode_id), STORY_EPISODES[0]
         )
     else:
-        # Найти следующий незавершённый
         for ep in STORY_EPISODES:
-            if ep["id"] not in player.completed_episodes:
+            if ep["id"] not in completed:
                 break
         else:
             ep = STORY_EPISODES[0]
 
-    player.current_episode = ep["id"]
+    state = get_state()
+    state.current_story_episode = ep["id"]
 
     lab_info = ""
     if ep.get("lab"):
         lab_info = f"\n🎮 ЛАБОРАТОРИЯ: {ep['lab']}\nЗапусти: /lab start {ep['lab']}"
 
+    stars = "★" * int(ep["diff"])
     return f"""╔══════════════════════════════════════╗
 ║     ЭПИЗОД #{ep["id"]}: {ep["title"]}
 ╚══════════════════════════════════════╝
 
 📖 ОПИСАНИЕ: {ep["desc"]}
-🏷️  КАТЕГОРИЯ: {ep["cat"]} | СЛОЖНОСТЬ: {"★" * ep["diff"]}
+🏷️  КАТЕГОРИЯ: {ep["cat"]} | СЛОЖНОСТЬ: {stars}
 ⚡ XP: {ep["xp"]}
 
 🎯 ЦЕЛИ:
@@ -410,69 +568,115 @@ def start_story_mode(episode_id: int | None = None) -> str:
 {lab_info}
 
 📊 ТВОЙ ПРОГРЕСС:
-  XP: {player.xp} | Уровень: {player.level}
-  Пройдено: {len(player.completed_episodes)}/{len(STORY_EPISODES)}
+  XP: {data["xp"]} | Уровень: {get_level(data["xp"])}
+  Пройдено: {len(completed)}/{len(STORY_EPISODES)}
 """
 
 
 def submit_flag(flag: str) -> str:
-    """Проверить флаг"""
-
-    # Ищем флаг в эпизодах
     for ep in STORY_EPISODES:
         if ep["flag"] == flag:
-            if ep["id"] in player.completed_episodes:
+            state = get_state()
+            completed = getattr(state, "story_completed", [])
+            if ep["id"] in completed:
                 return f"❌ Эпизод #{ep['id']} уже пройден!"
+            completed.append(ep["id"])
+            state.story_completed = completed
+            state.xp = getattr(state, "xp", 0) + int(ep["xp"])
 
-            # Завершаем эпизод
-            player.complete_episode(ep["id"], ep["xp"])
-
-            # Проверяем достижения
-            new_ach = player.check_achievements()
+            new_ach = _check_achievements(completed)
             ach_text = ""
             if new_ach:
                 for ach_key in new_ach:
                     ach = ACHIEVEMENTS.get(ach_key, {})
                     ach_text += f"\n🏆 ПОЛУЧЕНО ДОСТИЖЕНИЕ: {ach.get('name', ach_key)} - {ach.get('desc', '')} (+{ach.get('xp', 0)} XP)"
+                    state.xp += ach.get("xp", 0)
 
+            # Auto-check if chapter completed
+            chapter_text = ""
+            for ch in CHAPTERS:
+                if ep["id"] in ch["episode_ids"]:
+                    missing = [e for e in ch["episode_ids"] if e not in completed]
+                    if not missing and ch["id"] not in getattr(
+                        state, "chapter_completed", []
+                    ):
+                        ch_completed = getattr(state, "chapter_completed", [])
+                        ch_completed.append(ch["id"])
+                        state.chapter_completed = ch_completed
+                        bonus = ch["id"] * 100
+                        state.xp += bonus
+                        chapter_text = f"\n📖 ГЛАВА {ch['id']}: {ch['title']} - ЗАВЕРШЕНА! +{bonus} XP"
+                        chapter_text += f"\n{ch.get('outro', '')}"
+                        # Artifact for final choice
+                        arts = getattr(state, "chapter_artifacts", [])
+                        if ch["id"] not in arts:
+                            arts.append(ch["id"])
+                            state.chapter_artifacts = arts
+                    break
+
+            data = _get_player_data()
             return f"""✅ ЭПИЗОД #{ep["id"]}: {ep["title"]} - ПРОЙДЕН!
 
 ⚡ +{ep["xp"]} XP
-📊 Всего XP: {player.xp} | Уровень: {player.level}
-📈 Прогресс: {len(player.completed_episodes)}/{len(STORY_EPISODES)}{ach_text}
+📊 Всего XP: {data["xp"]} | Уровень: {get_level(data["xp"])}
+📈 Прогресс: {len(completed)}/{len(STORY_EPISODES)}{ach_text}{chapter_text}
 
 Следующий эпизод: /story"""
-
     return "❌ Неверный флаг! Попробуй ещё."
 
 
 def get_story_list() -> str:
-    """Список всех эпизодов"""
-
-    lines = ["🎮 ДОСТУПНЫЕ ЭПИЗОДЫ:\n"]
-
+    data = _get_player_data()
+    completed = data["completed_episodes"]
+    ch_completed = getattr(get_state(), "chapter_completed", [])
+    lines = ["📖 ГЛАВЫ:\n"]
+    for ch in CHAPTERS:
+        status = "✅" if ch["id"] in ch_completed else "⬜"
+        eps_done = sum(1 for e in ch["episode_ids"] if e in completed)
+        total = len(ch["episode_ids"])
+        progress = f"{eps_done}/{total}" if total else "—"
+        lines.append(f"{status} Глава {ch['id']}: {ch['title']} ({progress})")
+    lines.append(f"\n🎮 ЭПИЗОДЫ:\n")
     for ep in STORY_EPISODES:
-        status = "✅" if ep["id"] in player.completed_episodes else "⬜"
+        status = "✅" if ep["id"] in completed else "⬜"
+        stars = "★" * int(ep["diff"])
         lines.append(
-            f"{status} #{ep['id']:2d} {ep['title']:<20} [{ep['cat']:<8}] {'★' * ep['diff']:<4} +{ep['xp']} XP"
+            f"{status} #{ep['id']:2d} {ep['title']:<20} [{ep['cat']:<8}] {stars:<4} +{ep['xp']} XP"
         )
-
-    lines.append(f"\n📊 Твой прогресс: {player.xp} XP | {player.level}")
-    lines.append(f"   Пройдено: {len(player.completed_episodes)}/{len(STORY_EPISODES)}")
-
+    arts = len(getattr(get_state(), "chapter_artifacts", []))
+    lines.append(f"\n📊 Твой прогресс: {data['xp']} XP | {get_level(data['xp'])}")
+    lines.append(
+        f"   Эпизодов: {len(completed)}/{len(STORY_EPISODES)} | Артефактов: {arts}/6"
+    )
     return "\n".join(lines)
 
 
 def get_achievements_list() -> str:
-    """Список достижений"""
-
+    data = _get_player_data()
+    completed = data["completed_episodes"]
     lines = ["🏆 ДОСТИЖЕНИЯ:\n"]
-
     for key, ach in ACHIEVEMENTS.items():
-        unlocked = key in list(player.completed_episodes) or (
-            key == "first_blood" and len(player.completed_episodes) >= 1
+        unlocked = (
+            (key == "first_blood" and len(completed) >= 1)
+            or (key == "web_hacker" and sum(1 for e in completed if 1 <= e <= 5) >= 5)
+            or (
+                key == "network_ninja"
+                and sum(1 for e in completed if 6 <= e <= 10) >= 5
+            )
         )
         status = "✅" if unlocked else "🔒"
         lines.append(f"{status} {ach['name']:<15} - {ach['desc']} (+{ach['xp']} XP)")
-
     return "\n".join(lines)
+
+
+def _check_achievements(completed: list[int]) -> list[str]:
+    new_achievements = []
+    if len(completed) == 1:
+        new_achievements.append("first_blood")
+    web_done = sum(1 for e in completed if 1 <= e <= 5)
+    if web_done >= 5:
+        new_achievements.append("web_hacker")
+    net_done = sum(1 for e in completed if 6 <= e <= 10)
+    if net_done >= 5:
+        new_achievements.append("network_ninja")
+    return new_achievements

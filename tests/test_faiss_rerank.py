@@ -12,7 +12,7 @@ from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 
 # Imports from our project
-from config import RERANK_TOP_K, RERANKER_MODEL, LazyLoader
+from config import RERANK_TOP_K, RERANKER, LazyLoader
 from knowledge import get_relevant_docs
 
 
@@ -97,7 +97,7 @@ class TestFAISSReranking(unittest.TestCase):
         print(f"\n[QUERY] Test query: '{query}'")
         print(f"[INFO] Requesting k={k} documents")
 
-        relevant_docs = get_relevant_docs(self.vectordb, query, k=k)
+        relevant_docs = get_relevant_docs(self.vectordb, query, top_k=k)
 
         print(f"\n[RESULT] Received {len(relevant_docs)} documents")
         self.assertEqual(
@@ -111,7 +111,7 @@ class TestFAISSReranking(unittest.TestCase):
         print(f"\n[QUERY] Test query: '{query}'")
 
         # Get documents with reranking
-        reranked_docs = get_relevant_docs(self.vectordb, query, k=5)
+        reranked_docs = get_relevant_docs(self.vectordb, query, top_k=5)
 
         print("\n[RESULT] Documents after reranking:")
         for i, doc in enumerate(reranked_docs, 1):
@@ -135,7 +135,7 @@ class TestFAISSReranking(unittest.TestCase):
             print(f"{i}. {doc.page_content[:60]}...")
 
         # Get reranked documents
-        reranked_docs = get_relevant_docs(self.vectordb, query, k=5)
+        reranked_docs = get_relevant_docs(self.vectordb, query, top_k=5)
 
         print(f"\n[INFO] Reranked documents (after reranking):")
         for i, doc in enumerate(reranked_docs, 1):
@@ -154,7 +154,7 @@ class TestFAISSReranking(unittest.TestCase):
 
         print(f"\n[QUERY] Test query: '{query}'")
 
-        docs = get_relevant_docs(self.vectordb, query, k=5)
+        docs = get_relevant_docs(self.vectordb, query, top_k=5)
 
         print("\n[RESULT] Returned documents:")
         for i, doc in enumerate(docs, 1):
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     print("TEST: FAISS VECTORDB WITH RERANKING")
     print("=" * 70)
     print(f"RERANK_TOP_K = {RERANK_TOP_K}")
-    print(f"RERANKER_MODEL = {RERANKER_MODEL}")
+    print(f"RERANKER = {RERANKER}")
     print("=" * 70)
 
     unittest.main(verbosity=2)

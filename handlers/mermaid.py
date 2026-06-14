@@ -7,6 +7,8 @@ from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
@@ -127,7 +129,7 @@ MERMAID_TOPICS = {
 }
 
 
-def handle_mermaid(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_mermaid(action: str) -> HandlerResult:
     """Генерация Mermaid-диаграмм."""
     parts = action.split(maxsplit=2)
 
@@ -171,7 +173,7 @@ def handle_mermaid(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _show_diagram(topic: str) -> tuple[bool, Any | None, Any | None, bool]:
+def _show_diagram(topic: str) -> HandlerResult:
     """Показать готовую диаграмму."""
     if topic not in MERMAID_TOPICS:
         console.print(f"[red]❌ Тема '{topic}' не найдена[/red]")
@@ -196,7 +198,7 @@ def _show_diagram(topic: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _generate_diagram(topic: str) -> tuple[bool, Any | None, Any | None, bool]:
+def _generate_diagram(topic: str) -> HandlerResult:
     """Сгенерировать диаграмму через LLM."""
     from config import LazyLoader
 

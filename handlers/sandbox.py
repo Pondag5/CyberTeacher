@@ -12,6 +12,7 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 
+from handlers.types import HandlerResult
 from practice import run_docker_cmd
 
 console = Console()
@@ -118,7 +119,7 @@ timeout {timeout} python /tmp/code.py
             wrapper_content = f"""#!/bin/sh
 timeout {timeout} bash /tmp/code.sh
 """
-        with open(wrapper, "w") as f:
+        with open(wrapper, "w", encoding="utf-8") as f:
             f.write(wrapper_content)
         os.chmod(wrapper, 0o755)
 
@@ -170,7 +171,7 @@ timeout {timeout} bash /tmp/code.sh
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def handle_sandbox(action: str, **kwargs) -> tuple[bool, Any, Any, bool]:
+def handle_sandbox(action: str, **kwargs: Any) -> HandlerResult:
     """Обработчик команды /sandbox
 
     Формат:

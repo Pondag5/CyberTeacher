@@ -1,20 +1,58 @@
-# CyberTeacher
+# CyberTeacher v5.3
 
-**CLI-приложение для обучения кибербезопасности с встроенным LLM-учителем**
+**CLI-приложение для обучения кибербезопасности с AI-учителем (Рик Санчез + Док Браун)**
+
+---
+
+> **[Документация → docs/INDEX.md](docs/INDEX.md)** — полная навигация по всем документам проекта.
 
 ---
 
 ## 🎯 О проекте
 
-CyberTeacher — это интерактивный CLI-тренажёр для изучения кибербезопасности. У вас есть персональный AI-учитель (хакер из 90-х), который проводит вас через теорию, практику, CTF-задачи и реальные сценарии атак.
+CyberTeacher — это интерактивный CLI-тренажёр для изучения кибербезопасности. У вас есть персональный AI-учитель — эксцентричный гений в стиле Рика Санчеза и Дока Брауна, который проводит вас через теорию, практику, CTF-задачи и реальные сценарии атак.
+
+### Архитектура
+
+```
+main.py                  # CLI entry point + PWA (aiohttp server)
+├── handlers/            # ~60+ command handlers (CLI dispatch)
+│   ├── core.py          #   Main dispatcher (handle_extended_commands)
+│   ├── misc.py          #   CLI handlers for story/risk/faction
+│   ├── types.py         #   HandlerResult type
+│   ├── story_mode.py    #   Chapters, episodes, flags, final choice
+│   ├── noise.py         #   Noise level + stealth mechanics
+│   ├── trace.py         #   Trace timer system
+│   ├── logs.py          #   Dirty log management
+│   ├── debt.py          #   Digital debt system
+│   ├── faction.py       #   Faction reputation (Rick/Ghost/Archive)
+│   ├── echo.py          #   Ghost student messages
+│   ├── memory.py        #   Teacher memories
+│   └── ...              #   50+ other handlers
+├── api_server.py        # 4154-line monolith, 40+ REST endpoints
+├── state.py             # Dataclass state (progress, risk, chapters, factions)
+├── static/              # PWA single-file SPA
+│   ├── index.html
+│   └── js/
+│       ├── app.js       # Tab registry + router
+│       ├── components/  # risk_indicators.js etc.
+│       └── tabs/        # 18+ tab views (story.js, dashboard.js, ...)
+├── story/               # Lore: CHAPTERS.md, NARRATIVE.md
+├── tracks/              # YAML learning tracks (4 tracks)
+├── tests/               # 1053 tests (pytest)
+└── docs/                # Documentation
+```
 
 ### Технологии
-- **LLM провайдеры**: Ollama (локально) / OpenRouter / HuggingFace
-- **Модели**: qwen2.5:7b, mistral, llama2 и другие
+- **LLM провайдеры**: Ollama (локально) / OpenRouter / HuggingFace / **Groq** (быстро, бесплатно)
+- **Модели**: qwen2.5:7b, llama-3.1-8b-instant, mistral и другие
 - **RAG**: ChromaDB + sentence-transformers + cross-encoder реранкинг
-- **Интерфейс**: Rich (красивый CLI)
+- **Интерфейс**: Rich (красивый CLI) + **PWA Companion App** (18 вкладок)
 - **Практика**: Docker-лаборатории (DVWA, Juice Shop, Metasploitable и др.)
+- **База данных**: SQLite / PostgreSQL (SQLAlchemy + Alembic миграции)
 - **База знаний**: PDF-файлы, автоматическая индексация
+- **API**: FastAPI + 40+ REST endpoints
+- **Launcher**: GUI-панель запуска (`python launcher.py`)
 
 ---
 
@@ -31,8 +69,17 @@ pip install -r requirements.txt
 # Скачать модель Ollama (если используете локально)
 ollama pull qwen2.5:7b
 
+# Или используйте Groq (быстро, бесплатно, без установки):
+# 1. Получите ключ на https://console.groq.com/keys
+# 2. Добавьте в .env: GROQ_API_KEY=gsk_xxx, LLM_PROVIDER=groq
+
 # Запустить
 python main.py
+
+# PWA Companion App (веб-версия):
+# 1. В приложении: /api start
+# 2. Откройте http://localhost:8000 в браузере
+# 3. Доступно с любого устройства в локальной сети
 ```
 
 ---
@@ -69,7 +116,7 @@ python main.py
 | **17** | **`/exploit`** | **Поиск эксплойтов** ✨ |
 | 18 | `/lab` | Docker лаборатории (21 шт.) |
 | 19 | `/courses` | Учебные курсы (6 курсов) |
-| 20 | `/story` | Режим истории (21 эпизод) |
+| 20 | `/story` | Режим истории (6 глав, 21 эпизод) |
 | 21 | `/task` | Случайное задание |
 | 22 | `/genassignment` | Генератор заданий (в разработке) |
 | 23 | `/adaptive` | Адаптивные слабые темы |
@@ -105,14 +152,103 @@ python main.py
 | **45** | **`/cve`** | **CVE информация** |
 | **46** | **`/news search`** | **Поиск новостей** |
 | **47** | **`/sandbox`** | **Песочница для кода** (Docker) ✨ |
-| **41** | **`/adaptive`** | **Адаптивные слабые темы** ✨ |
-| **42** | **`/repeat`** | **Интервальные повторения** (Spaced Repetition) ✨ |
-| **43** | **`/summary <тема>`** | **Генерация конспекта** (Markdown) ✨ |
-| **44** | **`/auto_writeup`** | **Автоматический writeup** ✨ |
+
+### Расширенные (48-60)
+| Цифра | Команда | Описание |
+|-------|---------|----------|
+| **48** | **`/osint`** | **OSINT разведка** ✨ |
+| **49** | **`/timeline`** | **Исторический режим** ✨ |
+| **50** | **`/exploits`** | **Тренажёр эксплойтов** ✨ |
+| **51** | **`/shodan`** | **Поиск через Shodan** ✨ |
+| **52** | **`/censys`** | **Поиск через Censys** ✨ |
+| **53** | **`/malware`** | **Анализ вредоносов** ✨ |
+| **54** | **`/investigation`** | **Интерактивные расследования** ✨ |
+| **55** | **`/jupyter`** | **Jupyter Notebook** ✨ |
+| **56** | **`/media`** | **Видео/подкасты** ✨ |
+| **57** | **`/timeloop`** | **Временная петля** ✨ |
+| **58** | **`/sync`** | **Кросс-синхронизация** ✨ |
+| **59** | **`/emotions`** | **Эмоции учителя** ✨ |
+| 60 | `/chapter` | **Главы сюжета** ✨ |
+| 61 | `/noise` | **Уровень шума/стелс** ✨ |
+| 62 | `/trace` | **Таймер трассировки** ✨ |
+| 63 | `/debts` | **Цифровые долги** ✨ |
+| 64 | `/faction` | **Фракции (Rick/Ghost)** ✨ |
+| 65 | `/echo` | **Призрачные сообщения** ✨ |
+| 66 | `/memory` | **Воспоминания учителя** ✨ |
+
+### Управление и настройки (61-75)
+| Цифра | Команда | Описание |
+|-------|---------|----------|
+| 61 | `/api` | **Запуск REST API** ✨ |
+| 62 | `/pwa` | **PWA Companion App** ✨ |
+| 63 | `/export` | **Экспорт истории** ✨ |
+| **68** | **`/theme`** | **Смена темы оформления** ✨ |
+| **69** | **`/profile`** | **Профиль пользователя** ✨ |
+| **70** | **`/lang`** | **Переключение языка** ✨ |
+| **71** | **`/usage`** | **Статистика команд** ✨ |
+| **72** | **`/features`** | **Feature flags** ✨ |
+| **73** | **`/templates`** | **Шаблоны заданий** ✨ |
+| **74** | **`/mermaid`** | **Mermaid диаграммы** ✨ |
+| **75** | **`/versus`** | **Дуэль с LLM-соперником** 🥊 |
 
 ---
 
-## ✨ Новые возможности (2026-03-17)
+## 📱 PWA Companion App
+
+Веб-версия CyberTeacher для ПК, планшетов и смартфонов:
+
+| Вкладка | Описание |
+|---------|----------|
+| 💬 Чат | Общение с LLM учителем (Groq) |
+| 📊 Прогресс | XP, уровень, стрик, навыки, XP-бар |
+| 📝 Квизы | Динамическая генерация вопросов через LLM |
+| 📚 Курсы | 6 курсов, выбор активного, прогресс |
+| 🐳 Лаборатории | 21 Docker-лаба, запуск/остановка |
+| 🏆 Достижения | 8 ачивок с иконками и XP |
+| 🥊 Дуэль | 4 сценария (web, network, crypto, forensics) |
+| 📈 Статистика | Графики активности, навыки, слабые темы |
+| 📖 История | 6 глав сюжета, прогресс, артефакты |
+| 🚨 Риск | Индикаторы noise, trace, stealth, debts |
+| 🏛️ Фракции | Репутация Rick/Ghost/Archive |
+| ⚙️ Настройки | Тёмная/светлая тема, push-уведомления |
+
+**Запуск:**
+```bash
+# В приложении:
+/api start
+
+# Откройте в браузере:
+http://localhost:8000
+# Или с другого устройства в локальной сети:
+http://<IP-адрес>:8000
+```
+
+**Особенности:**
+- Service Worker с авто-обновлением (Network First стратегия)
+- Offline-режим (кэшированный UI)
+- Адаптивный дизайн (мобильные + десктоп)
+- Push-уведомления
+
+---
+
+## ✨ Новые возможности (2026-05-18)
+
+### G-07: Офлайн-режим (`/offline`) 📴
+Работа без подключения к LLM. Квизы, курсы, лаборатории и прогресс доступны офлайн.
+- `/offline on` — включить офлайн-режим
+- `/offline off` — выключить
+- API: `GET/POST /api/offline`
+- PWA: переключатель в настройках
+
+### G-08: Mood Translator (`/mood`) 💀
+Переключение стиля общения учителя:
+- `normal` — стандартный стиль
+- `hacker` — хакерский сленг 90-х
+- `formal` — академический язык
+- `casual` — дружеский стиль
+- `minimal` — только код и команды
+
+## ✨ Новые возможности (2026-05-17)
 
 ### C-02: Социальная инженерия (`/social`)
 Интерактивный диалоговый тренажёр, где вы — атакующий, а LLM играет жертву.
@@ -314,7 +450,9 @@ Algoritmo SuperMemo (упрощённый SM-2) для интервальных 
 Все данные сохраняются в состоянии приложения.
 
 ### M-33: Advanced Analytics & AI Tutor (`/analytics`)
+
 Расширенная аналитика и AI-рекомендации для персонализированного обучения:
+
 - **Обзор метрик:** общий XP, количество квизов, лабораторий, миссий, собранных флагов, завершённых заданий, зачисленных треков, bounty-отчётов.
 - **Слабые темы:** автоматически определяется темы с успешностью <70% (на основе `update_weak_topic`). Показывает топ-5 самых слабых с процентом успеха и количеством попыток.
 - **Текстовый график:** простой bar chart (█) для визуализации успеваемости по слабым темам.
@@ -348,41 +486,123 @@ Algoritmo SuperMemo (упрощённый SM-2) для интервальных 
   Сегодня сфокусируйся на SQL Injection. Пройди 5 квизов по SQLi в режиме /quiz. У тебя получится!
 ```
 
-### M-34: Voice Assistant (TTS) (`/voice`)
-Голосовой вывод ответов бота для удобства и доступности:
-- **Текст-в-речь (TTS):** бот зачитывает свои ответы вслух, когда включён.
-- **Команды:**
-  - `/voice on` — включить голосовой вывод
-  - `/voice off` — выключить
-  - `/voice test` — проверить, проигрывает ли TTS тестовое сообщение
-  - `/voice status` — показать текущие настройки
-- **Движок:** использует `pyttsx3` — кроссплатформенная библиотека TTS, работает оффлайн.
-- **Настройки:** можно изменить скорость речи (`voice_rate`) в коде (по умолчанию 200wpm).
-- **Интеграция:** при включённом voice, после каждого ответа LLM в основном цикле вызывается `speak_if_enabled()`, которая воспроизводит полный текст ответа.
-- **Состояние:** настройки сохраняются в `state.voice_enabled`, `state.voice_engine`, `state.voice_rate`.
-- **Пример:** `/voice on` — теперь все ответы будут зачитываться.
+### Story Chapters (`/story chapter N`)
+6 сюжетных глав с последовательным разблокированием:
+- **Ch1 Signal** (эп.1-5) — Web-уязвимости
+- **Ch2 Archive** (эп.6-10) — Сетевая безопасность
+- **Ch3 Ghost Layer** (эп.11-15) — ОС и эксплуатация
+- **Ch4 Watchers** (эп.16-18) — Криптография
+- **Ch5 Breach** (эп.19-20) — Advanced persistent threat
+- **Ch6 Incident** — Миссии-капстоун, финальный выбор (Memory/Merge/Rewrite)
+- **Артефакты:** каждая глава даёт уникальный артефакт в `state.chapter_artifacts`
 
-Примечание: STT (голосовой ввод) пока не реализован, но может быть добавлен аналогично с библиотеками `speech_recognition` или `vosk`.
+### Risk Mechanics (`/noise`, `/trace`, `/stealth`, `/debts`)
+Система риска, которая растёт при активностях:
+- **Noise** — растёт при сканировании/атаках. >80 = автоматические последствия
+- **Stealth** — режим невидимости (снижает noise на 50%, но тратит ресурс)
+- **Trace** — таймер до обнаружения при определённых действиях
+- **Dirty logs** — накапливаются при атаках, можно `/wipe_logs`
+- **Digital debts** — автоматически начисляются при рискованных действиях
+
+### Factions (`/faction`, `/echo`, `/memory`)
+Система репутации и фракций:
+- **Rick's Network** — традиционная школа безопасности
+- **Ghost Network** — теневая кибер-анархия
+- **Archive Division** — хранители знаний
+- **Воспоминания:** учитель запоминает ключевые решения студента через `/memory`
 
 ### Fix: Кодировка Windows
 Проблема `UnicodeEncodeError` при выводе эмодзи и спецсимволов решена автоматически:
 - `utils/console_encoding.py` настраивает консоль на UTF-8
 - Работает без перезагрузки, не влияет на другие программы
 
+### NEW-01: LLM-Соперник (`/versus`) 🥊
+Режим дуэли, где LLM играет за сервер/инфраструктуру, а ты — за атакующего/аналитика:
+- **4 сценария:**
+  - **Веб-дуэль** — атакуй веб-сервер с уязвимостями (SQLi, XSS, CSRF)
+  - **Сетевая дуэль** — сканируй и атакуй сетевую инфраструктуру
+  - **Крипто-дуэль** — расшифровывай сообщения и находи флаги
+  - **Форензика** — исследуй логи и дампы памяти
+- Контекстная история: LLM помнит предыдущие действия
+- Счётчик попыток и подсказки после 3-5 неудач
+- Доступно в CLI (`/versus`) и PWA (вкладка "🥊 Дуэль")
+
+### NEW-03 / L-10: Code Review v3 (`/scanv2`) 🔐
+Расширенный анализ кода с OWASP Top 10 mapping и кастомными semgrep правилами:
+- **Один файл:** `/scanv2 main.py` — анализ одного файла
+- **Директория:** `/scanv2 ./src` — рекурсивный анализ проекта
+- **Git-репозиторий:** `/scanv2 https://github.com/user/repo.git main` — клонирование + анализ
+- **18+ языков:** Python, JavaScript, TypeScript, PHP, Java, Bash, Go, C/C++, Ruby, Rust, SQL
+- **OWASP Top 10 mapping:** Каждая находка привязана к категории OWASP (A01-A10)
+- **Кастомные semgrep правила:** SQLi, XSS, Command Injection, SSRF, Path Traversal, Weak Crypto, Hardcoded Secrets, Insecure Deserialization, Open Redirect, LDAP Injection
+- **Статический анализ:**
+  - Semgrep (primary) — кастомные OWASP-правила для всех языков
+  - Bandit (Python) — дополнительный анализ
+  - Secret scanning (все языки) — AWS keys, GitHub tokens, passwords, private keys
+- **CI/CD mode:** `/scanv2 ./src --ci` — exit code 1 если найдены уязвимости >= high
+- **SARIF output:** `/scanv2 ./src --sarif --output results.sarif` — отчёт для IDE (VS Code, GitHub)
+- **LLM-отчёт:** Оценка безопасности (A-F), критичные проблемы, рекомендации
+- **REST API:** `POST /api/scanv2` — анализ кода через API, `GET /api/scanv2/rules` — список правил
+- **Цифра 73** в меню
+
+### G-01: TryHackMe API (`/thm`) 🎯
+Интеграция с платформой TryHackMe для импорта комнат и синхронизации прогресса:
+- **Авторизация:** `/thm login <api_key>` — сохранение ключа
+- **Список комнат:** `/thm rooms [all|free|pro]` — таблица с фильтрацией
+- **Детали комнаты:** `/thm room <id>` — описание, задачи, рейтинг
+- **Отправка ответа:** `/thm submit <room> <task> <answer>` — проверка
+- **Статус:** `/thm status` — ранг, уровень, очки, стрик
+- **Синхронизация:** `/thm sync` — сохранение прогресса в state
+- **Цифра 74** в меню
+
+### G-02: HackTheBox API (`/htb`) 💀
+Интеграция с HackTheBox для работы с машинами:
+- **Авторизация:** `/htb login <email> <password>` — сохранение учётных данных
+- **Список машин:** `/htb machines [all|free|pro]` — таблица с ID, OS, сложностью, очками
+- **Детали машины:** `/htb machine <id>` — описание, подсказки, рейтинг
+- **Пошаговый разбор:** `/htb walkthrough <id>` — LLM генерирует детальный гайд
+- **Отправка флага:** `/htb submit <id> <flag>` — проверка и запись прогресса
+- **Синхронизация:** `/htb sync` — получение активности с сервера
+- **Статус:** `/htb status` — просмотр завершённых машин
+- Прогресс сохраняется локально и синхронизируется
+
+### G-10: Wireshark/PCAP анализ (`/pcap`) 🔍
+Анализ сетевых дампов для обучения сетевой форензике:
+- **Общий анализ:** `/pcap <file>` — статистика, протоколы, подозрительная активность
+- **Статистика:** `/pcap stats <file>` — топ IP-адресов, пакеты/сек
+- **DNS:** `/pcap dns <file>` — извлечение DNS запросов
+- **HTTP:** `/pcap http <file>` — HTTP запросы (GET, POST, etc.)
+- **Подозрительная активность:** `/pcap suspicious <file>` — порты атак, длинные DNS, пароли в clear text
+- **Поддержка:** scapy (полный анализ) или встроенный парсер (базовый)
+- **Цифра 75** в меню
+
+### KB-02: Реальный Docker в PWA 🐳
+Лаборатории теперь запускают реальные Docker-контейнеры через PWA:
+- **Проверка Docker:** `GET /api/docker/status` — проверка доступности Docker
+- **Запуск:** `POST /api/docker/{lab_id}/start` — запуск реального контейнера
+- **Остановка:** `POST /api/docker/{lab_id}/stop` — остановка контейнера
+- **Список:** `GET /api/docker/containers` — запущенные контейнеры CyberTeacher
+- **Fallback:** Если Docker недоступен, используется симуляция (старое поведение)
+- **Индикатор:** В PWA отображается статус Docker (🟢 доступно / 🔴 недоступно)
+- **Service Worker:** Обновлён до v7
+
+### L-09: Metasploit интеграция (`/msf`) 💀
+Интеграция с Metasploit Framework через RPC:
+- **Поиск:** `/msf search <keyword>` — поиск эксплойтов/модулей
+- **Информация:** `/msf info <module>` — детали модуля
+- **Опции:** `/msf options <module>` — настройки модуля
+- **Сессии:** `/msf sessions` — активные сессии
+- **Требования:** msfrpcd запущен, pymetasploit3 установлен
+- **Настройка:** MSF_HOST, MSF_PORT, MSF_PASSWORD в .env
+- **Цифра 76** в меню
+
 ---
 
 ## 🚀 Будущие возможности (Roadmap)
 
-Проект активно развивается. См. [docs/FUTURE_VISION.md](./docs/FUTURE_VISION.md) — 10 ключевых направлений для превращения в полноценную платформу:
+Проект активно развивается. См. [docs/IDEAS.md](./docs/IDEAS.md) — полный список идей и приоритетов:
 
-- **M-28** Learner Dashboard (личная аналитика)
-- **M-29** Path-based Adaptive Learning Tracks
-- **M-31** Bug Bounty Simulation
-- **M-32** Mobile Companion App (PWA)
-- **M-33** Advanced Analytics & AI Tutor ✅
-- **M-34** Voice Assistant (TTS/STT) ✅
-
-✅ Завершено: M-25 (HTB Integration), M-26 (Exploit Walkthroughs), **M-27 (PoC Verification)**, **M-30 (Real-time Hints)**, **M-33 (Advanced Analytics)**, **M-34 (Voice Assistant)**.
+✅ Завершено: PWA (9 вкладок, реальный Docker), Groq, REST API, 985 тестов, Versus, Code Review v3 (OWASP Top 10, SARIF, CI mode), TryHackMe, HackTheBox, PCAP, Metasploit.
 
 ---
 
@@ -457,35 +677,29 @@ python -m unittest tests.test_social tests.test_threat_summary tests.test_threat
 
 ---
 
-## 📊 План разработки
+## 📊 Статус проекта
 
-См. `docs/IMPLEMENTATION_PLAN.md` — полный план с приоритетами.
-
-**Выполнено (105 задач):**
-- Blocker: B-01..B-05 (интеграция state.py, циклические импорты, generators, Docker check, Docker exec validation)
-- Critical: C-01..C-14 (risk_level, social engineering, threat summary, APT досье, RAG, sandbox, adaptive, spaced repetition, summary, writeup, achievements, shop)
-- High: H-01..H-10, H-13..H-16 (ASCII network, RAM equipment, trace timer, story, missions, CVE, scanner, metrics, web UI, docs, мульти-провайдер, async)
-- Medium: M-01..M-34 (Docker Compose, OSINT, historical, exploits, shodan, malware, mermaid, investigations, voice, jupyter, video, news, timeloop, emotions, sync, и др.)
-- Low: L-01..L-17 (multimodality, skills, mindmap, logging, depth, docker-compose, i18n, incremental, code review, reputation, subscriptions, export, deployment, API, templates)
+**Выполнено:**
+- Blocker: B-01..B-05 (state.py, циклические импорты, generators, Docker)
+- Critical: C-01..C-14 (risk_level, social, threats, APT, RAG, sandbox, adaptive, spaced repetition, summary, writeup, achievements, shop)
+- High: H-01..H-16 (ASCII network, RAM, trace timer, story, missions, CVE, scanner, metrics, web UI, docs, мульти-провайдер, async)
+- Medium: M-01..M-35 (Docker Compose, OSINT, historical, exploits, shodan, malware, mermaid, investigations, voice, jupyter, video, news, timeloop, emotions, sync, **PWA**)
+- Low: L-01..L-17 (skills, logging, depth, docker-compose, i18n, incremental, code review, reputation, export, deployment, API, templates)
 - Infrastructure: Q-01..Q-08 (tests, CI/CD, lint, metrics, rate limit, backups, ADRs, pip-audit)
-- **Refactoring: REF-02** (модульная архитектура state.py, 10 модулей, обратная совместимость)
+- **Refactoring: REF-02..REF-15** (модульная архитектура, DI, Pydantic, services)
 
-**В работе (9 задач):**
-- REF-05: Устранить циклические импорты (Mode enum)
-- REF-06: Заменить `__getattr__` на явные property
-- REF-07: Pydantic для валидации состояния
-- REF-08: Вынести `check_achievements` в `services/`
-- REF-09: Валидация входных данных
-- REF-10: `.env` поддержка
-- REF-12: Конфигурация путей
-- REF-13: Объединить мелкие state модули
-- REF-04: Dependency Injection
+**Статистика:**
+- 1053 unit тестов, 8 skipped
+- `ruff check .` — All checks passed
+- 40+ REST API эндпоинтов
+- 18+ вкладок PWA (включая истории, риск-индикаторы, фракции)
+- 4 LLM провайдера (ollama, openrouter, huggingface, groq)
 
 ---
 
 ## 🤝 Вклад
 
-PR приветствуются! См. `docs/IMPLEMENTATION_PLAN.md` для задач.
+PR приветствуются! См. [docs/IDEAS.md](docs/IDEAS.md) для задач.
 
 ---
 
@@ -497,8 +711,6 @@ MIT
 
 ## 🔗 Полезные ссылки
 
-- [План реализации](docs/IMPLEMENTATION_PLAN.md)
-- [Аудит рефакторинга](docs/REFACTORING_AUDIT.md) — критика, проблемы, план улучшений
 - [Идеи и приоритеты](docs/IDEAS.md)
 - [Отслеживание проблем](docs/PROBLEMS.md)
 - [Гайд по VM](docs/ГАЙД_VM.md)
@@ -506,4 +718,4 @@ MIT
 
 ---
 
-**CyberTeacher v3.3** — учитесь кибербезопасности в интерактивном режиме! 🛡️💻
+**CyberTeacher v5.4** — учитесь кибербезопасности в интерактивном режиме! 🛡️💻

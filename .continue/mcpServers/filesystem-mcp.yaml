@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "M:/Cyber_Teacher/Cyber_Teacher"
+      ],
+      "env": {
+        "OS": "windows"
+      }
+    },
+    "cyberteacher-faiss": {
+      "command": "python",
+      "args": ["M:/Cyber_Teacher/Cyber_Teacher/mcp_server_faiss.py"],
+      "cwd": "M:/Cyber_Teacher/Cyber_Teacher",
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "cyberteacher-project": {
+      "command": "python",
+      "args": ["M:/Cyber_Teacher/Cyber_Teacher/mcp_server.py"],
+      "cwd": "M:/Cyber_Teacher/Cyber_Teacher",
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

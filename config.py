@@ -1,357 +1,510 @@
 """
-🔐 Конфигурация CyberTeacher
+Configuration and LLM provider management.
 """
 
-import logging
 import os
-import sys
+import logging
+from typing import Any, Dict, List, Optional, Type
 
 from dotenv import load_dotenv
+from pydantic import SecretStr
 
 load_dotenv()
-
-# === ПУТИ (можно переопределить через .env) ===
-PERSIST_DIR = os.getenv("PERSIST_DIR", "./embeddings")
-DB_FILE = os.getenv("DB_FILE", "./memory/chat_history.db")
-KNOWLEDGE_DIR = os.getenv("KNOWLEDGE_DIR", "./knowledge_base")
-METADATA_FILE = os.getenv("METADATA_FILE", "./embeddings/metadata.json")
-STATE_FILE = os.getenv("STATE_FILE", "./memory/app_state.json")
-ACHIEVEMENTS_FILE = os.getenv("ACHIEVEMENTS_FILE", "./data/achievements.json")
-LOG_FILE = os.getenv("LOG_FILE", "./cyberteacher.log")
-# === ЛОГИРОВАНИЕ ===
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler(LOG_FILE, encoding="utf-8"), logging.StreamHandler()],
-)
 logger = logging.getLogger(__name__)
 
-# === КОДИРОВКА ===
-if sys.platform == "win32":
-    os.environ["PYTHONIOENCODING"] = "utf-8"
-    os.environ["COLORTERM"] = "truecolor"
-
-# === LLM ПРОВАЙДЕР ===
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
-
-# === OLLAMA ===
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+# ---------- LLM Provider Configuration ----------
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").lower()
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "mistralai/mixtral-8x7b-instruct")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "mixtral-8x7b-32768")
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+HUGGINGFACE_MODEL = os.getenv("HUGGINGFACE_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
-MODEL_TEMPERATURE = float(os.getenv("MODEL_TEMPERATURE", "0.3"))
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+LMSTUDIO_BASE_URL = os.getenv("LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
+LMSTUDIO_MODEL = os.getenv("LMSTUDIO_MODEL", "local-model")
+TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2048"))
+PROVIDER_TIMEOUT = int(os.getenv("PROVIDER_TIMEOUT", "30"))
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
-# === OPENROUTER ===
-OPENROUTER_URL = os.getenv("OPENROUTER_URL", "https://openrouter.ai/api/v1")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
-# === HUGGINGFACE ===
-HF_MODEL = os.getenv("HF_MODEL", "mistralai/Mixtral-8x7B-Instruct-v0.1")
-HF_API_URL = os.getenv("HF_API_URL", "https://api-inference.huggingface.co/models")
-HF_TOKEN = os.getenv("HF_TOKEN", "")
+def reload_env() -> None:
+    """Reload LLM config from .env file (for dynamic provider/model switching).
 
-# Общее имя модели (логирование)
-MODEL_NAME = OLLAMA_MODEL if LLM_PROVIDER == "ollama" else OPENROUTER_MODEL
+    Called by LazyLoader.invalidate() so that provider/model changes from
+    the launcher or CLI take effect without restarting the process.
+    """
+    try:
+        from dotenv import dotenv_values
 
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+        env = dotenv_values()
+    except ImportError:
+        logger.warning("reload_env: dotenv_values failed, keeping current values")
+        return
 
-# === ОПТИМИЗАЦИЯ ===
-MAX_WORKERS = 8  # Уменьшили для снижения нагрузки
-CHUNK_SIZE = 600  # Оптимально для технической документации (было 300)
-CHUNK_OVERLAP = 50  # Сохраняем контекст между чанками (было 15)
+    key_map: dict[str, str] = {
+        "LLM_PROVIDER": "LLM_PROVIDER",
+        "OLLAMA_MODEL": "OLLAMA_MODEL",
+        "OLLAMA_URL": "OLLAMA_BASE_URL",
+        "LMSTUDIO_MODEL": "LMSTUDIO_MODEL",
+        "LMSTUDIO_BASE_URL": "LMSTUDIO_BASE_URL",
+        "GROQ_MODEL": "GROQ_MODEL",
+        "OPENROUTER_MODEL": "OPENROUTER_MODEL",
+        "OPENROUTER_BASE_URL": "OPENROUTER_BASE_URL",
+        "MODEL_TEMPERATURE": "TEMPERATURE",
+        "MAX_TOKENS": "MAX_TOKENS",
+        "PROVIDER_TIMEOUT": "PROVIDER_TIMEOUT",
+        "OLLAMA_BASE_URL": "OLLAMA_BASE_URL",
+    }
 
-# === ПЕДАГОГИКА ===
-SOCRATIC_ENABLED = True
-THINKING_ENABLED = True
+    globs = globals()
+    for env_key, cfg_key in key_map.items():
+        val = env.get(env_key)
+        if val is None or not val.strip():
+            continue
+        val = val.strip()
+        # Update os.environ so os.getenv() calls pick it up too
+        os.environ[env_key] = val
+        # Update module-level variable (with type casting)
+        if cfg_key in ("MAX_TOKENS", "PROVIDER_TIMEOUT"):
+            try:
+                globs[cfg_key] = int(val)
+            except (ValueError, TypeError):
+                pass
+        elif cfg_key == "TEMPERATURE":
+            try:
+                globs[cfg_key] = float(val)
+            except (ValueError, TypeError):
+                pass
+        elif cfg_key == "LLM_PROVIDER":
+            globs[cfg_key] = val.lower()
+        else:
+            globs[cfg_key] = val
 
-# === RERANKING ===
-RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-RERANK_TOP_K = 5  # Сколько лучших чанков возвращать после реранкинга
+    logger.debug("reload_env: config refreshed from .env")
 
-# === ГИБРИДНЫЙ ПОИСК (BM25) ===
+
+# Configurable fallback chain (comma-separated, e.g. "ollama,groq,openrouter,huggingface,mock")
+LLM_PROVIDERS_ENV = os.getenv("LLM_PROVIDERS", "")
+if LLM_PROVIDERS_ENV:
+    FALLBACK_ORDER = [
+        p.strip().lower() for p in LLM_PROVIDERS_ENV.split(",") if p.strip()
+    ]
+else:
+    FALLBACK_ORDER = ["ollama", "groq", "openrouter", "huggingface", "mock"]
+
+# Known models per provider (for validation and suggestions)
+PROVIDER_KNOWN_MODELS = {
+    "ollama": {
+        "description": "Локальные модели через Ollama",
+        "default": "qwen2.5:7b",
+        "suggested": [
+            "qwen2.5:7b",
+            "qwen2.5:14b",
+            "llama3.2:3b",
+            "llama3.2:1b",
+            "mistral:7b",
+            "codellama:7b",
+        ],
+        "docs_url": "https://ollama.com/library",
+    },
+    "groq": {
+        "description": "Облачные модели Groq (бесплатно, быстро)",
+        "default": "mixtral-8x7b-32768",
+        "suggested": [
+            "mixtral-8x7b-32768",
+            "llama-3.1-8b-instant",
+            "llama-3.3-70b-versatile",
+            "gemma2-9b-it",
+            "deepseek-coder-6.7b-instruct",
+        ],
+        "docs_url": "https://console.groq.com/docs/models",
+    },
+    "openrouter": {
+        "description": "Маршрутизатор 100+ моделей (OpenRouter)",
+        "default": "mistralai/mixtral-8x7b-instruct",
+        "suggested": [
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "qwen/qwen-2.5-72b-instruct",
+            "google/gemma-3-27b-it:free",
+            "mistralai/mixtral-8x7b-instruct",
+            "deepseek/deepseek-r1:free",
+        ],
+        "docs_url": "https://openrouter.ai/models",
+    },
+    "huggingface": {
+        "description": "HuggingFace Inference API",
+        "default": "mistralai/Mistral-7B-Instruct-v0.2",
+        "suggested": [
+            "mistralai/Mistral-7B-Instruct-v0.2",
+            "mistralai/Mixtral-8x7B-Instruct-v0.1",
+            "meta-llama/Llama-2-70b-chat-hf",
+        ],
+        "docs_url": "https://huggingface.co/models",
+    },
+    "mock": {
+        "description": "Оффлайн-режим (заглушка, без AI)",
+        "default": "mock-llm",
+        "suggested": ["mock-llm"],
+        "docs_url": "",
+    },
+    "lmstudio": {
+        "description": "Локальная модель через LM Studio (OpenAI-совместимый API)",
+        "default": "local-model",
+        "suggested": ["local-model"],
+        "docs_url": "",
+    },
+}
+
+# ---------- RAG / Knowledge Base Configuration ----------
+KNOWLEDGE_DIR = os.getenv("KNOWLEDGE_DIR", "./knowledge_base")
+DOCS_DIR = os.getenv("DOCS_DIR", "./docs")
+PERSIST_DIR = os.getenv("PERSIST_DIR", "./embeddings")
+METADATA_FILE = os.getenv("METADATA_FILE", "./embeddings/metadata.json")
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "512"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "2"))
+RERANKER = os.getenv("RERANKER", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+RERANK_TOP_K = int(os.getenv("RERANK_TOP_K", "5"))
 BM25_ENABLED = os.getenv("BM25_ENABLED", "true").lower() == "true"
-BM25_K = int(os.getenv("BM25_K", "20"))
-
-# === ЛИМИТЫ LLM ===
-MAX_TOKENS = 2000  # Максимальное количество токенов в ответе LLM
-
-# === КЭШИРОВАНИЕ ===
-RESPONSE_CACHE_SIZE = 100  # LRU кэш для ответов LLM
-RESPONSE_CACHE_FILE = "./memory/response_cache.json"  # Персистентный кэш
+BM25_K = int(os.getenv("BM25_K", "2"))
 
 
-# === LAZY LOADING (Оптимизация) ===
+# ---------- Security & Logging ----------
+def sanitize_log(text: str) -> str:
+    """Remove sensitive information from logs."""
+    # Простейшая заглушка
+    return text
+
+
+# ---------- Other Configuration ----------
+NUMERIC_MENU: Dict[str, str] = {
+    "0": "exit",
+    "1": "teacher",
+    "2": "expert",
+    "3": "ctf",
+    "4": "quiz",
+    "5": "review",
+    "6": "news",
+    "7": "achievements",
+    "8": "stats",
+    "9": "help",
+    "10": "help detail",
+    "11": "guide",
+    "12": "version",
+    "13": "menu",
+    "14": "practice",
+    "15": "htb",
+    "16": "walkthrough",
+    "17": "exploit",
+    "18": "lab",
+    "19": "courses",
+    "20": "tracks",
+    "21": "story",
+    "22": "task",
+    "23": "genassignment",
+    "24": "adaptive",
+    "25": "provider",
+    "26": "model",
+    "27": "terminal",
+    "28": "cache stats",
+    "29": "clearcache",
+    "30": "check",
+    "31": "history",
+    "32": "writeup",
+    "33": "add_book",
+    "34": "social",
+    "35": "repeat",
+    "36": "summary",
+    "37": "auto_writeup",
+    "38": "flag",
+    "39": "log",
+    "40": "set-api-key",
+    "41": "smart_test",
+    "42": "read_url",
+    "43": "threats",
+    "44": "groups",
+    "45": "threat summary",
+    "46": "cve",
+    "47": "news search",
+    "48": "sandbox",
+    "49": "hint",
+    "50": "dashboard",
+    "51": "bounty",
+    "52": "analytics",
+    "53": "voice",
+    "54": "export",
+    "55": "usage",
+    "56": "config",
+    "57": "theme",
+    "58": "lang",
+    "59": "features",
+    "60": "summarize",
+    "61": "phishing",
+    "62": "mermaid",
+    "63": "skills",
+    "64": "reputation",
+    "65": "depth",
+    "66": "fixcode",
+    "67": "templates",
+    "68": "emotions",
+    "69": "dockergen",
+    "70": "ctf",
+    "71": "profile",
+    "72": "daily",
+}
+THINKING_ENABLED = True
+SOCRATIC_ENABLED = True
+
+# Пути к файлам
+ACHIEVEMENTS_FILE = os.getenv("ACHIEVEMENTS_FILE", "./data/achievements.json")
+SHOP_ITEMS_FILE = os.getenv("SHOP_ITEMS_FILE", "./data/shop_items.json")
+
+# Прочие переменные, на которые ругался mypy
+HF_MODEL = HUGGINGFACE_MODEL
+HF_TOKEN = HUGGINGFACE_API_KEY
+LLM: Any = None  # будет установлен через LazyLoader
+
+
+def _get_secret(key: Optional[str]) -> Optional[SecretStr]:
+    """Convert plain string key to SecretStr."""
+    if key is None:
+        return None
+    return SecretStr(key)
+
+
+def get_llm() -> Optional[Any]:
+    """Initialize and return the configured LLM based on provider."""
+    if LLM_PROVIDER == "openrouter":
+        if not OPENROUTER_API_KEY:
+            logger.warning("OpenRouter API key missing")
+            return None
+        try:
+            from langchain_openai import ChatOpenAI
+        except ImportError:
+            logger.error("langchain-openai not installed")
+            return None
+        return ChatOpenAI(  # type: ignore[call-arg]
+            api_key=_get_secret(OPENROUTER_API_KEY),
+            model=OPENROUTER_MODEL,
+            temperature=TEMPERATURE,
+            max_tokens=MAX_TOKENS,
+            base_url=OPENROUTER_BASE_URL,
+        )
+    elif LLM_PROVIDER == "groq":
+        if not GROQ_API_KEY:
+            logger.warning("Groq API key missing")
+            return None
+        try:
+            from langchain_groq import ChatGroq
+        except ImportError:
+            logger.error("langchain-groq not installed")
+            return None
+        return ChatGroq(
+            api_key=_get_secret(GROQ_API_KEY),
+            model=GROQ_MODEL,
+            temperature=TEMPERATURE,
+            max_tokens=MAX_TOKENS,
+        )
+    elif LLM_PROVIDER == "huggingface":
+        if not HUGGINGFACE_API_KEY:
+            logger.warning("HuggingFace API key missing")
+            return None
+        try:
+            from langchain_community.llms import HuggingFaceEndpoint
+        except ImportError:
+            logger.error("langchain-community not installed")
+            return None
+        return HuggingFaceEndpoint(
+            endpoint_url=f"https://api-inference.huggingface.co/models/{HUGGINGFACE_MODEL}",
+            huggingfacehub_api_token=_get_secret(HUGGINGFACE_API_KEY),
+            task="text-generation",
+            temperature=TEMPERATURE,
+            max_new_tokens=MAX_TOKENS,
+        )
+    elif LLM_PROVIDER == "ollama":
+        try:
+            from langchain_ollama import OllamaLLM
+        except ImportError:
+            logger.error("langchain-ollama not installed")
+            return None
+        return OllamaLLM(
+            model=OLLAMA_MODEL,
+            base_url=OLLAMA_BASE_URL,
+            temperature=TEMPERATURE,
+            num_predict=MAX_TOKENS,
+        )
+    elif LLM_PROVIDER == "lmstudio":
+        try:
+            from langchain_openai import ChatOpenAI
+        except ImportError:
+            logger.error("langchain-openai not installed (needed for LM Studio)")
+            return None
+        return ChatOpenAI(  # type: ignore[call-arg]
+            api_key=_get_secret("not-needed"),
+            model=LMSTUDIO_MODEL,
+            temperature=TEMPERATURE,
+            max_tokens=MAX_TOKENS,
+            base_url=LMSTUDIO_BASE_URL,
+        )
+    elif LLM_PROVIDER == "mock":
+        try:
+            from mock_llm import MockLLM
+
+            return MockLLM()
+        except ImportError:
+            logger.error("mock_llm.py not found")
+            return None
+    else:
+        logger.error(f"Unknown LLM provider: {LLM_PROVIDER}")
+        return None
+
+
+def _get_fallback_llms() -> list:
+    """Create LLM instances for available providers (excluding current primary)."""
+    fallbacks = []
+    original_provider = LLM_PROVIDER
+    for provider in FALLBACK_ORDER:
+        if provider == original_provider:
+            continue
+        try:
+            import config as _cfg
+
+            _cfg.LLM_PROVIDER = provider
+            llm = get_llm()
+            if llm is not None:
+                fallbacks.append(llm)
+        except (ImportError, ValueError, RuntimeError):
+            pass
+    # Restore original provider
+    import config as _cfg
+
+    _cfg.LLM_PROVIDER = original_provider
+    return fallbacks
+
+
 class LazyLoader:
-    """Ленивая загрузка моделей - загружаются только при первом использовании"""
+    """Lazy loader for LLM, embeddings, reranker to avoid import delays."""
 
-    _llm = None
-    _embeddings = None
-    _embedding_model = None
-    _reranker = None
+    _llm: Optional[Any] = None
+    _embeddings: Optional[Any] = None
+    _reranker: Optional[Any] = None
 
     @classmethod
-    def get_llm(cls):
+    def get_llm(cls) -> Optional[Any]:
         if cls._llm is None:
-            import logging
+            primary = get_llm()
+            fallbacks = _get_fallback_llms()
 
-            logging.getLogger(__name__).info(
-                f"🔐 Загрузка модели LLM ({LLM_PROVIDER})..."
-            )
+            # Build ResilientLLM with primary + fallbacks
+            # If primary is None, use MockLLM as primary
+            if primary is None and not fallbacks:
+                try:
+                    from mock_llm import MockLLM
 
-            if LLM_PROVIDER == "ollama":
-                from langchain_community.chat_models import ChatOllama
+                    cls._llm = MockLLM()
+                    logger.info(
+                        "No LLM providers available — using MockLLM (offline mode)"
+                    )
+                except ImportError:
+                    logger.error("No LLM providers and MockLLM not available")
+                    return None
+            elif primary is not None:
+                try:
+                    from resilient_llm import ResilientLLM
 
-                cls._llm = ChatOllama(
-                    model=OLLAMA_MODEL,
-                    temperature=MODEL_TEMPERATURE,
-                    base_url=OLLAMA_URL,
-                    num_predict=MAX_TOKENS,
-                )
-            elif LLM_PROVIDER == "openrouter":
-                from langchain_openai import ChatOpenAI
+                    # Always add MockLLM as last fallback if not already in chain
+                    has_mock = any(
+                        getattr(f, "model", "") == "mock-llm" for f in fallbacks
+                    )
+                    if not has_mock:
+                        try:
+                            from mock_llm import MockLLM
 
-                if not OPENROUTER_API_KEY:
-                    raise ValueError("OPENROUTER_API_KEY не установлен в .env")
-                cls._llm = ChatOpenAI(
-                    model=OPENROUTER_MODEL,
-                    temperature=MODEL_TEMPERATURE,
-                    base_url=OPENROUTER_URL,
-                    api_key=OPENROUTER_API_KEY,
-                    max_tokens=MAX_TOKENS,
-                )
-            elif LLM_PROVIDER == "huggingface":
-                from langchain_huggingface import HuggingFaceEndpoint
-
-                if not HF_TOKEN:
-                    raise ValueError("HF_TOKEN не установлен в .env")
-                cls._llm = HuggingFaceEndpoint(
-                    repo_id=HF_MODEL,
-                    huggingfacehub_api_token=HF_TOKEN,
-                    max_new_tokens=MAX_TOKENS,
-                    temperature=MODEL_TEMPERATURE,
-                )
+                            fallbacks.append(MockLLM())
+                        except ImportError:
+                            pass
+                    cls._llm = ResilientLLM(primary=primary, fallbacks=fallbacks)
+                    logger.info(
+                        f"ResilientLLM: primary={LLM_PROVIDER}, "
+                        f"fallbacks={[getattr(f, 'model', '?') for f in fallbacks]}"
+                    )
+                except ImportError:
+                    cls._llm = primary
+                    logger.warning("resilient_llm not available, using single provider")
             else:
-                raise ValueError(f"Неизвестный LLM_PROVIDER: {LLM_PROVIDER}")
+                # Primary is None but fallbacks exist
+                if fallbacks:
+                    cls._llm = fallbacks[0]
+                else:
+                    try:
+                        from mock_llm import MockLLM
 
-            logging.getLogger(__name__).info(f"🔐 LLM загружена ({LLM_PROVIDER}).")
+                        cls._llm = MockLLM()
+                    except ImportError:
+                        return None
+
+            global LLM
+            LLM = cls._llm
         return cls._llm
 
     @classmethod
-    def get_embeddings(cls):
+    def invalidate(cls) -> None:
+        """Invalidate cached LLM (for provider switching or failure recovery).
+        Also reloads .env so launcher/CLI changes take effect immediately.
+        """
+        reload_env()
+        cls._llm = None
+        global LLM
+        LLM = None
+
+    @classmethod
+    def get_embeddings(cls) -> Optional[Any]:
         if cls._embeddings is None:
-            import logging
+            try:
+                from langchain_huggingface import HuggingFaceEmbeddings
 
-            logging.getLogger(__name__).info("🔐 Загрузка модели эмбеддингов...")
-            import torch
-            from langchain_huggingface import HuggingFaceEmbeddings
-
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            logging.getLogger(__name__).info(f"🔐 Используется устройство: {device}")
-
-            cls._embeddings = HuggingFaceEmbeddings(
-                model_name=EMBEDDING_MODEL, model_kwargs={"device": device}
-            )
-            logging.getLogger(__name__).info("🔐 Эмбеддинги загружены.")
+                cls._embeddings = HuggingFaceEmbeddings(
+                    model_name="intfloat/multilingual-e5-small",
+                    model_kwargs={"device": "cpu"},
+                )
+            except ImportError:
+                logger.warning(
+                    "sentence-transformers not installed, embeddings disabled"
+                )
+                cls._embeddings = None
         return cls._embeddings
 
     @classmethod
-    def get_reranker(cls):
-        if cls._reranker is None:
-            import logging
+    def get_reranker(cls) -> Optional[Any]:
+        if cls._reranker is None and RERANKER:
+            try:
+                from sentence_transformers import CrossEncoder
 
-            logging.getLogger(__name__).info("🔐 Загрузка модели реранкера...")
-            import torch
-            from sentence_transformers import CrossEncoder
-
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            logging.getLogger(__name__).info(f"🔐 Используется устройство: {device}")
-
-            cls._reranker = CrossEncoder(RERANKER_MODEL, device=device, max_length=512)
-            logging.getLogger(__name__).info("🔐 Реранкер загружен.")
+                cls._reranker = CrossEncoder(RERANKER)
+            except ImportError:
+                logger.warning("sentence-transformers not installed, reranker disabled")
+                cls._reranker = None
         return cls._reranker
 
 
-# === ПРОСТЫЕ ДОСТУПЫ ДЛЯ СОВМЕСТИМОСТИ ===
-LLM = LazyLoader()
-EMBEDDINGS = LazyLoader()
-RERANKER = LazyLoader()
+# Для обратной совместимости (функция, чтобы всегда отдавать актуальное значение)
+def get_model_name() -> str:
+    if LLM_PROVIDER == "ollama":
+        return OLLAMA_MODEL
+    elif LLM_PROVIDER == "groq":
+        return GROQ_MODEL
+    elif LLM_PROVIDER == "lmstudio":
+        return LMSTUDIO_MODEL
+    elif LLM_PROVIDER == "huggingface":
+        return HUGGINGFACE_MODEL
+    elif LLM_PROVIDER == "openrouter":
+        return OPENROUTER_MODEL
+    elif LLM_PROVIDER == "mock":
+        return "mock-llm"
+    return OLLAMA_MODEL
 
 
-# === ПРОВЕРКА ПУТЕЙ ===
-def check_paths():
-    for path in [PERSIST_DIR, DB_FILE, KNOWLEDGE_DIR, METADATA_FILE]:
-        if not os.path.exists(path):
-            logging.warning(f"Путь {path} не существует.")
-
-    # Создаём директории если нет
-    os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
-    os.makedirs(PERSIST_DIR, exist_ok=True)
-    os.makedirs(KNOWLEDGE_DIR, exist_ok=True)
-    os.makedirs("./data", exist_ok=True)
-
-
-check_paths()
-
-# === САНИТИЗАЦИЯ ЛОГОВ ===
-import re
-
-
-def sanitize_log(text: str) -> str:
-    """Удалить чувствительные данные из текста перед логированием"""
-    if not text:
-        return text
-
-    # Паттерны для чувствительных данных
-    patterns = [
-        (r'password\s*=\s*[\'"][^\'"]+[\'"]', "password=***"),
-        (r'passwd\s*=\s*[\'"][^\'"]+[\'"]', "passwd=***"),
-        (r'api[_-]?key\s*=\s*[\'"][^\'"]+[\'"]', "api_key=***"),
-        (r'secret\s*=\s*[\'"][^\'"]+[\'"]', "secret=***"),
-        (r'token\s*=\s*[\'"][^\'"]+[\'"]', "token=***"),
-        (r'bearer\s+[\'"][^\'"]+[\'"]', "bearer ***"),
-        (r'authorization:\s*[\'"]?[^\s"\']+[\'"]?', "Authorization: ***"),
-        (r'--password\s+[\'"]?[^\s"\']+[\'"]?', "--password ***"),
-        (r'-p\s+[\'"]?[^\s"\']+[\'"]?', "-p ***"),
-    ]
-
-    sanitized = text
-    for pattern, replacement in patterns:
-        sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
-
-    return sanitized
-
-
-# ===ЦИФРОВОЕ МЕНЮ (цифра -> команда без /)===
-# Только команды без параметров или с интерактивными параметрами
-NUMERIC_MENU = {
-    # Выход
-    "0": "exit",
-    # Режимы (1-5)
-    "1": "teacher",  # Учитель
-    "2": "expert",  # Эксперт
-    "3": "ctf",  # CTF режим
-    "4": "quiz",  # Викторина
-    "5": "review",  # Анализ кода
-    # Информация & справка (6-13)
-    "6": "news",  # Новости
-    "7": "achievements",  # Достижения
-    "8": "stats",  # Статистика
-    "9": "help",  # Справка
-    "10": "help detail",  # Подробная справка
-    "11": "guide",  # Гайд по VM
-    "12": "version",  # Версия приложения
-    "13": "menu",  # Показать меню
-    # Практика & курсы (14-24) - расширено
-    "14": "practice",  # Практика (CTF/HTB)
-    "15": "htb",  # HackTheBox интеграция
-    "16": "walkthrough",  # Пошаговый разбор эксплойта
-    "17": "exploit",  # Поиск эксплойтов
-    "18": "lab",  # Docker лаборатории
-    "19": "courses",  # Учебные курсы
-    "20": "tracks",  # Учебные траектории
-    "21": "story",  # Режим истории
-    "22": "task",  # Задание
-    "23": "genassignment",  # Генератор заданий
-    "24": "adaptive",  # Адаптивные слабые темы
-    # Управление (25-34)
-    "25": "provider",  # Показать провайдера
-    "26": "model",  # Показать модель
-    "27": "terminal",  # Лог терминала
-    "28": "cache stats",  # Статистика кэша
-    "29": "clearcache",  # Очистить кэш
-    "30": "check",  # Проверить контейнеры
-    "31": "history",  # История чата
-    "32": "writeup",  # Шаблон writeup
-    "33": "add_book",  # Добавить книгу (интерактивно)
-    "34": "social",  # Social engineering trainer
-    # Разное (35-51)
-    "35": "repeat",  # Интервальные повторения
-    "36": "summary",  # Генерация конспекта
-    "37": "auto_writeup",  # Автоматический writeup
-    "38": "flag",  # Проверить флаг (нужен аргумент)
-    "39": "log",  # Записать лог
-    "40": "set-api-key",  # Установить API ключ
-    "41": "smart_test",  # Умный тест (без URL)
-    "42": "read_url",  # Чтение URL
-    "43": "threats",  # Угрозы
-    "44": "groups",  # Группы APT
-    "45": "threat summary",  # Сводка угроз
-    "46": "cve",  # CVE информация
-    "47": "news search",  # Search
-    "48": "sandbox",  # Песочница для кода
-    "49": "hint",  # Подсказки в реальном времени
-    "50": "dashboard",  # Личный дашборд
-    "51": "bounty",  # Bug Bounty симуляция
-    "52": "analytics",  # Продвинутая аналитика и AI рекомендации
-    "53": "voice",  # Голосовой помощник (TTS/STT) (M-34)
-    "54": "export",  # Экспорт истории чата (M-30)
-    "55": "usage",  # Статистика использования команд (M-31)
-    "56": "config",  # Интерактивный мастер настройки (M-28)
-    "57": "theme",  # Смена цветовой схемы (M-29)
-    "58": "lang",  # Язык интерфейса (i18n)
-    "59": "features",  # Управление модулями (M-32)
-    "60": "summarize",  # Суммаризация истории (M-22)
-    "61": "phishing",  # Конструктор фишинговых писем (M-04)
-    "62": "mermaid",  # Mermaid-инфографика (M-09)
-    "63": "skills",  # Трекер практических навыков (L-02)
-    "64": "reputation",  # Репутация и хэндлы (L-10)
-    "65": "depth",  # Глубина объяснений (L-05)
-    "66": "fixcode",  # Генерация безопасного кода (L-09)
-    "67": "templates",  # YAML шаблоны заданий (L-17)
-    "68": "emotions",  # Эмоции учителя (M-19)
-    "69": "dockergen",  # Генерация docker-compose (L-06)
-    "70": "ctf",  # Динамические CTF-флаги (G-03)
-    "71": "profile",  # Профиль пользователя (G-09)
-    "72": "daily",  # Ежедневный челлендж со стриком
-}
-
-
-def get_llm():
-    """Получить экземпляр LLM (ленивая загрузка)."""
-    llm = LazyLoader.get_llm()
-    if llm is None:
-        return None
-    return InstrumentedLLM(llm)
-
-
-class InstrumentedLLM:
-    """Wrapper around LLM to record usage metrics."""
-
-    def __init__(self, llm):
-        self._llm = llm
-
-    def invoke(self, prompt, **kwargs):
-        from time import perf_counter
-
-        from state import get_state
-
-        start = perf_counter()
-        result = self._llm.invoke(prompt, **kwargs)
-        duration = perf_counter() - start
-        tokens = None
-        try:
-            if hasattr(result, "usage_metadata"):
-                meta = result.usage_metadata
-                if isinstance(meta, dict):
-                    tokens = meta.get("total_tokens")
-                else:
-                    tokens = (
-                        meta.total_tokens if hasattr(meta, "total_tokens") else None
-                    )
-            elif hasattr(result, "response_metadata"):
-                meta = result.response_metadata
-                if isinstance(meta, dict):
-                    tokens = meta.get("token_usage", {}).get("total_tokens")
-        except Exception:
-            tokens = None
-        state = get_state()
-        state.llm_call_count += 1
-        state.llm_total_time += duration
-        if tokens is not None:
-            state.llm_total_tokens += tokens
-        return result
-
-    def __getattr__(self, name):
-        return getattr(self._llm, name)
-
-    def __call__(self, *args, **kwargs):
-        return self.invoke(*args, **kwargs)
+MODEL_NAME = get_model_name()

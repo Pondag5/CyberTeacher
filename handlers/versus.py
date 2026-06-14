@@ -10,6 +10,8 @@ from rich.panel import Panel
 
 from di import get_context
 from ui import console
+from handlers.types import HandlerResult
+
 
 # Сценарии дуэли
 VERSUS_SCENARIOS = {
@@ -88,7 +90,7 @@ VERSUS_SCENARIOS = {
 }
 
 
-def handle_versus(args: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_versus(args: str) -> HandlerResult:
     """Главный обработчик команды /versus."""
     ctx = get_context()
     state = ctx.state
@@ -133,7 +135,7 @@ def handle_versus(args: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _show_versus_help():
+def _show_versus_help() -> None:
     """Показать справку по /versus."""
     console.print(Panel(
         "[bold]🥊 LLM-Соперник (/versus)[/bold]\n\n"
@@ -149,7 +151,7 @@ def _show_versus_help():
     ))
 
 
-def _show_versus_list():
+def _show_versus_list() -> None:
     """Показать список сценариев."""
     lines = []
     for sid, scenario in VERSUS_SCENARIOS.items():
@@ -164,7 +166,7 @@ def _show_versus_list():
     ))
 
 
-def _start_versus(scenario_id: str):
+def _start_versus(scenario_id: str) -> None:
     """Начать дуэль."""
     ctx = get_context()
     state = ctx.state
@@ -184,7 +186,7 @@ def _start_versus(scenario_id: str):
     ))
 
 
-def _show_versus_status():
+def _show_versus_status() -> None:
     """Показать статус дуэли."""
     ctx = get_context()
     state = ctx.state
@@ -222,7 +224,7 @@ def get_versus_system_prompt() -> str | None:
     return VERSUS_SCENARIOS[scenario_id]["system_prompt"]
 
 
-def increment_versus_attempts():
+def increment_versus_attempts() -> None:
     """Увеличить счётчик попыток дуэли."""
     ctx = get_context()
     state = ctx.state

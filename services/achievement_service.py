@@ -37,8 +37,9 @@ def load_achievements() -> list[dict[str, Any]]:
         return []
     try:
         with open(ACHIEVEMENTS_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data.get("achievements", [])
+            data: dict[str, Any] = json.load(f)
+        result: list[dict[str, Any]] = data.get("achievements", [])
+        return result
     except Exception as e:
         logger.error(f"Ошибка загрузки достижений: {e}")
         return []
@@ -63,7 +64,8 @@ def check_achievement(
         return False
 
     current_value = state_getter(attr_name)
-    return current_value >= threshold
+    result: bool = current_value >= threshold
+    return result
 
 
 def check_achievements(

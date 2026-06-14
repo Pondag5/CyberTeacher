@@ -18,7 +18,7 @@ class TestInvestigation(unittest.TestCase):
     def test_display_cases(self):
         """Отображение списка кейсов."""
         with patch("handlers.investigation.console.print"):
-            result, action_taken = handle_investigation("")
+            _, result, _, action_taken = handle_investigation("")
             self.assertTrue(action_taken)
 
     def test_start_valid_case(self):
@@ -101,13 +101,13 @@ class TestInvestigation(unittest.TestCase):
     def test_help_command(self):
         """Вызов справки /investigation help."""
         with patch("handlers.investigation.console.print"):
-            result, action_taken = handle_investigation("help")
+            _, result, _, action_taken = handle_investigation("help")
             self.assertTrue(action_taken)
 
     def test_unknown_subcommand(self):
         """Неизвестная подкоманда."""
         with patch("handlers.investigation.console.print"):
-            result, action_taken = handle_investigation("unknown")
+            _, result, _, action_taken = handle_investigation("unknown")
             self.assertTrue(action_taken)
 
     def test_cases_structure(self):

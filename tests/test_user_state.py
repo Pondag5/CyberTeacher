@@ -1,4 +1,4 @@
-﻿"""
+"""
 Tests for user_state module.
 """
 
@@ -11,7 +11,6 @@ from utils.security import encrypt_value
 
 
 class TestUserState(unittest.TestCase):
-
     def setUp(self):
         self.state = UserState()
 
@@ -50,6 +49,7 @@ class TestUserState(unittest.TestCase):
         self.state.reputation = 350
         self.assertEqual(self.state.get_handle(), "Пентестер")
 
+    @patch.dict("os.environ", {"CYBERTEACHER_ENC_KEY": "test_fixed_key_12345"})
     def test_htb_password_encryption(self):
         """Test HTB password encryption/decryption."""
         test_password = "my_secret_password"
@@ -74,7 +74,7 @@ class TestUserState(unittest.TestCase):
         new_state.set_htb_password_from_encrypted(None)
         self.assertIsNone(new_state.htb_password)
 
-    @patch('models.metrics_state.time.time')
+    @patch("models.metrics_state.time.time")
     def test_rate_limiting(self, mock_time):
         """Test rate limiting functionality."""
         state = MetricsState()
@@ -96,5 +96,5 @@ class TestUserState(unittest.TestCase):
         self.assertTrue(state.can_make_request())  # Old requests expired
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

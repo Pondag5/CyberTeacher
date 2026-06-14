@@ -13,7 +13,6 @@ from models.shop_state import ShopState
 from models.state_models import AppStateModel
 from models.user_profile_state import UserProfileState
 from models.user_state import UserState
-from models.voice_state import VoiceState
 
 __all__ = [
     "AchievementsState",
@@ -29,5 +28,4 @@ __all__ = [
     "ShopState",
     "UserProfileState",
     "UserState",
-    "VoiceState",
 ]

@@ -4,13 +4,15 @@ import json
 import os
 import re
 import time
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
 
 from config import get_llm
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
@@ -59,7 +61,7 @@ DEFAULT_PATTERNS = [
 ]
 
 
-def _load_patterns() -> list[dict]:
+def _load_patterns() -> List[Dict[str, Any]]:
     """Load hint patterns from hints/patterns.json or use defaults."""
     patterns_path = os.path.join("hints", "patterns.json")
     if os.path.exists(patterns_path):
@@ -68,12 +70,19 @@ def _load_patterns() -> list[dict]:
                 data = json.load(f)
                 if isinstance(data, list):
                     return data
-        except Exception:
+        except (OSError, IOError, json.JSONDecodeError):
             pass
     return DEFAULT_PATTERNS
 
 
-def generate_contextual_hint(user_input: str, context: dict[str, Any]) -> str | None:
+def _debts_block_hints() -> bool:
+    """Проверить, не блокируют ли долги подсказки."""
+    from handlers.debt import DEBT_HINTS_BLOCKED, get_debts
+
+    return get_debts()["total"] >= DEBT_HINTS_BLOCKED
+
+
+def generate_contextual_hint(user_input: str, context: Dict[str, Any]) -> Optional[str]:
     """Generate a hint based on user input patterns.
 
     Args:
@@ -85,6 +94,8 @@ def generate_contextual_hint(user_input: str, context: dict[str, Any]) -> str | 
     """
     ctx = get_context()
     state = ctx.state
+    if _debts_block_hints():
+        return None
     patterns = _load_patterns()
 
     # Convert to lowercase for matching (but keep case in regex where needed)
@@ -93,7 +104,7 @@ def generate_contextual_hint(user_input: str, context: dict[str, Any]) -> str | 
     for p in patterns:
         try:
             if re.search(p["regex"], user_input, re.IGNORECASE):
-                return p["hint"]
+                return str(p["hint"])
         except re.error:
             continue
 
@@ -103,7 +114,7 @@ def generate_contextual_hint(user_input: str, context: dict[str, Any]) -> str | 
     return None
 
 
-def handle_hint(action: str) -> tuple[bool, None, None, bool]:
+def handle_hint(action: str) -> HandlerResult:
     """Handle /hint commands.
 
     Commands:
@@ -143,6 +154,8 @@ def handle_hint(action: str) -> tuple[bool, None, None, bool]:
         return True, None, None, True
 
     elif subcmd in ("status", "stats", "статус"):
+        debts_blocked = _debts_block_hints()
+        debt_status = "🚨 БЛОКИРУЮТ" if debts_blocked else "✅ ОК"
         console.print(
             Panel(
                 f"""[bold]📊 Статистика подсказок[/bold]
@@ -152,6 +165,7 @@ def handle_hint(action: str) -> tuple[bool, None, None, bool]:
 Использовано: {state.hints_used}
 Лимит на сессию: 3
 Кулдаун: {state.hint_cooldown} сек
+Долги: {debt_status}
 Последняя подсказка: {time.strftime("%H:%M:%S", time.localtime(state.last_hint_time)) if state.last_hint_time > 0 else "ещё не было"}
 """,
                 title="Hints",
@@ -161,13 +175,23 @@ def handle_hint(action: str) -> tuple[bool, None, None, bool]:
         return True, None, None, True
 
     elif subcmd in ("get", "взять"):
-        # Manual hint request
+        # Check debt block
+        if _debts_block_hints():
+            console.print(
+                "[red]🚨 Долги блокируют подсказки. /debts чтобы увидеть.[/red]"
+            )
+            return True, None, None, True
+
         if state.hint_credits <= 0:
             console.print("[red]❌ Нет доступных кредитов[/red]")
             return True, None, None, True
 
-        if time.time() - state.last_hint_time < state.hint_cooldown:
-            remaining = state.hint_cooldown - (time.time() - state.last_hint_time)
+        if time.time() - getattr(state, "last_hint_time", 0) < getattr(
+            state, "hint_cooldown", 30
+        ):
+            remaining = getattr(state, "hint_cooldown", 30) - (
+                time.time() - getattr(state, "last_hint_time", 0)
+            )
             console.print(
                 f"[yellow]⏳ Подождите {remaining:.0f} сек перед следующей подсказкой[/yellow]"
             )

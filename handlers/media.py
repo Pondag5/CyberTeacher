@@ -15,6 +15,8 @@ from rich.table import Table
 
 from di import get_context
 from ui import console
+from handlers.types import HandlerResult
+
 
 MEDIA_RESOURCES: dict[str, dict[str, Any]] = {
     "yt_sql_injection": {
@@ -134,22 +136,22 @@ def _show_notes(resource_id: str) -> bool:
     return True
 
 
-def handle_media(args: str) -> tuple[str, bool]:
+def handle_media(args: str) -> HandlerResult:
     """Главный обработчик команды /media."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":
         _display_media()
-        return "", True
+        return True, None, None, True
 
     subcommand = parts[0].lower()
     query = parts[1] if len(parts) > 1 else ""
 
     if subcommand == "play" and query:
         success = _play_resource(query)
-        return "", success
+        return True, None, None, success
     elif subcommand == "notes" and query:
         success = _show_notes(query)
-        return "", success
+        return True, None, None, success
     elif subcommand == "help":
         console.print(Panel(
             "[bold]Команды медиа-плеера:[/bold]\n"
@@ -158,8 +160,8 @@ def handle_media(args: str) -> tuple[str, bool]:
             "/media notes <id>      — Только конспект",
             border_style="yellow",
         ))
-        return "", True
+        return True, None, None, True
     else:
         console.print(f"[red]Неизвестная подкоманда: {subcommand}[/red]")
         _display_media()
-        return "", True
+        return True, None, None, True

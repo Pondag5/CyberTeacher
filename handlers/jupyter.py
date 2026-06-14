@@ -16,15 +16,25 @@ from rich.table import Table
 
 from di import get_context
 from ui import console
+from handlers.types import HandlerResult
+
 
 NOTEBOOK_TEMPLATES: dict[str, dict[str, Any]] = {
     "crypto_basics": {
         "title": "Основы криптографии",
         "description": "Шифрование/дешифрование Caesar, XOR, Base64.",
         "cells": [
-            {"id": 1, "code": "def caesar_encrypt(text, shift): ...", "output": "Функция определена"},
+            {
+                "id": 1,
+                "code": "def caesar_encrypt(text, shift): ...",
+                "output": "Функция определена",
+            },
             {"id": 2, "code": "caesar_encrypt('HELLO', 3)", "output": "KHOOR"},
-            {"id": 3, "code": "import base64; base64.b64encode(b'secret')", "output": "b'c2VjcmV0'"},
+            {
+                "id": 3,
+                "code": "import base64; base64.b64encode(b'secret')",
+                "output": "b'c2VjcmV0'",
+            },
         ],
         "xp": 30,
     },
@@ -32,9 +42,21 @@ NOTEBOOK_TEMPLATES: dict[str, dict[str, Any]] = {
         "title": "Web Scraping для OSINT",
         "description": "Сбор данных с сайтов с помощью BeautifulSoup.",
         "cells": [
-            {"id": 1, "code": "import requests; r = requests.get('http://example.com')", "output": "<Response [200]>"},
-            {"id": 2, "code": "from bs4 import BeautifulSoup; soup = BeautifulSoup(r.text)", "output": "HTML parsed"},
-            {"id": 3, "code": "soup.find_all('a')", "output": "[<a href='...'>Link</a>]"},
+            {
+                "id": 1,
+                "code": "import requests; r = requests.get('http://example.com')",
+                "output": "<Response [200]>",
+            },
+            {
+                "id": 2,
+                "code": "from bs4 import BeautifulSoup; soup = BeautifulSoup(r.text)",
+                "output": "HTML parsed",
+            },
+            {
+                "id": 3,
+                "code": "soup.find_all('a')",
+                "output": "[<a href='...'>Link</a>]",
+            },
         ],
         "xp": 35,
     },
@@ -42,9 +64,21 @@ NOTEBOOK_TEMPLATES: dict[str, dict[str, Any]] = {
         "title": "Анализ логов (Forensics)",
         "description": "Парсинг и анализ syslog, auth.log.",
         "cells": [
-            {"id": 1, "code": "with open('auth.log') as f: lines = f.readlines()", "output": "Loaded 1500 lines"},
-            {"id": 2, "code": "[l for l in lines if 'Failed password' in l][:5]", "output": "5 failed attempts"},
-            {"id": 3, "code": "from collections import Counter; Counter(ips).most_common(3)", "output": "[('192.168.1.10', 42)]"},
+            {
+                "id": 1,
+                "code": "with open('auth.log') as f: lines = f.readlines()",
+                "output": "Loaded 1500 lines",
+            },
+            {
+                "id": 2,
+                "code": "[l for l in lines if 'Failed password' in l][:5]",
+                "output": "5 failed attempts",
+            },
+            {
+                "id": 3,
+                "code": "from collections import Counter; Counter(ips).most_common(3)",
+                "output": "[('192.168.1.10', 42)]",
+            },
         ],
         "xp": 40,
     },
@@ -52,9 +86,21 @@ NOTEBOOK_TEMPLATES: dict[str, dict[str, Any]] = {
         "title": "Сетевое сканирование",
         "description": "Использование scapy/nmap для анализа сети.",
         "cells": [
-            {"id": 1, "code": "from scapy.all import sr1, IP, ICMP", "output": "Scapy loaded"},
-            {"id": 2, "code": "pkt = IP(dst='192.168.1.1')/ICMP()", "output": "Packet crafted"},
-            {"id": 3, "code": "resp = sr1(pkt, timeout=2)", "output": "Received ICMP reply"},
+            {
+                "id": 1,
+                "code": "from scapy.all import sr1, IP, ICMP",
+                "output": "Scapy loaded",
+            },
+            {
+                "id": 2,
+                "code": "pkt = IP(dst='192.168.1.1')/ICMP()",
+                "output": "Packet crafted",
+            },
+            {
+                "id": 3,
+                "code": "resp = sr1(pkt, timeout=2)",
+                "output": "Received ICMP reply",
+            },
         ],
         "xp": 45,
     },
@@ -83,13 +129,15 @@ def _open_notebook(notebook_id: str) -> bool:
         console.print(f"[red]Шаблон '{notebook_id}' не найден.[/red]")
         return False
 
-    console.print(Panel(
-        f"[bold]Описание:[/bold] {nb['description']}\n"
-        f"[bold]Ячеек:[/bold] {len(nb['cells'])}\n\n"
-        f"[dim]Используйте /jupyter run <cell_id> для выполнения.[/dim]",
-        title=nb["title"],
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            f"[bold]Описание:[/bold] {nb['description']}\n"
+            f"[bold]Ячеек:[/bold] {len(nb['cells'])}\n\n"
+            f"[dim]Используйте /jupyter run <cell_id> для выполнения.[/dim]",
+            title=nb["title"],
+            border_style="cyan",
+        )
+    )
 
     ctx = get_context()
     state = ctx.state
@@ -109,6 +157,9 @@ def _run_cell(cell_id: int) -> bool:
         return False
 
     nb = NOTEBOOK_TEMPLATES.get(notebook_id)
+    if nb is None:
+        console.print(f"[red]Шаблон '{notebook_id}' не найден.[/red]")
+        return False
     cell = next((c for c in nb["cells"] if c["id"] == cell_id), None)
     if not cell:
         console.print(f"[red]Ячейка {cell_id} не найдена.[/red]")
@@ -135,63 +186,156 @@ def _submit_notebook() -> bool:
         return False
 
     nb = NOTEBOOK_TEMPLATES.get(notebook_id)
+    if nb is None:
+        console.print(f"[red]Шаблон '{notebook_id}' не найден.[/red]")
+        return False
     completed = len(getattr(state, "completed_cells", []))
     total = len(nb["cells"])
 
     if completed == total:
-        console.print(Panel(
-            f"[green]✅ Ноутбук '{nb['title']}' завершён![/green]\n"
-            f"[bold]Бонус:[/bold] +{nb['xp']} XP",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"[green]✅ Ноутбук '{nb['title']}' завершён![/green]\n"
+                f"[bold]Бонус:[/bold] +{nb['xp']} XP",
+                border_style="green",
+            )
+        )
         if hasattr(state, "xp"):
             state.xp += nb["xp"]
         state.current_notebook = None
         return True
     else:
-        console.print(Panel(
-            f"[yellow]⚠️ Выполнено {completed}/{total} ячеек.[/yellow]\n"
-            "Завершите все ячейки для получения бонуса.",
-            border_style="yellow",
-        ))
+        console.print(
+            Panel(
+                f"[yellow]⚠️ Выполнено {completed}/{total} ячеек.[/yellow]\n"
+                "Завершите все ячейки для получения бонуса.",
+                border_style="yellow",
+            )
+        )
+        return False
+
+    nb = NOTEBOOK_TEMPLATES.get(notebook_id)
+    if nb is None:
+        console.print(f"[red]Шаблон '{notebook_id}' не найден.[/red]")
+        return False
+    completed = len(getattr(state, "completed_cells", []))
+    total = len(nb["cells"])
+
+    if completed == total:
+        console.print(
+            Panel(
+                f"[green]✅ Ноутбук '{nb['title']}' завершён![/green]\n"
+                f"[bold]Бонус:[/bold] +{nb['xp']} XP",
+                border_style="green",
+            )
+        )
+        if hasattr(state, "xp"):
+            state.xp += nb["xp"]
+        state.current_notebook = None
+        return True
+    else:
+        console.print(
+            Panel(
+                f"[yellow]⚠️ Выполнено {completed}/{total} ячеек.[/yellow]\n"
+                "Завершите все ячейки для получения бонуса.",
+                border_style="yellow",
+            )
+        )
+        return False
+
+    nb = NOTEBOOK_TEMPLATES.get(notebook_id)
+    if nb is None:
+        console.print(f"[red]Шаблон '{notebook_id}' не найден.[/red]")
+        return False
+    completed = len(getattr(state, "completed_cells", []))
+    total = len(nb["cells"])
+
+    if completed == total:
+        console.print(
+            Panel(
+                f"[green]✅ Ноутбук '{nb['title']}' завершён![/green]\n"
+                f"[bold]Бонус:[/bold] +{nb['xp']} XP",
+                border_style="green",
+            )
+        )
+        if hasattr(state, "xp"):
+            state.xp += nb["xp"]
+        state.current_notebook = None
+        return True
+    else:
+        console.print(
+            Panel(
+                f"[yellow]⚠️ Выполнено {completed}/{total} ячеек.[/yellow]\n"
+                "Завершите все ячейки для получения бонуса.",
+                border_style="yellow",
+            )
+        )
+        return False
+
+    nb = NOTEBOOK_TEMPLATES.get(notebook_id)
+    completed = len(getattr(state, "completed_cells", []))
+    total = len(nb["cells"])
+
+    if completed == total:
+        console.print(
+            Panel(
+                f"[green]✅ Ноутбук '{nb['title']}' завершён![/green]\n"
+                f"[bold]Бонус:[/bold] +{nb['xp']} XP",
+                border_style="green",
+            )
+        )
+        if hasattr(state, "xp"):
+            state.xp += nb["xp"]
+        state.current_notebook = None
+        return True
+    else:
+        console.print(
+            Panel(
+                f"[yellow]⚠️ Выполнено {completed}/{total} ячеек.[/yellow]\n"
+                "Завершите все ячейки для получения бонуса.",
+                border_style="yellow",
+            )
+        )
         return False
 
 
-def handle_jupyter(args: str) -> tuple[str, bool]:
+def handle_jupyter(args: str) -> HandlerResult:
     """Главный обработчик команды /jupyter."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":
         _display_notebooks()
-        return "", True
+        return True, None, None, True
 
     subcommand = parts[0].lower()
     query = parts[1] if len(parts) > 1 else ""
 
     if subcommand == "open" and query:
         success = _open_notebook(query)
-        return "", success
+        return True, None, None, success
     elif subcommand == "run" and query:
         try:
             cell_id = int(query)
             success = _run_cell(cell_id)
-            return "", success
+            return True, None, None, success
         except ValueError:
             console.print("[red]ID ячейки должен быть числом.[/red]")
-            return "", False
+            return True, None, None, False
     elif subcommand == "submit":
         success = _submit_notebook()
-        return "", success
+        return True, None, None, success
     elif subcommand == "help":
-        console.print(Panel(
-            "[bold]Команды Jupyter:[/bold]\n"
-            "/jupyter               — Список шаблонов\n"
-            "/jupyter open <id>     — Открыть ноутбук\n"
-            "/jupyter run <cell_id> — Выполнить ячейку\n"
-            "/jupyter submit        — Отправить на проверку",
-            border_style="yellow",
-        ))
-        return "", True
+        console.print(
+            Panel(
+                "[bold]Команды Jupyter:[/bold]\n"
+                "/jupyter               — Список шаблонов\n"
+                "/jupyter open <id>     — Открыть ноутбук\n"
+                "/jupyter run <cell_id> — Выполнить ячейку\n"
+                "/jupyter submit        — Отправить на проверку",
+                border_style="yellow",
+            )
+        )
+        return True, None, None, True
     else:
         console.print(f"[red]Неизвестная подкоманда: {subcommand}[/red]")
         _display_notebooks()
-        return "", True
+        return True, None, None, True

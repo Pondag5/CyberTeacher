@@ -76,11 +76,6 @@ class AppStateModel(BaseModel):
     last_hint_time: float = Field(default=0.0)
     hint_cooldown: int = Field(default=30, gt=0)
 
-    # Voice
-    voice_enabled: bool = Field(default=False)
-    voice_engine: str = Field(default="pyttsx3")
-    voice_rate: int = Field(default=200, gt=0)
-
     # Explanation
     explanation_depth: str = Field(default="normal")
 

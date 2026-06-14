@@ -241,7 +241,7 @@ _engine: TrackEngine | None = None
 
 def get_track_engine() -> TrackEngine:
     """Получить глобальный экземпляр TrackEngine (ленивая загрузка)"""
-    global _engine  # noqa: PLW0603
+    global _engine
     if _engine is None:
         _engine = TrackEngine()
     return _engine

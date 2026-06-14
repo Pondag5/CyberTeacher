@@ -3,7 +3,7 @@
 
 id: privesc-master
 name: Мастер Privilege Escalation
-description: Техники повышения привилегий в Linux и Windows
+description: "Техники повышения привилегий в Linux и Windows"
 level: advanced
 adaptive: true
 estimated_hours: 10
@@ -15,7 +15,7 @@ topics:
   - topic_id: linux-enumeration
     order: 1
     title: Linux Enumeration
-    description: Сбор информации: SUID/GUID binaries, cron jobs, ядро, сетевые сервисы
+    description: "Сбор информации: SUID/GUID binaries, cron jobs, ядро, сетевые сервисы"
     required: true
     quiz_topic: linux
     lab_id: metasploitable3
@@ -24,7 +24,7 @@ topics:
   - topic_id: linux-privesc-techniques
     order: 2
     title: Linux Privilege Escalation Techniques
-    description:PATH hijacking,弱者 файлы, ядерные эксплойты, sudo misconfig
+    description: "PATH hijacking, weak files, ядерные эксплойты, sudo misconfig"
     required: true
     quiz_topic: privesc
     lab_id: metasploitable3
@@ -33,7 +33,7 @@ topics:
   - topic_id: linpeas-usage
     order: 3
     title: Automated Enumeration with linPEAS
-    description: Использование linPEAS для автоматического поиска векторов
+    description: "Использование linPEAS для автоматического поиска векторов"
     required: true
     linked_course: privesc
     quiz_topic: privesc
@@ -43,7 +43,7 @@ topics:
   - topic_id: windows-enumeration
     order: 4
     title: Windows Enumeration
-    description: Проверка служб, AlwaysInstallElevated, незапатченные уязвимости
+    description: "Проверка служб, AlwaysInstallElevated, незапатченные уязвимости"
     required: false
     quiz_topic: windows
     lab_id: windows-ad
@@ -52,7 +52,7 @@ topics:
   - topic_id: windows-privesc
     order: 5
     title: Windows Privilege Escalation
-    description: Kernel exploits, Registry hijacking, Service misconfig
+    description: "Kernel exploits, Registry hijacking, Service misconfig"
     required: false
     quiz_topic: windows
     lab_id: windows-ad

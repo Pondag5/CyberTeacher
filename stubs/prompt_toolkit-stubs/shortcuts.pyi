@@ -1,0 +1,6 @@
+# stubs/prompt_toolkit-stubs/shortcuts.pyi
+from .history import FileHistory
+
+class PromptSession:
+    def __init__(self, history: FileHistory | None = None) -> None: ...
+    def prompt(self, message: str = "", **kwargs) -> str: ...

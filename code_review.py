@@ -7,7 +7,6 @@ import re
 import subprocess
 import tempfile
 
-from config import LLM
 from ui import console
 
 
@@ -36,7 +35,7 @@ def run_bandit_scan(code: str):
     return None
 
 
-def code_review_function(code: str, language: str = "python"):
+def code_review_function(code: str, language: str = "python") -> dict[str, Any] | None:
     """Анализ кода: Bandit + LLM + Исправления"""
 
     scan_results = ""
@@ -80,7 +79,12 @@ def code_review_function(code: str, language: str = "python"):
     )
 
     try:
-        response = LLM.invoke(prompt)
+        from config import LazyLoader as _LL
+
+        llm = _LL.get_llm()
+        if llm is None:
+            return None
+        response = llm.invoke(prompt)
         json_match = re.search(r"\{[\s\S]*\}", response)
         if json_match:
             return json.loads(json_match.group())

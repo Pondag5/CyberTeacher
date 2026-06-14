@@ -18,7 +18,7 @@ class TestJupyter(unittest.TestCase):
     def test_display_notebooks(self):
         """Отображение списка шаблонов."""
         with patch("handlers.jupyter.console.print"):
-            result, action_taken = handle_jupyter("")
+            _, result, _, action_taken = handle_jupyter("")
             self.assertTrue(action_taken)
 
     def test_open_valid_notebook(self):
@@ -101,13 +101,13 @@ class TestJupyter(unittest.TestCase):
     def test_help_command(self):
         """Вызов справки /jupyter help."""
         with patch("handlers.jupyter.console.print"):
-            result, action_taken = handle_jupyter("help")
+            _, result, _, action_taken = handle_jupyter("help")
             self.assertTrue(action_taken)
 
     def test_unknown_subcommand(self):
         """Неизвестная подкоманда."""
         with patch("handlers.jupyter.console.print"):
-            result, action_taken = handle_jupyter("unknown")
+            _, result, _, action_taken = handle_jupyter("unknown")
             self.assertTrue(action_taken)
 
     def test_notebooks_structure(self):

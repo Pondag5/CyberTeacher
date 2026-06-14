@@ -1,0 +1,3 @@
+# stubs/prompt_toolkit-stubs/history.pyi
+class FileHistory:
+    def __init__(self, filename: str) -> None: ...

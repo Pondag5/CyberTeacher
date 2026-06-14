@@ -1,1022 +1,1149 @@
-# handlers/misc.py (дополнительные функции, которые не warranted отдельного файла)
+# handlers/misc.py
 import json
 import os
-import shutil
+import re
 import time
-from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Tuple, Optional
 
-from rich.console import Console
+from state import get_state
+
 from rich.panel import Panel
+from rich.prompt import Confirm
+from rich.table import Table
+
+from ui import console
+
+from generators import check_open_answer
+
+from utils.common import extract_json_block, parse_json_response
 
 from di import get_context
-from utils.common import ask_confirm as _ask_confirm
-from utils.common import check_open_answer_heuristic as check_open_answer
-from utils.common import clear_chat_db, extract_json_block
-
-console = Console()
+from courses import list_courses, start_course, get_course_progress
+from handlers.types import HandlerResult
 
 
-def handle_backup(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Создать бэкап state и news cache."""
-    state = get_context().state
-    state.maybe_auto_backup()
-    console.print("[green]✅ Бэкап создан (или актуальный уже существует).[/green]")
-    return True, None, None, True
+# ----------------------------------------------------------------------
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# ----------------------------------------------------------------------
+def _ask_confirm(prompt: str) -> bool:
+    """Запросить подтверждение у пользователя."""
+    return bool(Confirm.ask(prompt))
 
 
-def handle_story_mode(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Режим истории (20 эпизодов) с интеграцией risk_level"""
-    try:
-        from story_mode import (
-            get_achievements_list,
-            get_player,
-            get_story_list,
-            start_story_mode,
-            submit_flag,
-        )
+def clear_chat_db(conn: Any) -> None:
+    """Очистить таблицу сообщений в БД."""
+    from memory import clear_chat
 
-        state = get_context().state
-        parts = action.split()
-
-        if action in {"story", "episode", "quest"}:
-            # Показать список эпизодов
-            console.print(get_story_list())
-            return True, None, None, True
-
-        elif len(parts) >= 2 and parts[0] == "story" and parts[1] == "start":
-            # Начать конкретный эпизод
-            try:
-                if len(parts) >= 3:
-                    episode_id = int(parts[2])
-                    console.print(start_story_mode(episode_id))
-                else:
-                    console.print(start_story_mode())
-            except ValueError:
-                console.print("[red]Неверный номер эпизода[/red]")
-            return True, None, None, True
-
-        elif len(parts) >= 2 and parts[0] in ("story", "flag"):
-            # Проверить флаг
-            if len(parts) >= 3:
-                flag = parts[2] if parts[0] == "flag" else " ".join(parts[2:])
-                result = submit_flag(flag)
-                console.print(result)
-
-                # Обновляем риск уровень на основе успеха
-                if "✅" in result or "ПРОЙДЕН" in result:
-                    state.decrease_risk(15)  # Успех снижает риск
-                    console.print(
-                        f"[green]🛡️ Уровень риска снижен! Текущий: {state.get_risk_status()} ({state.risk_level}/100)[/green]"
-                    )
-                else:
-                    state.increase_risk(10)  # Ошибка повышает риск
-                    console.print(
-                        f"[red]⚠️  Уровень риска повышен! Текущий: {state.get_risk_status()} ({state.risk_level}/100)[/red]"
-                    )
-            else:
-                console.print(
-                    "[yellow]Использование: /flag <флаг>  или  /story flag <флаг>[/yellow]"
-                )
-            return True, None, None, True
-
-        elif len(parts) >= 2 and parts[0] == "achievements":
-            # Показать достижения
-            console.print(get_achievements_list())
-            return True, None, None, True
-
-        else:
-            console.print("[cyan]Использование Story Mode:[/cyan]")
-            console.print("  /story            - список эпизодов")
-            console.print("  /story start [N]  - начать эпизод N (или следующий)")
-            console.print("  /flag <флаг>      - отправить флаг")
-            console.print("  /achievements     - список достижений")
-            return True, None, None, True
-
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
-        import traceback
-
-        traceback.print_exc()
-        return True, None, None, True
+    clear_chat(conn)
 
 
-def handle_risk(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Управление и просмотр уровня риска"""
-    try:
-        state = get_context().state
-        parts = action.split()
+# ----------------------------------------------------------------------
+# ОБРАБОТЧИКИ КОМАНД (используются в core.py)
+# ----------------------------------------------------------------------
+def handle_adaptive(action: str) -> HandlerResult:
+    """Показать слабые темы и рекомендации."""
+    from state import get_state
 
-        if len(parts) == 1:
-            # Показать текущий статус
-            status = state.get_risk_status()
-            console.print(
-                f"[bold cyan]⚡ Уровень риска: {status} ({state.risk_level}/100)[/bold cyan]"
-            )
-            console.print(
-                "[dim]Уровень риска повышается при ошибках и снижается при успехах в CTF/Story режимах.[/dim]"
-            )
-            return True, None, None, True
-
-        # Изменить уровень вручную (для отладки/админа)
-        if len(parts) >= 2:
-            try:
-                if parts[1] == "reset":
-                    state.reset_risk()
-                    console.print(f"[green]✅ Уровень риска сброшен[/green]")
-                elif parts[1] == "up":
-                    amount = int(parts[2]) if len(parts) >= 3 else 10
-                    state.increase_risk(amount)
-                    console.print(
-                        f"[yellow]⚠️  Уровень риска увеличен на {amount}[/yellow]"
-                    )
-                elif parts[1] == "down":
-                    amount = int(parts[2]) if len(parts) >= 3 else 5
-                    state.decrease_risk(amount)
-                    console.print(
-                        f"[green]🛡️ Уровень риска уменьшен на {amount}[/green]"
-                    )
-                else:
-                    amount = int(parts[1])
-                    state.risk_level = max(0, min(100, amount))
-                    console.print(
-                        f"[cyan]Уровень риска установлен: {state.risk_level}/100[/cyan]"
-                    )
-
-                console.print(
-                    f"[bold]Текущий статус: {state.get_risk_status()} ({state.risk_level}/100)[/bold]"
-                )
-            except ValueError:
-                console.print(
-                    "[red]Использование: /risk [reset|up|down <колво>|число 0-100][/red]"
-                )
-
-            return True, None, None, True
-
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
-        return True, None, None, True
-
-
-def handle_history(conn) -> tuple[bool, Any | None, Any | None, bool]:
-    try:
-        from memory import get_chat_history
-
-        history = get_chat_history(conn, limit=20)
-        if history:
-            console.print("[bold cyan]📜 История чата:[/bold cyan]")
-            for msg in history:
-                role = msg.get("role", "?")
-                content = msg.get("content", "")[:150]
-                console.print(f"[{role}] {content}")
-        else:
-            console.print("[yellow]История пуста[/yellow]")
-        return True, None, None, True
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
-        return True, None, None, True
-
-
-def handle_course(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    console.print("[yellow]Курсы временно недоступны[/yellow]")
-    return True, None, None, True
-
-
-def handle_terminal_log(
-    action: str | None = None,
-) -> tuple[bool, Any | None, Any | None, bool]:
-    try:
-        from terminal_log import get_terminal_log, log_command
-
-        if action and action.startswith("log "):
-            cmd = action[4:].strip()
-            log_command(cmd, is_input=False)
-            console.print(f"[green]✅ Команда записана в лог[/green]")
-            return True, None, None, True
-        log_text = get_terminal_log(last_n=20)
+    state = get_state()
+    weak = state.get_weak_topics(threshold=70.0)
+    if weak:
         console.print(
             Panel(
-                log_text, title="📟 Терминал (последние 20 строк)", border_style="cyan"
+                "\n".join(
+                    [
+                        f"• {t['topic']}: {t['success_rate']:.1f}% ({t['attempts']} попыток)"
+                        for t in weak
+                    ]
+                ),
+                title="📉 Слабые темы",
+                border_style="yellow",
             )
         )
+        console.print("[cyan]Совет: повторите эти темы через /quiz или /repeat[/cyan]")
+    else:
+        console.print("[green]Отлично! Нет слабых тем.[/green]")
+    return True, None, None, True
+
+
+def handle_add_book(action: str) -> HandlerResult:
+    """Добавить PDF в базу знаний."""
+    parts = action.split(maxsplit=1)
+    if len(parts) < 2:
+        console.print("[red]Укажите путь к PDF: /add_book path/to/file.pdf[/red]")
+        return True, None, None, True
+    path = parts[1].strip()
+    if not os.path.exists(path):
+        console.print(f"[red]Файл не найден: {path}[/red]")
+        return True, None, None, True
+    if not path.lower().endswith(".pdf"):
+        console.print("[red]Только PDF файлы поддерживаются[/red]")
+        return True, None, None, True
+    try:
+        from knowledge import add_pdf_to_knowledge_base
+
+        add_pdf_to_knowledge_base(path)
+        console.print(f"[green]✅ Книга добавлена: {os.path.basename(path)}[/green]")
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True
 
 
-def handle_version() -> tuple[bool, Any | None, Any | None, bool]:
-    console.print("[bold cyan]CyberTeacher v3.2[/bold cyan]")
-    console.print("Обучение кибербезопасности с LLM")
-    console.print("Основано на: Ollama/OpenRouter, ChromaDB, Rich")
-    console.print("© 2025 CyberTeacher Project")
+def handle_backup(action: str) -> HandlerResult:
+    """Создать бэкап состояния."""
+    from state import get_state
+
+    state = get_state()
+    state.maybe_auto_backup()  # без аргументов
+    console.print("[green]✅ Бэкап создан в папке backups/[/green]")
     return True, None, None, True
 
 
-def handle_writeup() -> tuple[bool, Any | None, Any | None, bool]:
-    template = """
-# Write-up: [Название задачи]
+def handle_export(action: str) -> tuple[bool, Any | None, Any | None, True]:
+    """Экспорт истории чата или SCORM-пакета курса."""
+    if "scorm" in action:
+        parts = action.split()
+        course_id = parts[2] if len(parts) > 2 else ""
+        if not course_id:
+            from scorm_export import list_exportable_courses
+
+            courses = list_exportable_courses()
+            console.print("[bold]Доступные курсы для SCORM экспорта:[/bold]")
+            for c in courses:
+                console.print(
+                    f"  • {c['id']}: {c['name']} ({c['topics_count']} topics)"
+                )
+            console.print("[dim]Использование: /export scorm <course_id>[/dim]")
+            return True, None, None, True
+        try:
+            from scorm_export import export_scorm_package
+
+            path = export_scorm_package(course_id, ".")
+            console.print(f"[green]✅ SCORM пакет создан: {path}[/green]")
+            return True, path, None, True
+        except ValueError as e:
+            console.print(f"[red]Ошибка: {e}[/red]")
+            return False, str(e), None, True
+
+    from memory import get_chat_history, init_db
+
+    conn = init_db()
+    history = get_chat_history(conn, limit=1000)
+    if not history:
+        console.print("[yellow]История пуста[/yellow]")
+        return True, None, None, True
+    console.print("[bold]=== История чата ===[/bold]")
+    for msg in history[-50:]:
+        console.print(f"[{msg['mode']}] {msg['role']}: {msg['content'][:200]}")
+    console.print("[dim]Полная история сохранена в memory/chat_history.db[/dim]")
+    return True, None, None, True
+
+
+def handle_exploits_log(action: str) -> HandlerResult:
+    """Показать лог эксплойтов."""
+    from state import get_state
+
+    state = get_state()
+    logs = getattr(state, "exploit_success", [])
+    if not logs:
+        console.print("[yellow]Лог эксплойтов пуст[/yellow]")
+        return True, None, None, True
+    console.print(
+        Panel(
+            "\n".join(
+                [
+                    f"• {log.get('date', '?')} - {log.get('exploit', '')} - {'✅' if log.get('success') else '❌'}"
+                    for log in logs[-10:]
+                ]
+            ),
+            title="📜 История эксплойтов",
+            border_style="cyan",
+        )
+    )
+    return True, None, None, True
+
+
+def handle_heatmap(action: str) -> HandlerResult:
+    """Показать тепловую карту активности."""
+    from state import get_state
+
+    state = get_state()
+    daily = getattr(state, "daily_command_counts", {})
+    if not daily:
+        console.print("[yellow]Нет данных об активности[/yellow]")
+        return True, None, None, True
+    last7 = list(daily.items())[-7:]
+    lines = []
+    for date, counts in last7:
+        total = sum(counts.values()) if isinstance(counts, dict) else counts
+        lines.append(f"{date}: {total} действий")
+    console.print(
+        Panel(
+            "\n".join(lines),
+            title="🔥 Активность (последние 7 дней)",
+            border_style="yellow",
+        )
+    )
+    return True, None, None, True
+
+
+def handle_history(conn: Any) -> HandlerResult:
+    """Показать историю чата (из БД)."""
+    from memory import get_chat_history
+
+    history = get_chat_history(conn, limit=20)
+    if not history:
+        console.print("[yellow]История пуста[/yellow]")
+        return True, None, None, True
+    for msg in history:
+        console.print(f"[dim]{msg['role']}: {msg['content'][:100]}[/dim]")
+    return True, None, None, True
+
+
+def handle_model(action: str) -> HandlerResult:
+    """Сменить модель Ollama (только для ollama)."""
+    parts = action.split(maxsplit=1)
+    if len(parts) < 2:
+        from config import OLLAMA_MODEL
+
+        console.print(f"[cyan]Текущая модель Ollama: {OLLAMA_MODEL}[/cyan]")
+        console.print("[dim]Используйте: /model <имя_модели>[/dim]")
+        return True, None, None, True
+    new_model = parts[1].strip()
+    import config
+
+    config.OLLAMA_MODEL = new_model
+    from config import LazyLoader
+
+    LazyLoader._llm = None
+    console.print(
+        f"[green]Модель изменена на {new_model}. Следующий запрос загрузит её.[/green]"
+    )
+    return True, None, None, True
+
+
+def handle_provider(action: str) -> HandlerResult:
+    """Показать/сменить/протестировать провайдера LLM."""
+    import config as _cfg
+    from config import LazyLoader, PROVIDER_KNOWN_MODELS, FALLBACK_ORDER
+
+    # action = "provider [subcmd [args]]"
+    parts = action.strip().split(maxsplit=2)
+    subcmd = parts[1].strip().lower() if len(parts) > 1 else ""
+
+    if not subcmd:
+        # Show current provider info
+        llm = LazyLoader._llm
+        status_info = ""
+        if llm is not None:
+            try:
+                from resilient_llm import ResilientLLM
+
+                if isinstance(llm, ResilientLLM):
+                    st = llm.get_status()
+                    for p in st.get("providers", []):
+                        icon = "🟢" if p["circuit_state"] == "closed" else "🔴"
+                        if p["is_current"]:
+                            icon = "⭐"
+                        status_info += f"\n  {icon} {p['model']} ({p['role']}) — {p['circuit_state']}, failures: {p['failures']}"
+                else:
+                    model = getattr(llm, "model", "?")
+                    status_info = f"\n  {model} (single, без fallback)"
+            except (ValueError, RuntimeError, AttributeError):
+                pass
+
+        chain = " → ".join(FALLBACK_ORDER)
+        console.print(
+            Panel(
+                f"[bold]Текущий провайдер:[/bold] [cyan]{_cfg.LLM_PROVIDER}[/cyan]\n"
+                f"[bold]Модель:[/bold] [cyan]{_cfg.OLLAMA_MODEL if _cfg.LLM_PROVIDER == 'ollama' else (_cfg.GROQ_MODEL if _cfg.LLM_PROVIDER == 'groq' else _cfg.OPENROUTER_MODEL)}[/cyan]\n"
+                f"[bold]Fallback цепочка:[/bold] [dim]{chain}[/dim]"
+                f"{status_info}",
+                title="⚙️ Провайдер",
+                border_style="cyan",
+            )
+        )
+        console.print(
+            "[dim]Команды: /provider list, /provider set <name>, /provider test, /provider models[/dim]"
+        )
+        return True, None, None, True
+
+    if subcmd == "list":
+        table = Table(title="Доступные провайдеры", border_style="cyan")
+        table.add_column("Провайдер", style="bold")
+        table.add_column("Статус", justify="center")
+        table.add_column("Модель")
+        table.add_column("Описание")
+
+        for p in FALLBACK_ORDER:
+            info = PROVIDER_KNOWN_MODELS.get(p, {})
+            desc = info.get("description", "")
+            model = ""
+            status = "[dim]?[/dim]"
+
+            if p == "ollama":
+                model = _cfg.OLLAMA_MODEL
+                import subprocess
+
+                try:
+                    r = subprocess.run(
+                        ["ollama", "list"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                        check=False,
+                    )
+                    status = (
+                        "[green]✅[/green]" if r.returncode == 0 else "[red]❌[/red]"
+                    )
+                except FileNotFoundError:
+                    status = "[red]❌[/red]"
+            elif p == "groq":
+                model = _cfg.GROQ_MODEL
+                status = "[green]✅[/green]" if _cfg.GROQ_API_KEY else "[red]❌[/red]"
+            elif p == "openrouter":
+                model = _cfg.OPENROUTER_MODEL
+                status = (
+                    "[green]✅[/green]" if _cfg.OPENROUTER_API_KEY else "[red]❌[/red]"
+                )
+            elif p == "huggingface":
+                model = _cfg.HUGGINGFACE_MODEL
+                status = (
+                    "[green]✅[/green]" if _cfg.HUGGINGFACE_API_KEY else "[dim]—[/dim]"
+                )
+            elif p == "lmstudio":
+                model = _cfg.LMSTUDIO_MODEL
+                import urllib.request
+                import json as _json
+
+                try:
+                    req = urllib.request.Request(
+                        f"{_cfg.LMSTUDIO_BASE_URL}/models", method="GET"
+                    )
+                    with urllib.request.urlopen(req, timeout=3) as resp:
+                        data = _json.loads(resp.read())
+                        models = data.get("data", [])
+                        if models:
+                            model = models[0].get("id", _cfg.LMSTUDIO_MODEL)
+                        status = "[green]✅[/green]"
+                except (OSError, ValueError):
+                    status = "[red]❌[/red]"
+            elif p == "mock":
+                status = "[green]✅[/green]"
+                model = "mock-llm"
+
+            is_current = " ←" if p == _cfg.LLM_PROVIDER else ""
+            table.add_row(f"{p}{is_current}", status, model, desc)
+
+        console.print(table)
+        console.print(
+            "[dim]Используйте /provider set <name> для смены провайдера[/dim]"
+        )
+        return True, None, None, True
+
+    if subcmd == "models":
+        provider_filter = parts[2].strip().lower() if len(parts) > 2 else ""
+        table = Table(title="Поддерживаемые модели", border_style="cyan")
+        table.add_column("Провайдер", style="bold")
+        table.add_column("Модели (рекомендуемые)")
+
+        for p, info in PROVIDER_KNOWN_MODELS.items():
+            if provider_filter and p != provider_filter:
+                continue
+            models = ", ".join(info.get("suggested", []))
+            docs = info.get("docs_url", "")
+            name = p
+            if p == _cfg.LLM_PROVIDER:
+                name = f"{p} ← активный"
+            table.add_row(name, models)
+            if docs:
+                table.add_row("", f"[dim]📚 {docs}[/dim]")
+
+        # If we have a filter, show more details
+        if provider_filter and provider_filter in PROVIDER_KNOWN_MODELS:
+            info = PROVIDER_KNOWN_MODELS[provider_filter]
+            console.print(
+                Panel(
+                    f"[bold]{provider_filter}[/bold]\n"
+                    f"{info['description']}\n\n"
+                    f"[bold]Модель по умолчанию:[/bold] {info['default']}\n"
+                    f"[bold]Рекомендуемые:[/bold]\n"
+                    + "\n".join(f"  • {m}" for m in info["suggested"])
+                    + "\n\n"
+                    f"[dim]📚 {info['docs_url']}[/dim]",
+                    title=f"📦 {provider_filter}",
+                    border_style="green",
+                )
+            )
+            return True, None, None, True
+
+        console.print(table)
+        console.print("[dim]Подробнее: /provider models <provider>[/dim]")
+        return True, None, None, True
+
+    if subcmd == "test":
+        console.print("[bold]🧪 Тестирование провайдеров...[/bold]")
+        from resilient_llm import ResilientLLM
+        from config import get_llm as _get_single_llm
+
+        results_table = Table(title="Результаты тестирования", border_style="cyan")
+        results_table.add_column("Провайдер", style="bold")
+        results_table.add_column("Модель")
+        results_table.add_column("Результат")
+        results_table.add_column("Детали")
+
+        for p in FALLBACK_ORDER:
+            if p == "mock":
+                results_table.add_row(
+                    "mock", "mock-llm", "[green]✅[/green]", "Всегда доступен"
+                )
+                continue
+            if p == _cfg.LLM_PROVIDER:
+                continue  # skip primary, tested separately
+
+            original = _cfg.LLM_PROVIDER
+            _cfg.LLM_PROVIDER = p
+            llm_instance = _get_single_llm()
+            _cfg.LLM_PROVIDER = original
+
+            if llm_instance is None:
+                model = (
+                    _cfg.GROQ_MODEL
+                    if p == "groq"
+                    else (
+                        _cfg.OPENROUTER_MODEL
+                        if p == "openrouter"
+                        else _cfg.HUGGINGFACE_MODEL
+                        if p == "huggingface"
+                        else _cfg.OLLAMA_MODEL
+                    )
+                )
+                results_table.add_row(
+                    p, model, "[red]❌[/red]", "Не удалось инициализировать"
+                )
+                continue
+
+            model = getattr(llm_instance, "model", "?")
+            success, msg = ResilientLLM.test_provider(p, llm_instance, timeout=15)
+            if success:
+                results_table.add_row(p, model, "[green]✅[/green]", msg)
+            else:
+                results_table.add_row(p, model, "[red]❌[/red]", msg[:60])
+
+        # Test current primary
+        primary_llm = _get_single_llm()
+        if primary_llm:
+            model = getattr(primary_llm, "model", "?")
+            success, msg = ResilientLLM.test_provider(
+                _cfg.LLM_PROVIDER, primary_llm, timeout=15
+            )
+            icon = "[green]✅[/green]" if success else "[red]❌[/red]"
+            results_table.add_row(
+                f"{_cfg.LLM_PROVIDER} (primary)", model, icon, msg[:60]
+            )
+
+        console.print(results_table)
+        console.print(
+            "[dim]Тест отправляет 'ping' каждому провайдеру с таймаутом 15с[/dim]"
+        )
+        return True, None, None, True
+
+    if subcmd.startswith("set") or subcmd.startswith("switch"):
+        # /provider set ollama or /provider switch ollama
+        arg_parts = subcmd.split(maxsplit=1)
+        provider_name = arg_parts[1].strip().lower() if len(arg_parts) > 1 else ""
+        if not provider_name:
+            console.print("[red]Укажите имя провайдера: /provider set ollama[/red]")
+            return True, None, None, True
+        if provider_name not in FALLBACK_ORDER:
+            valid = ", ".join(FALLBACK_ORDER)
+            console.print(
+                f"[red]Неизвестный провайдер '{provider_name}'. Доступны: {valid}[/red]"
+            )
+            return True, None, None, True
+        _cfg.LLM_PROVIDER = provider_name
+        LazyLoader.invalidate()
+        console.print(
+            f"[green]✅ Провайдер изменён на {provider_name}.[/green]\n"
+            f"[dim]Следующий запрос загрузит {PROVIDER_KNOWN_MODELS.get(provider_name, {}).get('description', provider_name)}.[/dim]"
+        )
+        return True, None, None, True
+
+    # Direct provider name as subcmd (backward compat): /provider ollama
+    if subcmd in FALLBACK_ORDER or subcmd == "mock":
+        _cfg.LLM_PROVIDER = subcmd
+        LazyLoader.invalidate()
+        console.print(
+            f"[green]✅ Провайдер изменён на {subcmd}.[/green]\n"
+            f"[dim]Следующий запрос загрузит {PROVIDER_KNOWN_MODELS.get(subcmd, {}).get('description', subcmd)}.[/dim]"
+        )
+        return True, None, None, True
+
+    if subcmd in ("status", "info"):
+        # Reuse the no-arg display
+        return handle_provider("provider")
+
+    console.print(f"[red]Неизвестная команда: /provider {subcmd}[/red]")
+    console.print(
+        "[dim]Доступно: /provider, /provider list, /provider set <name>, /provider test, /provider models [name][/dim]"
+    )
+    return True, None, None, True
+
+
+def handle_repeat(action: str) -> HandlerResult:
+    """Интерактивное повторение по расписанию SM-2."""
+    from state import get_state
+
+    state = get_state()
+    due = state.get_due_reviews()
+    if not due:
+        console.print("[green]Нет тем, готовых к повторению[/green]")
+        return True, None, None, True
+    console.print(f"[cyan]Доступно для повторения: {len(due)} тем[/cyan]")
+    for idx, item in enumerate(due[:5], 1):
+        interval = item.get("interval", 0)
+        reps = item.get("repetitions", 0)
+        console.print(
+            f"  {idx}. {item['topic']} (интервал: {interval}д, повторений: {reps})"
+        )
+    console.print("[dim]Используйте /quiz для прохождения квиза по слабым темам[/dim]")
+    return True, None, None, True
+
+
+def handle_risk(action: str) -> HandlerResult:
+    """Показать уровень риска."""
+    from state import get_state
+
+    state = get_state()
+    console.print(
+        f"⚠️ Текущий уровень риска: {state.risk_level}/100 - {state.get_risk_status()}"
+    )
+    return True, None, None, True
+
+
+def handle_noise(action: str) -> HandlerResult:
+    """Показать уровень шумности."""
+    from handlers.noise import get_noise_level
+
+    info = get_noise_level()
+    bar = _make_bar(info["level"], 100, 20)
+    stealth = "✅" if info["stealth"] else "❌"
+    console.print(
+        Panel(
+            f"Шум: {info['level']}/100 {bar}\n"
+            f"Статус: {info['status']}\n"
+            f"Stealth mode: {stealth}\n"
+            f"Используй /stealth для снижения шума.",
+            title="📊 Noise Level",
+            border_style="yellow",
+        )
+    )
+    return True, None, None, True
+
+
+def handle_trace(action: str) -> HandlerResult:
+    """Показать статус трассировки."""
+    from handlers.trace import get_trace_status
+
+    info = get_trace_status()
+    if not info["active"]:
+        console.print(
+            Panel("Нет активной трассировки.", title="🔍 Trace", border_style="green")
+        )
+    elif info["expired"]:
+        console.print(
+            Panel(
+                f"⚠️ Трассировка истекла! {info['target']} засёк вторжение.",
+                title="🔍 Trace",
+                border_style="red",
+            )
+        )
+    else:
+        bar = _make_bar(info["remaining_seconds"], 180, 20)
+        console.print(
+            Panel(
+                f"Цель: {info['target']}\n"
+                f"Осталось: {info['remaining_minutes']} мин {bar}\n"
+                f"Срочно заверши лабу!",
+                title="🔍 Trace Timer",
+                border_style="red",
+            )
+        )
+    return True, None, None, True
+
+
+def handle_check_logs(action: str) -> HandlerResult:
+    """Показать грязные логи."""
+    from handlers.logs import check_logs
+
+    info = check_logs()
+    if info["count"] == 0:
+        console.print(
+            Panel(
+                "Логи чисты. Watchers ничего не увидят.",
+                title="🧹 Dirty Logs",
+                border_style="green",
+            )
+        )
+    else:
+        lines = [f"Всего записей: {info['count']}"]
+        for log in info["logs"]:
+            lines.append(f"  • {log['source']}: {log['detail']} ({log['time_ago']})")
+        lines.append("\nИспользуй /wipe_logs для очистки.")
+        console.print(
+            Panel("\n".join(lines), title="🧹 Dirty Logs", border_style="yellow")
+        )
+    return True, None, None, True
+
+
+def handle_wipe_logs(action: str) -> HandlerResult:
+    """Очистить грязные логи."""
+    from handlers.logs import wipe_logs
+
+    result = wipe_logs()
+    console.print(Panel(result, title="🧹 Wipe Logs", border_style="green"))
+    return True, None, None, True
+
+
+def handle_stealth(action: str) -> HandlerResult:
+    """Включить/выключить stealth mode."""
+    from handlers.noise import toggle_stealth
+
+    result = toggle_stealth()
+    status = "✅" if result["active"] else "❌"
+    console.print(
+        Panel(
+            f"Stealth: {status}\n{result['message']}",
+            title="🥷 Stealth Mode",
+            border_style="blue",
+        )
+    )
+    return True, None, None, True
+
+
+def handle_debts(action: str) -> HandlerResult:
+    """Показать цифровые долги."""
+    from handlers.debt import get_debts
+
+    info = get_debts()
+    status_icons = {"clean": "✅", "light": "⚠️", "warning": "⚠️⚠️", "critical": "🚨"}
+    icon = status_icons.get(info["status"], "❓")
+    lines = [f"Всего долгов: {info['total']} {icon}"]
+    for d in info["details"]:
+        lines.append(f"  • {d}")
+    if info["total"] >= 5:
+        lines.append("\n🚨 Учитель расстроен. Подсказки отключены до погашения долгов.")
+    elif info["total"] >= 3:
+        lines.append("\n⚠️ Учитель начинает нервничать. Закрывай долги.")
+    console.print(
+        Panel("\n".join(lines), title="💳 Digital Debts", border_style="magenta")
+    )
+    return True, None, None, True
+
+
+def handle_faction(action: str) -> HandlerResult:
+    """Показать/выбрать фракцию."""
+    from handlers.faction import get_factions, choose_faction
+
+    FACTION_NAMES = {"rick": "Rick", "ghost": "Ghost", "archive": "Archive"}
+    parts = action.strip().split()
+    if len(parts) > 1 and parts[0] == "faction":
+        sub = parts[1].lower()
+        if sub in FACTION_NAMES:
+            result = choose_faction(sub)
+            console.print(Panel(result, title="🏴 Faction", border_style="cyan"))
+        elif sub == "info":
+            info = get_factions()
+            dom = FACTION_NAMES.get(info["dominant"], "—")
+            console.print(
+                Panel(
+                    f"Rick: {info['rick']} rep\nGhost: {info['ghost']} rep\nArchive: {info['archive']} rep\n"
+                    f"Доминирует: {dom}\nВыбрана: {info['chosen'] or '—'}\n\n"
+                    f"Используй /faction rick, ghost или archive для выбора.",
+                    title="🏴 Factions",
+                    border_style="cyan",
+                )
+            )
+        else:
+            choices = ", ".join(f"/faction {k}" for k in FACTION_NAMES)
+            console.print(f"[yellow]Используй: /faction info, {choices}[/yellow]")
+    else:
+        info = get_factions()
+        rep_line = f"Rick: {info['rick']} | Ghost: {info['ghost']} | Archive: {info['archive']}"
+        console.print(Panel(rep_line, title="🏴 Factions", border_style="cyan"))
+    return True, None, None, True
+
+
+def handle_echo(action: str) -> HandlerResult:
+    """Показать случайное echo-сообщение."""
+    from handlers.echo import get_echo_message
+
+    msg = get_echo_message(force=True)
+    console.print(
+        Panel(f"[dim][Echo][/dim] {msg}", title="👻 Echo", border_style="blue")
+    )
+    return True, None, None, True
+
+
+def handle_memory(action: str) -> HandlerResult:
+    """Показать воспоминания учителя."""
+    from handlers.memory import get_random_memory
+    from state import get_state
+
+    state = get_state()
+    memories = getattr(state, "student_memories", [])
+    if not memories:
+        console.print("[yellow]У учителя пока нет воспоминаний о тебе.[/yellow]")
+    else:
+        lines = [f"  {i + 1}. {m}" for i, m in enumerate(memories[-10:])]
+        random_mem = get_random_memory()
+        if random_mem:
+            lines.insert(0, f"\n📝 Случайное: {random_mem}\n")
+        console.print(
+            Panel("\n".join(lines), title="🧠 Память учителя", border_style="magenta")
+        )
+    return True, None, None, True
+
+
+def _make_bar(value: int, max_val: int, width: int = 20) -> str:
+    """Создать ASCII progress bar."""
+    filled = min(int(value / max_val * width), width)
+    empty = width - filled
+    return f"[{'█' * filled}{'░' * empty}]"
+
+
+def handle_set_api_key(action: str) -> HandlerResult:
+    """Установить API ключ для провайдера."""
+    parts = action.split(maxsplit=2)
+    if len(parts) < 3:
+        console.print("[red]Использование: /set-api-key <provider> <key>[/red]")
+        console.print("[dim]Пример: /set-api-key openrouter sk-xxx[/dim]")
+        return True, None, None, True
+    provider = parts[1].lower()
+    key = parts[2].strip()
+    if provider == "openrouter":
+        os.environ["OPENROUTER_API_KEY"] = key
+        console.print("[green]Ключ OpenRouter установлен (временно)[/green]")
+    elif provider == "groq":
+        os.environ["GROQ_API_KEY"] = key
+        console.print("[green]Ключ Groq установлен (временно)[/green]")
+    elif provider == "huggingface":
+        os.environ["HF_TOKEN"] = key
+        console.print("[green]Токен HuggingFace установлен (временно)[/green]")
+    else:
+        console.print(
+            f"[red]Провайдер {provider} не поддерживается для установки ключа[/red]"
+        )
+    from config import LazyLoader
+
+    LazyLoader._llm = None
+    return True, None, None, True
+
+
+def handle_state(action: str) -> HandlerResult:
+    """Управление состоянием (экспорт/импорт)."""
+    from state import get_state
+
+    parts = action.split(maxsplit=1)
+    subcmd = parts[1].strip() if len(parts) > 1 else ""
+    if subcmd == "save":
+        get_state().save_to_file()
+        console.print("[green]Состояние сохранено[/green]")
+    elif subcmd == "load":
+        get_state().load_from_file()
+        console.print("[green]Состояние загружено[/green]")
+    elif subcmd == "migrate":
+        console.print(
+            "[yellow]Миграция состояния в БД: используйте /state migrate to-db[/yellow]"
+        )
+    else:
+        console.print("[yellow]Доступно: /state save, /state load[/yellow]")
+    return True, None, None, True
+
+
+def handle_story_mode(action: str) -> HandlerResult:
+    """Обработчик команды /story (исправленный)."""
+    parts = action.strip().split()
+    if not parts:
+        console.print(
+            Panel(
+                "[yellow]Используйте: /story list, /story start <id>, /story submit <flag>, /story achievements[/yellow]"
+            )
+        )
+        return True, None, None, True
+
+    cmd = parts[0].lower()
+
+    if cmd in ("list", "episodes", "chapters"):
+        try:
+            from story_mode import get_story_list
+
+            console.print(
+                Panel(get_story_list(), title="📖 Story Mode", border_style="cyan")
+            )
+        except Exception as e:
+            console.print(f"[red]Ошибка загрузки story mode: {e}[/red]")
+        return True, None, None, True
+
+    if cmd in ("start", "chapter"):
+        if len(parts) < 2 or not parts[1].isdigit():
+            console.print("[red]Укажите номер: /story chapter 1[/red]")
+            return True, None, None, True
+        target_id = int(parts[1])
+        if cmd == "chapter":
+            from story_mode import start_chapter
+
+            result = start_chapter(target_id)
+            title = "📖 Начало главы"
+        else:
+            from story_mode import start_story_mode
+
+            result = start_story_mode(target_id)
+            title = "🎬 Начало эпизода"
+        try:
+            console.print(Panel(result, title=title, border_style="green"))
+        except Exception as e:
+            console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
+
+    if cmd == "submit":
+        if len(parts) < 2:
+            console.print("[red]Укажите флаг: /story submit FLAG{...}[/red]")
+            return True, None, None, True
+        flag = " ".join(parts[1:])
+        try:
+            from story_mode import submit_flag
+
+            console.print(
+                Panel(submit_flag(flag), title="🏆 Результат", border_style="yellow")
+            )
+        except Exception as e:
+            console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
+
+    if cmd == "achievements":
+        try:
+            from story_mode import get_achievements_list
+
+            console.print(
+                Panel(
+                    get_achievements_list(),
+                    title="🏅 Достижения",
+                    border_style="magenta",
+                )
+            )
+        except Exception as e:
+            console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
+
+    console.print(
+        "[red]Неизвестная подкоманда. Доступные: list, chapter <n>, start <id>, submit <flag>, achievements[/red]"
+    )
+    return True, None, None, True
+
+
+def handle_final_choice(action: str) -> HandlerResult:
+    """Обработчик команды /final."""
+    parts = action.strip().split()
+    if len(parts) < 2:
+        console.print(
+            Panel(
+                "Выбери путь:\n  /final memory — Сохранить учителя как архив\n"
+                "  /final merge — Слияние с учителем\n"
+                "  /final rewrite — Переписать учителя (нужно 6 артефактов)",
+                title="⚡ Финальный выбор",
+                border_style="red",
+            )
+        )
+        return True, None, None, True
+    from story_mode import final_choice
+
+    path = parts[1].lower()
+    result = final_choice(path)
+    console.print(Panel(result, title="⚡ Финальный выбор", border_style="red"))
+    return True, None, None, True
+
+
+def handle_timeline_action(action: str) -> HandlerResult:
+    """Обработчик команды /timeline."""
+    parts = action.strip().split()
+    if len(parts) > 1:
+        era = parts[1].lower()
+        eras = {
+            "1980s": "• 1983: Первый фильм с хакерами 'WarGames'\n• 1988: Червяк Морриса заразил 10% интернета",
+            "1990s": "• 1994: SSL 1.0\n• 1999: Вирус Melissa, основание Honeynet Project",
+            "2000s": "• 2000: Mafiaboy атакует Yahoo\n• 2007: Кибератаки на Эстонию",
+            "2010s": "• 2013: Утечка Target (40 млн карт)\n• 2017: WannaCry, NotPetya",
+            "2020s": "• 2020: SolarWinds\n• 2021: Colonial Pipeline",
+        }
+        if era in eras:
+            console.print(
+                Panel(eras[era], title=f"📅 Эпоха {era}", border_style="green")
+            )
+        else:
+            console.print(
+                "[red]Неизвестная эпоха. Доступны: 1980s, 1990s, 2000s, 2010s, 2020s[/red]"
+            )
+    else:
+        timeline = """[bold cyan]📅 Хронология кибербезопасности[/bold cyan]
+
+[bold]1980-е[/bold] — Зарождение вирусов (Brain, Morris worm)
+[bold]1990-е[/bold] — Эра хакерских атак, появление антивирусов
+[bold]2000-е[/bold] — Киберпреступность, черви (Code Red, SQL Slammer)
+[bold]2010-е[/bold] — APT-группы, утечки данных, ransomware
+[bold]2020-е[/bold] — Supply chain attacks, AI в кибербезопасности
+
+Подробнее: /timeline 1990s"""
+        console.print(Panel(timeline, title="Timeline", border_style="cyan"))
+    return True, None, None, True
+
+
+def handle_terminal_log(action: str = "") -> HandlerResult:
+    """Показать лог терминала."""
+    from terminal_log import get_terminal_log
+
+    log = get_terminal_log(last_n=30)
+    console.print(
+        Panel(log if log else "Лог пуст", title="💻 Терминал", border_style="yellow")
+    )
+    return True, None, None, True
+
+
+def handle_topics(action: str) -> HandlerResult:
+    """Показать темы текущего курса."""
+    from state import get_state
+
+    state = get_state()
+    course = state.current_course
+    if not course:
+        console.print("[yellow]Курс не выбран. Используйте /courses[/yellow]")
+        return True, None, None, True
+    from courses import COURSES
+
+    course_data = COURSES.get(course)
+    if not course_data:
+        console.print("[red]Курс не найден[/red]")
+        return True, None, None, True
+    topics = course_data.get("topics", [])
+    console.print(f"[bold]Темы курса '{course_data.get('name', course)}':[/bold]")
+    for idx, topic in enumerate(topics, 1):
+        status = "✅" if topic.get("completed") else "⬜"
+        console.print(f"{status} {idx}. {topic.get('name')}")
+    return True, None, None, True
+
+
+def handle_usage(action: str) -> HandlerResult:
+    """Статистика использования команд."""
+    from state import get_state
+
+    state = get_state()
+    usage = getattr(state, "command_usage", {})
+    if not usage:
+        console.print("[yellow]Нет данных об использовании команд[/yellow]")
+        return True, None, None, True
+    sorted_cmds = sorted(usage.items(), key=lambda x: x[1], reverse=True)[:15]
+    lines = [f"{cmd}: {count}" for cmd, count in sorted_cmds]
+    console.print(
+        Panel("\n".join(lines), title="📊 Использование команд", border_style="cyan")
+    )
+    return True, None, None, True
+
+
+def handle_version() -> HandlerResult:
+    """Показать версию."""
+    console.print("[bold]CyberTeacher v5.0 (2026-05-23)[/bold]")
+    return True, None, None, True
+
+
+def handle_writeup() -> HandlerResult:
+    """Показать шаблон writeup."""
+    template = """# Write-up
 
 ## Информация
-- **Категория:** [web|crypto|pwn|forensics|reversing|misc]
-- **Сложность:** [★☆☆☆☆ | ★★☆☆☆ | ★★★☆☆ | ★★★★☆]
-- **Инструменты:** инструмент1, инструмент2, ...
+- **Дата:** 
+- **Категория:** 
+- **Сложность:** 
 
 ## Описание
-[Краткое описание задачи и цели]
 
 ## Решение
 
-### 1. Разведка (Reconnaissance)
-[Описание шагов разведки: сканирование, анализ, ...]
+### 1. Разведка
 
-### 2. Эксплуатация (Exploitation)
-[Как использовал уязвимость, команды, эксплойт]
+### 2. Эксплуатация
 
-### 3. Получение флага/доступа
-[Что получилось в итоге, флаг]
+### 3. Получение доступа
 
 ## Выводы
-- **Чему научился:** ...
-- **Что было сложно:** ...
-- **Что можно улучшить:** ...
 """
-    console.print(Panel(template, title="📝 Шаблон Write-up", border_style="magenta"))
+    console.print(Panel(template, title="📝 Шаблон writeup", border_style="green"))
     return True, None, None, True
 
 
-def handle_provider(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Управление провайдером LLM"""
-    import config
-    from config import LLM_PROVIDER, LazyLoader
-
-    # Показать текущий провайдер
-    if not action or action == "provider":
-        console.print(f"[cyan]📡 Текущий провайдер: {LLM_PROVIDER}[/cyan]")
-        console.print("[cyan]Доступные провайдеры:[/cyan]")
-        console.print("  • ollama      - локально, бесплатно (рекомендуется)")
-        console.print("  • openrouter  - облако, требуется API ключ")
-        console.print("  • huggingface - HF Inference API, требуется HF_TOKEN")
-        console.print("\nИспользование: /provider <имя>")
-        return True, None, None, True
-
-    parts = action.split(maxsplit=1)
-    if len(parts) < 2:
+def handle_course(action: str) -> HandlerResult:
+    """Обработчик команд /courses и /course."""
+    parts = action.strip().split()
+    if not parts or parts[0] in ("courses", "list"):
+        course_list = list_courses()
         console.print(
-            "[yellow]Использование: /provider <ollama|openrouter|huggingface>[/yellow]"
+            Panel(course_list, title="📚 Доступные курсы", border_style="cyan")
         )
         return True, None, None, True
 
-    provider = parts[1].strip()
-
-    if provider not in ("ollama", "openrouter", "huggingface"):
-        console.print(
-            "[red]❌ Неизвестный провайдер. Доступные: ollama, openrouter, huggingface[/red]"
-        )
+    subcmd = parts[0].lower()
+    if subcmd == "start" and len(parts) > 1:
+        course_id = parts[1]
+        result = start_course(course_id)
+        console.print(Panel(result, title="🚀 Запуск курса", border_style="green"))
         return True, None, None, True
 
-    # Меняем провайдер
-    old_provider = LLM_PROVIDER
-    config.LLM_PROVIDER = provider
-    # Сбрасываем кэш LLM для перезагрузки
-    LazyLoader._llm = None
+    if subcmd == "progress" and len(parts) > 1:
+        course_id = parts[1]
+        state = get_state()
+        current_topic = state.course_progress.get(course_id, 0)
+        result = get_course_progress(course_id, current_topic)
+        console.print(Panel(result, title="📈 Прогресс курса", border_style="blue"))
+        return True, None, None, True
 
-    console.print(f"[green]✅ Провайдер изменён: {old_provider} → {provider}[/green]")
-    console.print(
-        "[yellow]Следующий запрос загрузит модель нового провайдера.[/yellow]"
-    )
-
-    # Показываем настройки для нового провайдера
-    if provider == "ollama":
-        console.print(f"[dim]Модель: {config.OLLAMA_MODEL}[/dim]")
-        console.print(
-            "[dim]Запустите 'ollama serve' и 'ollama pull <модель>' если ещё не[/dim]"
-        )
-    elif provider == "openrouter":
-        console.print(f"[dim]Модель: {config.OPENROUTER_MODEL}[/dim]")
-        console.print("[dim]Убедитесь, что OPENROUTER_API_KEY установлен в .env[/dim]")
-    elif provider == "huggingface":
-        console.print(f"[dim]Модель: {config.HF_MODEL}[/dim]")
-        console.print("[dim]Убедитесь, что HF_TOKEN установлен в .env[/dim]")
-
+    console.print("[yellow]Использование:[/yellow]")
+    console.print("  /courses или /course list - показать список курсов")
+    console.print("  /course start <id> - начать курс")
+    console.print("  /course progress <id> - показать прогресс")
     return True, None, None, True
 
 
-def handle_model(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Управление моделями LLM для текущего провайдера"""
-    import config
-
-    provider = config.LLM_PROVIDER
-
-    # Показать текущую модель
-    if not action or action == "model":
-        console.print(f"[cyan]🤖 Текущий провайдер: {provider}[/cyan]")
-        if provider == "ollama":
-            console.print(f"[cyan]Модель: {config.OLLAMA_MODEL}[/cyan]")
-            console.print(
-                "[cyan]Доступные модели: qwen2.5:7b, mistral:7b, llama2:7b и другие[/cyan]"
-            )
-        elif provider == "openrouter":
-            console.print(f"[cyan]Модель: {config.OPENROUTER_MODEL}[/cyan]")
-            console.print(
-                "[cyan]Примеры: meta-llama/llama-3.3-70b-instruct:free, google/gemma-3-27b-it:free[/cyan]"
-            )
-        elif provider == "huggingface":
-            console.print(f"[cyan]Модель: {config.HF_MODEL}[/cyan]")
-            console.print(
-                "[cyan]Примеры: mistralai/Mixtral-8x7B-Instruct-v0.1, meta-llama/Llama-2-70b-chat-hf[/cyan]"
-            )
-        console.print("\nИспользование: /model <имя_модели>")
+def handle_writeups(action: str) -> HandlerResult:
+    """Показать список сохранённых writeup'ов."""
+    writeup_dir = "./writeups"
+    if not os.path.exists(writeup_dir):
+        os.makedirs(writeup_dir, exist_ok=True)
+        console.print("[yellow]Нет сохранённых writeup'ов[/yellow]")
         return True, None, None, True
-
-    # Изменить модель
-    parts = action.split(maxsplit=1)
-    if len(parts) < 2:
-        console.print("[yellow]Использование: /model <имя_модели>[/yellow]")
+    files = [f for f in os.listdir(writeup_dir) if f.endswith(".md")]
+    if not files:
+        console.print("[yellow]Нет сохранённых writeup'ов[/yellow]")
         return True, None, None, True
+    console.print("[bold]Сохранённые writeup'ы:[/bold]")
+    for f in sorted(files, reverse=True):
+        console.print(f"  • {f}")
+    return True, None, None, True
 
-    model_name = parts[1].strip()
 
-    # Устанавливаем модель в зависимости от провайдера
-    if provider == "ollama":
-        config.OLLAMA_MODEL = model_name
-        console.print(f"[green]✅ Модель Ollama изменена: {model_name}[/green]")
-        console.print("[yellow]Сброс кэша LLM...[/yellow]")
-        config.LazyLoader._llm = None
-    elif provider == "openrouter":
-        config.OPENROUTER_MODEL = model_name
-        console.print(f"[green]✅ Модель OpenRouter изменена: {model_name}[/green]")
-        console.print("[yellow]Сброс кэша LLM...[/yellow]")
-        config.LazyLoader._llm = None
-    elif provider == "huggingface":
-        config.HF_MODEL = model_name
-        console.print(f"[green]✅ Модель HuggingFace изменена: {model_name}[/green]")
-        console.print("[yellow]Сброс кэша LLM...[/yellow]")
-        config.LazyLoader._llm = None
+def handle_ghost_log(action: str) -> HandlerResult:
+    """Обработчик /ghost_log [list|random|<id>] — скрытый лог (Глава 1)."""
+    from handlers.ghost_log import handle_ghost_log as ghost_log_handler
+
+    args = action.strip()
+    if args == "ghost_log":
+        args = ""
     else:
-        console.print("[red]❌ Неизвестный провайдер[/red]")
-        return True, None, None, True
+        args = args[len("ghost_log"):].strip()
 
-    console.print("[dim]Следующий запрос загрузит новую модель.[/dim]")
+    result = ghost_log_handler(args)
+    console.print(result)
     return True, None, None, True
 
 
-def handle_set_api_key(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Установка API ключа для провайдера"""
-    import os
+def handle_backdoor(action: str) -> HandlerResult:
+    """Обработчик /backdoor [list|info <id>|remove <id>|random] — бэкдоры (Глава 5)."""
+    from handlers.backdoor import handle_backdoor as backdoor_handler
 
-    import config
-
-    if not action or action == "set-api-key":
-        console.print("[cyan]Установка API ключа[/cyan]")
-        console.print("Использование:")
-        console.print("  /set-api-key openrouter <ключ>")
-        console.print("  /set-api-key huggingface <ключ>")
-        console.print("\nПримечание: Ключ будет сохранён только в текущей сессии.")
-        return True, None, None, True
-
-    parts = action.split(maxsplit=2)
-    if len(parts) < 3:
-        console.print(
-            "[yellow]Использование: /set-api-key <openrouter|huggingface> <api_key>[/yellow]"
-        )
-        return True, None, None, True
-
-    provider = parts[1].strip().lower()
-    api_key = parts[2].strip()
-
-    if provider == "openrouter":
-        os.environ["OPENROUTER_API_KEY"] = api_key
-        console.print(
-            "[green]✅ OPENROUTER_API_KEY установлен для текущей сессии[/green]"
-        )
-        console.print("[yellow]Сброс кэша LLM...[/yellow]")
-        config.LazyLoader._llm = None
-    elif provider == "huggingface":
-        os.environ["HF_TOKEN"] = api_key
-        console.print("[green]✅ HF_TOKEN установлен для текущей сессии[/green]")
-        console.print("[yellow]Сброс кэша LLM...[/yellow]")
-        config.LazyLoader._llm = None
+    args = action.strip()
+    if args == "backdoor":
+        args = ""
     else:
-        console.print("[red]❌ Поддерживаются только: openrouter, huggingface[/red]")
+        args = args[len("backdoor"):].strip()
 
+    result = backdoor_handler(args)
+    console.print(result)
     return True, None, None, True
 
 
-def handle_add_book(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Добавить PDF книгу в базу знаний"""
-    try:
-        parts = action.split(maxsplit=1)
-        if len(parts) < 2:
-            console.print("[yellow]Использование: /add_book <путь_к_PDF>[/yellow]")
-            return True, None, None, True
+def handle_stability(action: str) -> HandlerResult:
+    """Обработчик /stability [status|damage <amount>|heal <amount>] — World Stability (Глава 7)."""
+    from state import get_state
 
-        src_path = parts[1].strip()
-        if not os.path.exists(src_path):
-            console.print(f"[red]Файл не найден: {src_path}[/red]")
-            return True, None, None, True
+    state = get_state()
+    parts = action.strip().split()
+    sub = parts[1].lower() if len(parts) > 1 else "status"
 
-        # ✅ Path traversal защита
-        from config import KNOWLEDGE_DIR
-
-        src_path_abs = os.path.abspath(src_path)
-        knowledge_dir_abs = os.path.abspath(KNOWLEDGE_DIR)
-        if not src_path_abs.startswith(knowledge_dir_abs):
-            console.print(
-                "[red]❌ Запрещенный путь. Файл должен находиться в knowledge_base/[/red]"
-            )
-            return True, None, None, True
-
-        if not src_path.lower().endswith(".pdf"):
-            console.print("[yellow]Поддерживаются только PDF файлы[/yellow]")
-            return True, None, None, True
-
-        import shutil
-
-        filename = os.path.basename(src_path)
-        dst_path = os.path.join(KNOWLEDGE_DIR, filename)
-
-        if os.path.exists(dst_path):
-            console.print(f"[yellow]Файл уже существует: {filename}[/yellow]")
-            return True, None, None, True
-
-        shutil.copy2(src_path, dst_path)
-        console.print(f"[green]✓ Книга добавлена: {filename}[/green]")
-        console.print(
-            "[cyan]Перезапустите приложение или запустите переиндексацию чтобы обновить базу.[/cyan]"
-        )
-
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
-    return True, None, None, True
-
-
-def handle_adaptive(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Показать слабые темы и адаптивный план обучения"""
-    try:
-        state = get_context().state
-        weak = state.get_weak_topics(threshold=70.0)
-        if not weak:
-            console.print(
-                "[green]Поздравляю! Нет слабых тем (все темы с успешностью >=70%)[/green]"
-            )
-        else:
-            console.print("[bold cyan]Адаптивное обучение: слабые темы[/bold cyan]")
-            console.print(
-                f"[dim]Порог: 70%. Темы с успешностью ниже порога приоритетны для повторения.[/dim]\n"
-            )
-            for w in weak:
-                console.print(
-                    f"  • {w['topic']}: {w['success_rate']:.1f}% (попыток: {w['attempts']})"
-                )
-            # Recommend next focus
-            next_topic = state.get_next_weak_topic()
-            if next_topic:
-                console.print(
-                    f"\n[yellow]Следующая тема для фокуса: {next_topic}[/yellow]"
-                )
-                console.print("[dim]Запустите /quiz чтобы потренировать эту тему[/dim]")
-        return True, None, None, True
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
+    if sub == "status":
+        status = state.get_world_stability_status()
+        console.print(f"[bold]World Stability:[/bold] {state.world_stability}/100 — {status}")
         return True, None, None, True
 
-
-def handle_repeat(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """Интервальные повторения (Spaced Repetition) - повторение тем, готовых к проверке."""
-    try:
-        state = get_context().state
-
-        # SR-01: Review statistics
-        parts = action.split()
-        if len(parts) > 1 and parts[1] == "stats":
-            schedule = state.review_schedule
-            if not schedule:
-                console.print("[yellow]Нет тем в расписании повторений[/yellow]")
-                return True, None, None, True
-
-            total = len(schedule)
-            due = len(state.get_due_reviews())
-            total_reps = sum(d.get("repetitions", 0) for d in schedule.values())
-            avg_ef = sum(d.get("ef", 2.5) for d in schedule.values()) / total if total else 0
-            longest_interval = max((d.get("interval", 0) for d in schedule.values()), default=0)
-
-            # Most reviewed topic
-            most_reviewed = max(schedule.items(), key=lambda x: x[1].get("repetitions", 0))
-
-            console.print(Panel(
-                f"[bold]Всего тем:[/bold] {total}\n"
-                f"[bold]Готовы к повторению:[/bold] {due}\n"
-                f"[bold]Всего повторений:[/bold] {total_reps}\n"
-                f"[bold]Средний ease factor:[/bold] {avg_ef:.2f}\n"
-                f"[bold]Максимальный интервал:[/bold] {longest_interval} дней\n"
-                f"[bold]Самая повторяемая:[/bold] {most_reviewed[0]} ({most_reviewed[1].get('repetitions', 0)} раз)",
-                title="📊 СТАТИСТИКА ПОВТОРЕНИЙ",
-                border_style="cyan",
-            ))
-            return True, None, None, True
-
-        # SR-02: Review Calendar
-        if len(parts) > 1 and parts[1] == "calendar":
-            from datetime import datetime, timedelta
-
-            schedule = state.review_schedule
-            if not schedule:
-                console.print("[yellow]Нет тем в расписании повторений[/yellow]")
-                return True, None, None, True
-
-            today = datetime.now()
-            console.print("[bold cyan]📅 Календарь повторений (14 дней)[/bold cyan]\n")
-
-            for i in range(14):
-                day = today + timedelta(days=i)
-                day_str = day.strftime("%Y-%m-%d")
-                day_label = day.strftime("%d.%m (%a)")
-
-                # Find topics due on or before this day
-                due_topics = []
-                for topic, data in schedule.items():
-                    next_review = data.get("next_review", 0)
-                    if next_review <= day.timestamp():
-                        due_topics.append(topic)
-
-                if due_topics:
-                    blocks = "█" * min(len(due_topics), 5)
-                    console.print(f"  {day_label} [green]{blocks}[/green] {', '.join(due_topics[:3])}{'...' if len(due_topics) > 3 else ''}")
-                else:
-                    console.print(f"  {day_label} [dim]—[/dim]")
-
-            return True, None, None, True
-
-        due = state.get_due_reviews()
-
-        if not due:
-            console.print(
-                "[green]🎉 Нет тем для повторения! Все темы в актуальном состоянии.[/green]"
-            )
-            return True, None, None, True
-
-        console.print("[bold cyan]📚 Темы для повторения:[/bold cyan]")
-        console.print(f"[dim]Всего: {len(due)}[/dim]\n")
-        for idx, item in enumerate(due, 1):
-            console.print(
-                f"  {idx}. {item['topic']} (интервал: {item['interval']} дней, попыток: {item['repetitions']})"
-            )
-
-        console.print(
-            "\n[yellow]Выберите тему для повторения (номер) или /cancel для отмены[/yellow]"
-        )
-        choice = input("Номер: ").strip()
-        if choice.lower() in ["/cancel", "/exit"]:
-            console.print("[yellow]Отмена[/yellow]")
-            return True, None, None, True
-
+    if sub == "damage" and len(parts) > 2:
         try:
-            idx = int(choice) - 1
+            amount = int(parts[2])
+            state.adjust_world_stability(-abs(amount))
+            console.print(f"[red]World Stability damaged by {amount}. Current: {state.world_stability}[/red]")
         except ValueError:
-            console.print("[red]Неверный ввод[/red]")
-            return True, None, None, True
+            console.print("[red]Invalid amount[/red]")
+        return True, None, None, True
 
-        if idx < 0 or idx >= len(due):
-            console.print("[red]Неверный номер[/red]")
-            return True, None, None, True
-
-        topic = due[idx]["topic"]
-        console.print(f"[cyan]Запускаю квиз по теме: {topic}[/cyan]")
-
+    if sub == "heal" and len(parts) > 2:
         try:
-            from generators import generate_quiz
-            from knowledge import get_current_vectordb
+            amount = int(parts[2])
+            state.adjust_world_stability(abs(amount))
+            console.print(f"[green]World Stability healed by {amount}. Current: {state.world_stability}[/green]")
+        except ValueError:
+            console.print("[red]Invalid amount[/red]")
+        return True, None, None, True
 
-            vectordb = get_current_vectordb()
-            quiz = generate_quiz(vectordb, topic=topic)
-            questions = quiz.get("questions", [])
-            if not questions:
-                console.print(
-                    "[yellow]Не удалось сгенерировать вопросы для этой темы[/yellow]"
-                )
-                return True, None, None, True
-        except Exception as e:
-            console.print(f"[red]Ошибка генерации квиза: {e}[/red]")
-            return True, None, None, True
+    console.print("[yellow]Usage: /stability [status|damage <amount>|heal <amount>][/yellow]")
+    return True, None, None, True
 
-        console.print(f"[bold green]📝 Квиз: {len(questions)} вопросов[/bold green]\n")
-        total_score = 0
-        max_total = 0
 
-        for i, q in enumerate(questions, 1):
-            console.print(f"[bold cyan]Вопрос {i}/{len(questions)}:[/bold cyan]")
-            console.print(q.get("question", "?"))
-            if "options" in q:
-                for opt_key, opt_val in q["options"].items():
-                    console.print(f"  {opt_key}) {opt_val}")
-            try:
-                user_ans = input("\nВаш ответ: ").strip()
-                if user_ans.lower() in ["/exit", "/quit"]:
-                    console.print("[yellow]Квиз прерван[/yellow]")
-                    break
-                if user_ans.lower() == "/skip":
-                    console.print("[dim]Пропущено[/dim]\n")
-                    continue
-                if not user_ans:
-                    console.print("[dim]Пустой ответ[/dim]\n")
-                    continue
-            except KeyboardInterrupt:
-                console.print("\n[yellow]Прервано[/yellow]")
-                break
+def handle_teacher_sleep(action: str) -> HandlerResult:
+    """Обработчик /teacher_sleep [status|secret] — Teacher Sleep 4AM (Глава 7)."""
+    from state import get_state
 
-            # Evaluate
-            if "options" in q:
-                correct = q.get("correct", "")
-                if user_ans.upper() == correct.upper():
-                    score = 10
-                    feedback = "✅ Верно!"
-                else:
-                    score = 0
-                    feedback = f"❌ Неверно. Правильный ответ: {correct}"
-            else:
-                result = check_open_answer(q.get("question", ""), user_ans, None)
-                score = result["score"]
-                feedback = result["feedback"]
-            console.print(f"[bold]Результат:[/bold] {score}/10 - {feedback}\n")
-            total_score += score
-            max_total += 10
+    state = get_state()
+    parts = action.strip().split()
+    sub = parts[1].lower() if len(parts) > 1 else "status"
 
-        if max_total > 0:
-            success_rate = total_score / max_total * 100
-            console.print(
-                f"[bold]📊 Итог:[/bold] {total_score}/{max_total} ({success_rate:.1f}%)"
-            )
+    if sub == "status":
+        status = state.get_teacher_sleep_status()
+        console.print(f"[bold]Teacher Sleep:[/bold] {status}")
+        if state.is_teacher_sleeping():
+            console.print("[dim]Доступен /teacher_sleep secret для скрытых логов[/dim]")
+        return True, None, None, True
 
-            state.update_weak_topic(topic, total_score, max_total)
-            state.mark_reviewed(topic, total_score, max_total)
-
-            entry = state.review_schedule.get(topic, {})
-            if entry:
-                import time
-
-                next_date = time.strftime(
-                    "%Y-%m-%d", time.localtime(entry["next_review"])
-                )
-                console.print(
-                    f"[cyan]Следующее повторение: {next_date} (интервал: {entry['interval']} дней)[/cyan]"
-                )
-
-            state.save_to_file()
+    if sub == "secret":
+        if state.can_access_secret_logs():
+            console.print("[bold cyan]🌙 SECRET LOGS (4:00 AM):[/bold cyan]")
+            console.print("  [REDACTED] — Учитель не видит. Это твоё окно.")
+            console.print("  Логи учителя за сегодня: ...")
+            console.print("  [dim]Доступно только в 4:00 AM[/dim]")
         else:
-            console.print("[dim]Нет результатов[/dim]")
-
+            console.print("[red]Учитель не спит. Попробуй в 4:00 AM.[/red]")
         return True, None, None, True
 
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
-        import traceback
-
-        traceback.print_exc()
-        return True, None, None, True
-
-def handle_export(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    from datetime import datetime
-
-    from memory import get_chat_history
-    try:
-        ctx = get_context()
-        parts = action.split(maxsplit=1)
-        filename = parts[1].strip() if len(parts) >= 2 else None
-        if not filename:
-            filename = f"chat_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
-        history = get_chat_history(conn=ctx.db_conn, limit=1000)
-        if not history:
-            console.print("[yellow]История пуста[/yellow]")
-            return True, None, None, True
-        if filename.endswith(".json"):
-            import json
-            with open(filename, "w", encoding="utf-8") as f:
-                json.dump(history, f, ensure_ascii=False, indent=2)
-        else:
-            md = "# CyberTeacher - Экспорт чата\n\n"
-            md += f"Дата: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\nСообщений: {len(history)}\n\n---\n\n"
-            for msg in history:
-                role = msg.get("role", "?")
-                content = msg.get("content", "")
-                mode = msg.get("mode", "")
-                md += f"### {'👤' if role == 'user' else '🤖'} {role.capitalize()}"
-                if mode: md += f" ({mode})"
-                md += f"\n\n{content}\n\n---\n\n"
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write(md)
-        console.print(f"[green]✅ Экспортирован: {filename}[/green]")
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
+    console.print("[yellow]Usage: /teacher_sleep [status|secret][/yellow]")
     return True, None, None, True
 
 
-def handle_usage(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    try:
-        cmd_stats = get_context().state.command_usage
-        if not cmd_stats:
-            console.print("[yellow]Статистика пуста[/yellow]")
-            return True, None, None, True
-        sorted_cmds = sorted(cmd_stats.items(), key=lambda x: x[1], reverse=True)
-        total = sum(cmd_stats.values())
-        console.print("[bold cyan]📊 Статистика команд[/bold cyan]")
-        console.print(f"[dim]Всего: {total}[/dim]\n")
-        top_15 = sorted_cmds[:15]
-        for cmd, count in top_15:
-            bar_len = int((count / top_15[0][1]) * 20) if top_15[0][1] > 0 else 0
-            pct = (count / total * 100) if total > 0 else 0
-            console.print(f"  [cyan]{cmd:<20}[/cyan] {count:>4} ({pct:.1f}%) [dim]{'█' * bar_len}[/dim]")
-        if len(sorted_cmds) > 15:
-            console.print(f"\n[dim]... и ещё {len(sorted_cmds) - 15} команд[/dim]")
-    except Exception as e:
-        console.print(f"[red]Ошибка: {e}[/red]")
-    return True, None, None, True
+def handle_faiss_watch(action: str) -> HandlerResult:
+    """Обработчик /faiss_watch [start|stop|status] — автопереиндексация FAISS."""
+    parts = action.strip().split()
+    sub = parts[1].lower() if len(parts) > 1 else "status"
 
-
-def handle_writeups(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """ANA-04: Browse and search past writeups."""
-    from datetime import datetime
-
-    state = get_context().state
-    history = state.writeup_history
-
-    if not history:
-        console.print("[yellow]Нет сохранённых writeups[/yellow]")
-        return True, None, None, True
-
-    parts = action.split()
-    subcmd = parts[1] if len(parts) > 1 else "list"
-
-    if subcmd == "list":
-        console.print("[bold cyan]📝 История writeups[/bold cyan]")
-        console.print(f"[dim]Всего: {len(history)}[/dim]\n")
-        for idx, entry in enumerate(history[-15:], 1):
-            ts = entry.get("timestamp", 0)
-            dt = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
-            topic = entry.get("topic", "?")
-            wtype = entry.get("type", "?")
-            preview = entry.get("writeup", "")[:80]
-            console.print(f"  {idx}. [{dt}] {topic} ({wtype})")
-            console.print(f"     [dim]{preview}...[/dim]")
-        if len(history) > 15:
-            console.print(f"\n[dim]... и ещё {len(history) - 15} записей[/dim]")
-        console.print("\n[yellow]Просмотр: /writeups <номер> | Поиск: /writeups search <тема>[/yellow]")
-
-    elif subcmd == "search" and len(parts) > 2:
-        query = " ".join(parts[2:]).lower()
-        matches = [e for e in history if query in e.get("topic", "").lower() or query in e.get("writeup", "").lower()]
-        if not matches:
-            console.print(f"[yellow]Ничего не найдено по запросу: {query}[/yellow]")
-        else:
-            console.print(f"[bold cyan]🔍 Найдено: {len(matches)} writeups[/bold cyan]\n")
-            for idx, entry in enumerate(matches[-10:], 1):
-                ts = entry.get("timestamp", 0)
-                dt = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
-                topic = entry.get("topic", "?")
-                console.print(f"  {idx}. [{dt}] {topic}")
-            console.print("\n[yellow]Просмотр: /writeups <номер>[/yellow]")
-
-    elif subcmd.isdigit():
-        idx = int(subcmd) - 1
-        if 0 <= idx < len(history):
-            entry = history[idx]
-            console.print(Panel(
-                entry.get("writeup", ""),
-                title=f"Writeup: {entry.get('topic', '?')}",
-                border_style="cyan",
-                expand=True,
-            ))
-        else:
-            console.print("[red]Неверный номер[/red]")
-
-    else:
-        console.print("[yellow]Использование: /writeups [list|search <тема>|<номер>][/yellow]")
-
-    return True, None, None, True
-
-
-def handle_exploits_log(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """ANA-05: Browse past exploit submission results."""
-    state = get_context().state
-    log = state.exploit_success
-
-    if not log:
-        console.print("[yellow]Нет записей об эксплойтах[/yellow]")
-        return True, None, None, True
-
-    console.print("[bold cyan]🔓 История эксплойтов[/bold cyan]")
-    console.print(f"[dim]Всего успешных: {len(log)}[/dim]\n")
-
-    # Group by mission
-    missions: dict[str, list] = {}
-    for entry in log:
-        mid = entry.get("mission_id", "?")
-        if mid not in missions:
-            missions[mid] = []
-        missions[mid].append(entry.get("step_order", "?"))
-
-    for mid, steps in missions.items():
-        steps.sort()
-        console.print(f"  [cyan]{mid}[/cyan] — шаги: {', '.join(str(s) for s in steps)}")
-
-    console.print(f"\n[dim]Успешных попыток: {len(log)}[/dim]")
-    return True, None, None, True
-
-
-def handle_heatmap(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """ANA-02: Command usage heatmap (GitHub contributions style)."""
-    from datetime import datetime, timedelta
-
-    state = get_context().state
-    daily = state.daily_command_counts
-
-    if not daily:
-        console.print("[yellow]Нет данных для heatmap. Используйте команды, чтобы начать[/yellow]")
-        return True, None, None, True
-
-    # Get last 28 days
-    today = datetime.now()
-    days = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(27, -1, -1)]
-
-    # Calculate max commands per day for scaling
-    max_cmds = max((sum(daily.get(d, {}).values(), 0) for d in days), default=0)
-    if max_cmds == 0:
-        max_cmds = 1
-
-    console.print("[bold cyan]📊 Активность команд (28 дней)[/bold cyan]\n")
-
-    # Display heatmap
-    for day in days:
-        dt = datetime.strptime(day, "%Y-%m-%d")
-        total = sum(daily.get(day, {}).values(), 0)
-        intensity = int((total / max_cmds) * 4)
-        blocks = [" ", "░", "▒", "▓", "█"]
-        block = blocks[min(intensity, 4)]
-        day_label = dt.strftime("%d")
-        console.print(f"  {day_label} {block} ({total} команд)")
-
-    console.print(f"\n[dim]Легенда: ░ мало  ▒ средне  ▓ много  █ очень много[/dim]")
-
-    # Top commands overall
-    all_cmds: dict[str, int] = {}
-    for day_cmds in daily.values():
-        for cmd, count in day_cmds.items():
-            all_cmds[cmd] = all_cmds.get(cmd, 0) + count
-    if all_cmds:
-        top = sorted(all_cmds.items(), key=lambda x: x[1], reverse=True)[:5]
-        console.print("\n[bold]Топ команд:[/bold]")
-        for cmd, count in top:
-            console.print(f"  [cyan]{cmd:<20}[/cyan] {count}")
-
-    return True, None, None, True
-
-
-def handle_state(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """CLI-05: Export/Import full app state as JSON."""
-    from config import STATE_FILE
-
-    state = get_context().state
-    parts = action.split(maxsplit=2)
-    subcmd = parts[1] if len(parts) > 1 else "help"
-
-    if subcmd == "export":
-        os.makedirs("backups", exist_ok=True)
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"backups/app_state_{ts}.json"
-
+    if sub == "start":
+        console.print("[bold cyan]🔄 Запуск FAISS Watcher...[/bold cyan]")
+        console.print("[dim]Наблюдение за изменениями в проекте. Ctrl+C для остановки.[/dim]")
         try:
-            state.save_to_file(filename)
-            size = os.path.getsize(filename) / 1024
-            console.print(Panel(
-                f"[bold]Файл:[/bold] {filename}\n"
-                f"[bold]Размер:[/bold] {size:.1f} KB\n"
-                f"[bold]Очки:[/bold] {state.points:.0f}\n"
-                f"[bold]Стрик:[/bold] {state.daily_streak} дней\n"
-                f"[bold]Навыков:[/bold] {len(state.skill_tracker)}\n"
-                f"[bold]Тем в расписании:[/bold] {len(state.review_schedule)}",
-                title="✅ ЭКСПОРТ СОСТОЯНИЯ",
-                border_style="green",
-            ))
+            from faiss_watcher import run_watcher
+            run_watcher()
+        except KeyboardInterrupt:
+            console.print("[yellow]Watcher остановлен[/yellow]")
+        except ImportError:
+            console.print("[red]watchdog не установлен: pip install watchdog[/red]")
         except Exception as e:
-            console.print(f"[red]Ошибка экспорта: {e}[/red]")
+            console.print(f"[red]Ошибка: {e}[/red]")
+        return True, None, None, True
 
-    elif subcmd == "import" and len(parts) > 2:
-        filename = parts[2].strip()
-        if not os.path.exists(filename):
-            console.print(f"[red]Файл не найден: {filename}[/red]")
-            return True, None, None, True
+    if sub == "status":
+        console.print("[dim]FAISS Watcher: не запущен (команда /faiss_watch start для запуска)[/dim]")
+        return True, None, None, True
 
-        try:
-            if os.path.exists(STATE_FILE):
-                backup = f"{STATE_FILE}.backup"
-                shutil.copy2(STATE_FILE, backup)
-                console.print(f"[dim]Бэкап текущего состояния: {backup}[/dim]")
-
-            state.load_from_file(filename)
-            state.save_to_file()
-            console.print(Panel(
-                f"[bold]Загружено из:[/bold] {filename}\n"
-                f"[bold]Очки:[/bold] {state.points:.0f}\n"
-                f"[bold]Стрик:[/bold] {state.daily_streak} дней\n\n"
-                "[yellow]Перезапустите приложение для полного применения[/yellow]",
-                title="✅ ИМПОРТ СОСТОЯНИЯ",
-                border_style="green",
-            ))
-        except Exception as e:
-            console.print(f"[red]Ошибка импорта: {e}[/red]")
-
-    elif subcmd == "list":
-        os.makedirs("backups", exist_ok=True)
-        backups = sorted([
-            f for f in os.listdir("backups")
-            if f.startswith("app_state_") and f.endswith(".json")
-        ], reverse=True)
-
-        if not backups:
-            console.print("[yellow]Нет сохранённых бэкапов[/yellow]")
-        else:
-            console.print("[bold cyan]📦 Доступные бэкапы[/bold cyan]")
-            console.print(f"[dim]Всего: {len(backups)}[/dim]\n")
-            for f in backups[:10]:
-                path = os.path.join("backups", f)
-                size = os.path.getsize(path) / 1024
-                console.print(f"  {f} ({size:.1f} KB)")
-            if len(backups) > 10:
-                console.print(f"\n[dim]... и ещё {len(backups) - 10}[/dim]")
-            console.print("\n[yellow]Импорт: /state import backups/<файл>[/yellow]")
-
-    else:
-        console.print(Panel(
-            "[bold]Управление состоянием[/bold]\n\n"
-            "  /state export        — экспортировать в backups/\n"
-            "  /state import <файл> — импортировать из файла\n"
-            "  /state list          — список бэкапов",
-            title="STATE",
-            border_style="cyan",
-        ))
-
-    return True, None, None, True
-
-
-def handle_topics(action: str) -> tuple[bool, Any | None, Any | None, bool]:
-    """CNT-03: Browse all course topics with progress."""
-    from courses import list_all_topics
-
-    state = get_context().state
-    parts = action.split(maxsplit=2)
-    subcmd = parts[1] if len(parts) > 1 else "all"
-
-    all_topics = list_all_topics(state.course_progress)
-
-    if subcmd == "all":
-        courses: dict[str, list] = {}
-        for t in all_topics:
-            if t["course"] not in courses:
-                courses[t["course"]] = []
-            courses[t["course"]].append(t)
-
-        console.print("[bold cyan]📚 Все темы курсов[/bold cyan]")
-        total = len(all_topics)
-        completed = sum(1 for t in all_topics if t["status"] == "completed")
-        console.print(f"[dim]Всего: {total} тем | Пройдено: {completed}[/dim]\n")
-
-        status_emoji = {"completed": "✅", "in_progress": "📍", "not_started": "⬜"}
-        for course_name, topics in courses.items():
-            console.print(f"[bold]{course_name}[/bold]")
-            for t in topics[:10]:
-                emoji = status_emoji.get(t["status"], "⬜")
-                console.print(f"  {emoji} {t['topic']}")
-            if len(topics) > 10:
-                console.print(f"  [dim]... и ещё {len(topics) - 10}[/dim]")
-            console.print()
-
-    elif subcmd.isdigit():
-        idx = int(subcmd) - 1
-        if 0 <= idx < len(all_topics):
-            t = all_topics[idx]
-            status_names = {"completed": "✅ Пройдена", "in_progress": "📍 В процессе", "not_started": "⬜ Не начата"}
-            console.print(Panel(
-                f"[bold]Курс:[/bold] {t['course']}\n"
-                f"[bold]Тема:[/bold] {t['topic']}\n"
-                f"[bold]Статус:[/bold] {status_names.get(t['status'], '?')}\n\n"
-                f"[bold]Описание:[/bold] {t['description']}\n\n"
-                f"[bold]Лаборатории:[/bold] {', '.join(t['labs']) if t['labs'] else 'нет'}\n"
-                f"[bold]Квизы:[/bold] {', '.join(t['quiz_topics']) if t['quiz_topics'] else 'нет'}",
-                title="ТЕМА КУРСА",
-                border_style="cyan",
-            ))
-        else:
-            console.print("[red]Неверный номер[/red]")
-
-    else:
-        query = " ".join(parts[1:]).lower()
-        matches = [t for t in all_topics if query in t["topic"].lower() or query in t["description"].lower()]
-        if not matches:
-            console.print(f"[yellow]Ничего не найдено по запросу: {query}[/yellow]")
-        else:
-            console.print(f"[bold cyan]🔍 Найдено: {len(matches)} тем[/bold cyan]\n")
-            status_emoji = {"completed": "✅", "in_progress": "📍", "not_started": "⬜"}
-            for t in matches[:10]:
-                emoji = status_emoji.get(t["status"], "⬜")
-                console.print(f"  {emoji} [{t['course']}] {t['topic']}")
-
+    console.print("[yellow]Usage: /faiss_watch [start|status][/yellow]")
     return True, None, None, True

@@ -16,12 +16,19 @@ from rich.table import Table
 
 from di import get_context
 from ui import console
+from handlers.types import HandlerResult
+
 
 CASES: dict[str, dict[str, Any]] = {
     "corp_espionage": {
         "title": "Корпоративный шпионаж",
         "description": "В компании TechCorp произошла утечка чертежей нового продукта. Найдите шпиона.",
-        "suspects": ["Иванов (Бухгалтер)", "Петрова (Инженер)", "Сидоров (Менеджер)", "Козлов (IT-админ)"],
+        "suspects": [
+            "Иванов (Бухгалтер)",
+            "Петрова (Инженер)",
+            "Сидоров (Менеджер)",
+            "Козлов (IT-админ)",
+        ],
         "culprit": "Петрова (Инженер)",
         "evidence": {
             "email_logs": "Обнаружены письма на внешний до competitor.com от p.petrova@techcorp.local",
@@ -38,7 +45,12 @@ CASES: dict[str, dict[str, Any]] = {
     "data_leak": {
         "title": "Утечка данных клиентов",
         "description": "База данных клиентов попала в даркнет. Определите вектор утечки.",
-        "suspects": ["Внешний хакер", "Инсайдер (Маркетинг)", "Ошибка конфигурации S3", "Фишинг"],
+        "suspects": [
+            "Внешний хакер",
+            "Инсайдер (Маркетинг)",
+            "Ошибка конфигурации S3",
+            "Фишинг",
+        ],
         "culprit": "Ошибка конфигурации S3",
         "evidence": {
             "server_logs": "Нет следов взлома, аутентификация не нарушена",
@@ -93,13 +105,15 @@ def _start_case(case_id: str) -> bool:
         console.print(f"[red]Кейс '{case_id}' не найден.[/red]")
         return False
 
-    console.print(Panel(
-        f"[bold]Описание:[/bold] {case['description']}\n"
-        f"[bold]Подозреваемые:[/bold] {', '.join(case['suspects'])}\n\n"
-        f"[dim]Изучайте улики: email_logs, usb_logs, access_logs, browser_history, server_logs и др.[/dim]",
-        title=case["title"],
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            f"[bold]Описание:[/bold] {case['description']}\n"
+            f"[bold]Подозреваемые:[/bold] {', '.join(case['suspects'])}\n\n"
+            f"[dim]Изучайте улики: email_logs, usb_logs, access_logs, browser_history, server_logs и др.[/dim]",
+            title=case["title"],
+            border_style="cyan",
+        )
+    )
 
     ctx = get_context()
     state = ctx.state
@@ -119,6 +133,9 @@ def _examine_evidence(item: str) -> bool:
         return False
 
     case = CASES.get(case_id)
+    if case is None:
+        console.print(f"[red]Кейс '{case_id}' не найден.[/red]")
+        return False
     evidence = case["evidence"].get(item)
     if evidence:
         console.print(Panel(f"[bold]{item}:[/bold]\n{evidence}", border_style="green"))
@@ -143,60 +160,69 @@ def _conclude(suspect: str) -> bool:
         return False
 
     case = CASES.get(case_id)
+    if case is None:
+        console.print(f"[red]Кейс '{case_id}' не найден.[/red]")
+        return False
     if suspect.lower() == case["culprit"].lower():
         evidence_count = len(getattr(state, "found_evidence", []))
         bonus = evidence_count * 5
         total_xp = case["xp"] + bonus
-        console.print(Panel(
-            f"[green]✅ Верно! {case['culprit']} — виновник.[/green]\n"
-            f"[bold]Найдено улик:[/bold] {evidence_count}\n"
-            f"[bold]Бонус за улики:[/bold] +{bonus} XP\n"
-            f"[bold]Итого:[/bold] +{total_xp} XP",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"[green]✅ Верно! {case['culprit']} — виновник.[/green]\n"
+                f"[bold]Найдено улик:[/bold] {evidence_count}\n"
+                f"[bold]Бонус за улики:[/bold] +{bonus} XP\n"
+                f"[bold]Итого:[/bold] +{total_xp} XP",
+                border_style="green",
+            )
+        )
         if hasattr(state, "xp"):
             state.xp += total_xp
         state.current_case = None
         return True
     else:
-        console.print(Panel(
-            f"[red]❌ Неверно. {suspect} не является виновником.[/red]\n"
-            f"[dim]Попробуйте изучить больше улик.[/dim]",
-            border_style="red",
-        ))
+        console.print(
+            Panel(
+                f"[red]❌ Неверно. {suspect} не является виновником.[/red]\n"
+                f"[dim]Попробуйте изучить больше улик.[/dim]",
+                border_style="red",
+            )
+        )
         return False
 
 
-def handle_investigation(args: str) -> tuple[str, bool]:
+def handle_investigation(args: str) -> HandlerResult:
     """Главный обработчик команды /investigation."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":
         _display_cases()
-        return "", True
+        return True, None, None, True
 
     subcommand = parts[0].lower()
     query = parts[1] if len(parts) > 1 else ""
 
     if subcommand == "start" and query:
         success = _start_case(query)
-        return "", success
+        return True, None, None, success
     elif subcommand == "examine" and query:
         success = _examine_evidence(query)
-        return "", success
+        return True, None, None, success
     elif subcommand == "conclude" and query:
         success = _conclude(query)
-        return "", success
+        return True, None, None, success
     elif subcommand == "help":
-        console.print(Panel(
-            "[bold]Команды расследования:[/bold]\n"
-            "/investigation              — Список кейсов\n"
-            "/investigation start <id>   — Начать расследование\n"
-            "/investigation examine <item>— Изучить улику\n"
-            "/investigation conclude <name> — Обвинить подозреваемого",
-            border_style="yellow",
-        ))
-        return "", True
+        console.print(
+            Panel(
+                "[bold]Команды расследования:[/bold]\n"
+                "/investigation              — Список кейсов\n"
+                "/investigation start <id>   — Начать расследование\n"
+                "/investigation examine <item>— Изучить улику\n"
+                "/investigation conclude <name> — Обвинить подозреваемого",
+                border_style="yellow",
+            )
+        )
+        return True, None, None, True
     else:
         console.print(f"[red]Неизвестная подкоманда: {subcommand}[/red]")
         _display_cases()
-        return "", True
+        return True, None, None, True

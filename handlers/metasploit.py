@@ -20,6 +20,8 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from handlers.types import HandlerResult
+
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -27,6 +29,7 @@ logger = logging.getLogger(__name__)
 # Попытка импорта pymetasploit3
 try:
     from pymetasploit3.msfrpc import MsfRpcClient
+
     HAS_METASPLOIT = True
 except ImportError:
     HAS_METASPLOIT = False
@@ -34,18 +37,22 @@ except ImportError:
 # Настройки подключения
 MSF_HOST = os.getenv("MSF_HOST", "127.0.0.1")
 MSF_PORT = int(os.getenv("MSF_PORT", "55553"))
-MSF_PASSWORD = os.getenv("MSF_PASSWORD", "abc123")
+MSF_PASSWORD = os.getenv("MSF_PASSWORD", "")
 MSF_URI = os.getenv("MSF_URI", "/api")
 
 
 def get_msf_client() -> Any | None:
     """Получить клиент Metasploit RPC."""
     if not HAS_METASPLOIT:
-        console.print("[yellow]⚠️ pymetasploit3 не установлен. Установите: pip install pymetasploit3[/yellow]")
+        console.print(
+            "[yellow]⚠️ pymetasploit3 не установлен. Установите: pip install pymetasploit3[/yellow]"
+        )
         return None
 
     try:
-        client = MsfRpcClient(MSF_PASSWORD, server=MSF_HOST, port=MSF_PORT, uri=MSF_URI, ssl=True)
+        client = MsfRpcClient(
+            MSF_PASSWORD, server=MSF_HOST, port=MSF_PORT, uri=MSF_URI, ssl=True
+        )
         return client
     except Exception as e:
         logger.error(f"Metasploit connection failed: {e}")
@@ -53,7 +60,7 @@ def get_msf_client() -> Any | None:
         return None
 
 
-def handle_msf_search(keyword: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_msf_search(keyword: str) -> HandlerResult:
     """Поиск модулей Metasploit."""
     client = get_msf_client()
     if not client:
@@ -61,7 +68,7 @@ def handle_msf_search(keyword: str) -> tuple[bool, Any | None, Any | None, bool]
 
     try:
         # Поиск по всем типам модулей
-        results = {
+        results: dict[str, list[dict[str, Any]]] = {
             "exploits": [],
             "auxiliary": [],
             "post": [],
@@ -71,16 +78,28 @@ def handle_msf_search(keyword: str) -> tuple[bool, Any | None, Any | None, bool]
         }
 
         # Поиск через RPC
-        for module_type in ["exploit", "auxiliary", "post", "encoder", "nop", "payload"]:
+        for module_type in [
+            "exploit",
+            "auxiliary",
+            "post",
+            "encoder",
+            "nop",
+            "payload",
+        ]:
             modules = client.modules.modules[module_type]
             for name, info in modules.items():
-                if keyword.lower() in name.lower() or keyword.lower() in info.get("name", "").lower():
-                    results[f"{module_type}s"].append({
-                        "name": name,
-                        "description": info.get("name", ""),
-                        "rank": info.get("rank", ""),
-                        "disclosure_date": info.get("disclosure_date", ""),
-                    })
+                if (
+                    keyword.lower() in name.lower()
+                    or keyword.lower() in info.get("name", "").lower()
+                ):
+                    results[f"{module_type}s"].append(
+                        {
+                            "name": name,
+                            "description": info.get("name", ""),
+                            "rank": info.get("rank", ""),
+                            "disclosure_date": info.get("disclosure_date", ""),
+                        }
+                    )
 
         # Отображение результатов
         total = sum(len(v) for v in results.values())
@@ -115,7 +134,7 @@ def handle_msf_search(keyword: str) -> tuple[bool, Any | None, Any | None, bool]
         return True, None, None, True
 
 
-def handle_msf_info(module_name: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_msf_info(module_name: str) -> HandlerResult:
     """Информация о модуле."""
     client = get_msf_client()
     if not client:
@@ -123,7 +142,9 @@ def handle_msf_info(module_name: str) -> tuple[bool, Any | None, Any | None, boo
 
     try:
         # Определяем тип модуля
-        module_type = module_name.split("/", maxsplit=1)[0] if "/" in module_name else "exploit"
+        module_type = (
+            module_name.split("/", maxsplit=1)[0] if "/" in module_name else "exploit"
+        )
 
         # Получаем информацию
         info = client.modules.info(module_type, module_name)
@@ -145,7 +166,9 @@ def handle_msf_info(module_name: str) -> tuple[bool, Any | None, Any | None, boo
             f"[bold]Targets:[/bold] {', '.join(info.get('targets', [])[:5])}"
         )
 
-        console.print(Panel(details, title=f"Module: {module_name}", border_style="cyan"))
+        console.print(
+            Panel(details, title=f"Module: {module_name}", border_style="cyan")
+        )
 
         return True, None, None, True
 
@@ -154,14 +177,16 @@ def handle_msf_info(module_name: str) -> tuple[bool, Any | None, Any | None, boo
         return True, None, None, True
 
 
-def handle_msf_options(module_name: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_msf_options(module_name: str) -> HandlerResult:
     """Опции модуля."""
     client = get_msf_client()
     if not client:
         return True, None, None, True
 
     try:
-        module_type = module_name.split("/", maxsplit=1)[0] if "/" in module_name else "exploit"
+        module_type = (
+            module_name.split("/", maxsplit=1)[0] if "/" in module_name else "exploit"
+        )
         info = client.modules.info(module_type, module_name)
 
         if not info:
@@ -195,7 +220,7 @@ def handle_msf_options(module_name: str) -> tuple[bool, Any | None, Any | None, 
         return True, None, None, True
 
 
-def handle_msf_sessions() -> tuple[bool, Any | None, Any | None, bool]:
+def handle_msf_sessions() -> HandlerResult:
     """Активные сессии."""
     client = get_msf_client()
     if not client:
@@ -232,7 +257,7 @@ def handle_msf_sessions() -> tuple[bool, Any | None, Any | None, bool]:
         return True, None, None, True
 
 
-def handle_msf_action(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_msf_action(action: str) -> HandlerResult:
     """Обработка /msf <subcommand>."""
     parts = action.split()
 
@@ -242,7 +267,9 @@ def handle_msf_action(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         console.print("  /msf info <module>        — информация о модуле")
         console.print("  /msf options <module>     — опции модуля")
         console.print("  /msf sessions             — активные сессии")
-        console.print("\n[dim]Требуется: msfrpcd запущен, pymetasploit3 установлен[/dim]")
+        console.print(
+            "\n[dim]Требуется: msfrpcd запущен, pymetasploit3 установлен[/dim]"
+        )
         console.print("[dim]Настройка: MSF_HOST, MSF_PORT, MSF_PASSWORD в .env[/dim]")
         return True, None, None, True
 

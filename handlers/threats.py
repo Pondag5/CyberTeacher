@@ -9,6 +9,8 @@ from rich.panel import Panel
 
 from config import LazyLoader
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
@@ -16,7 +18,7 @@ console = Console()
 THREATS_DIR = os.path.join(os.path.dirname(__file__), "..", "threats")
 
 
-def handle_threats(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_threats(action: str) -> HandlerResult:
     """Показать досье на APT-группу"""
     try:
         parts = action.split(maxsplit=1)
@@ -73,8 +75,8 @@ def handle_threats(action: str) -> tuple[bool, Any | None, Any | None, bool]:
             if os.path.exists(THREATS_DIR):
                 files = [f[:-5] for f in os.listdir(THREATS_DIR) if f.endswith(".json")]
                 console.print("[bold]Доступные группы:[/bold]")
-                for f in sorted(files):
-                    console.print(f"  • {f}")
+                for filename in sorted(files):
+                    console.print(f"  • {filename}")
             return True, None, None, True
 
     except Exception as e:
@@ -82,7 +84,9 @@ def handle_threats(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         return True, None, None, True
 
 
-def handle_groups(*args, **kwargs) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_groups(
+    *args: Any, **kwargs: Any
+) -> HandlerResult:
     """Группировка APT-групп по странам/тактикам"""
     try:
         if not os.path.exists(THREATS_DIR):
@@ -103,7 +107,7 @@ def handle_groups(*args, **kwargs) -> tuple[bool, Any | None, Any | None, bool]:
         console.print("[bold cyan]🌍 APT-группы по странам[/bold cyan]\n")
 
         # Группируем по стране
-        by_country = {}
+        by_country: dict[str, list[str]] = {}
         for t in threats:
             country = t.get("country", "Unknown")
             by_country.setdefault(country, []).append(t.get("name", "Unknown"))
@@ -119,7 +123,7 @@ def handle_groups(*args, **kwargs) -> tuple[bool, Any | None, Any | None, bool]:
         console.print(f"Стран: {len(by_country)}")
 
         # Популярные тактики
-        tactic_counts = {}
+        tactic_counts: dict[str, int] = {}
         for t in threats:
             for tactic in t.get("tactics", []):
                 tactic_counts[tactic] = tactic_counts.get(tactic, 0) + 1
@@ -133,7 +137,7 @@ def handle_groups(*args, **kwargs) -> tuple[bool, Any | None, Any | None, bool]:
         console.print()
 
         # Инструменты
-        tool_counts = {}
+        tool_counts: dict[str, int] = {}
         for t in threats:
             for tool in t.get("tools", []):
                 tool_counts[tool] = tool_counts.get(tool, 0) + 1
@@ -147,7 +151,7 @@ def handle_groups(*args, **kwargs) -> tuple[bool, Any | None, Any | None, bool]:
         console.print()
 
         # Целевые сектора
-        target_counts = {}
+        target_counts: dict[str, int] = {}
         for t in threats:
             for target in t.get("targets", []):
                 target_counts[target] = target_counts.get(target, 0) + 1
@@ -178,7 +182,7 @@ def handle_groups(*args, **kwargs) -> tuple[bool, Any | None, Any | None, bool]:
 
 def handle_threat_summary(
     action: str,
-) -> tuple[bool, Any | None, Any | None, bool]:
+) -> HandlerResult:
     """Недельная сводка угроз с анализом от учителя (C-03)"""
     try:
         console.print("[cyan]Собираю свежие данные об угрозах...[/cyan]")

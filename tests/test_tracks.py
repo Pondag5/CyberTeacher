@@ -309,14 +309,14 @@ class TestHandlersTracks(unittest.TestCase):
         from handlers.tracks import cmd_tracks_list
 
         self.mock_engine.list_tracks.return_value = []
-        success, msg, _ = cmd_tracks_list()
+        success, _, msg, _ = cmd_tracks_list()
         self.assertTrue(success)
         self.assertIn("не найдены", msg.lower())
 
     def test_cmd_tracks_list_shows_tracks(self):
         from handlers.tracks import cmd_tracks_list
 
-        success, msg, _ = cmd_tracks_list()
+        success, _, msg, _ = cmd_tracks_list()
         self.assertTrue(success)
         self.assertIsNotNone(msg)
         # msg is a Panel, we can check that it's truthy
@@ -327,7 +327,7 @@ class TestHandlersTracks(unittest.TestCase):
 
         # Prereqs ok
         self.mock_state.tracks_enrolled = []
-        success, msg, _ = cmd_track_start("test-track")
+        success, _, msg, _ = cmd_track_start("test-track")
         self.assertTrue(success)
         self.assertIn("ТРЕК НАЧАТ", msg)
         self.assertIn("test-track", self.mock_state.tracks_enrolled)
@@ -336,7 +336,7 @@ class TestHandlersTracks(unittest.TestCase):
     def test_cmd_track_start_missing_id(self):
         from handlers.tracks import cmd_track_start
 
-        success, msg, _ = cmd_track_start("")
+        success, _, msg, _ = cmd_track_start("")
         self.assertFalse(success)
         self.assertIn("Укажи ID", msg)
 
@@ -344,7 +344,7 @@ class TestHandlersTracks(unittest.TestCase):
         from handlers.tracks import cmd_track_start
 
         self.mock_engine.get_track.return_value = None
-        success, msg, _ = cmd_track_start("unknown")
+        success, _, msg, _ = cmd_track_start("unknown")
         self.assertFalse(success)
         self.assertIn("не найден", msg.lower())
 
@@ -353,7 +353,7 @@ class TestHandlersTracks(unittest.TestCase):
 
         self.sample_track.prerequisites = ["missing-track"]
         self.mock_state.tracks_enrolled = []
-        success, msg, _ = cmd_track_start("test-track")
+        success, _, msg, _ = cmd_track_start("test-track")
         self.assertFalse(success)
         self.assertIn("prereq", msg.lower())
 
@@ -362,7 +362,7 @@ class TestHandlersTracks(unittest.TestCase):
 
         self.mock_state.tracks_enrolled = ["test-track"]
         self.mock_state.track_progress = {"test-track": {}}
-        success, msg, _ = cmd_track_start("test-track")
+        success, _, msg, _ = cmd_track_start("test-track")
         self.assertTrue(success)
         self.assertIn("уже начат", msg.lower())
 
@@ -370,7 +370,7 @@ class TestHandlersTracks(unittest.TestCase):
         from handlers.tracks import cmd_track_progress
 
         self.mock_state.tracks_enrolled = []
-        success, msg, _ = cmd_track_progress()
+        success, _, msg, _ = cmd_track_progress()
         self.assertFalse(success)
         self.assertIn("трека", msg)
 
@@ -385,7 +385,7 @@ class TestHandlersTracks(unittest.TestCase):
             TrackTopic("t1", 1, "T1", ""),
             TrackTopic("t2", 2, "T2", ""),
         ]
-        success, msg, _ = cmd_track_progress()
+        success, _, msg, _ = cmd_track_progress()
         self.assertTrue(success)
         # Should show progress 1/2 in the Panel somewhere; we can check msg is truthy
         self.assertTrue(bool(msg))
@@ -398,7 +398,7 @@ class TestHandlersTracks(unittest.TestCase):
             "test-track": {"current_topic_idx": 0, "completed_topics": []}
         }
         self.mock_state.learning_context = {}
-        success, msg, _ = cmd_track_next()
+        success, _, msg, _ = cmd_track_next()
         self.assertTrue(success)
         self.assertIn("ТЕМА 1", msg)
         self.assertIn("Topic 1", msg)
@@ -412,7 +412,7 @@ class TestHandlersTracks(unittest.TestCase):
             "test-track": {"current_topic_idx": 1, "completed_topics": ["t1"]}
         }
         self.mock_state.learning_context = {}
-        success, msg, _ = cmd_track_next()
+        success, _, msg, _ = cmd_track_next()
         self.assertTrue(success)
         self.assertIn("ТЕМА 2", msg)
         self.assertIn("Topic 2", msg)
@@ -425,7 +425,7 @@ class TestHandlersTracks(unittest.TestCase):
             "test-track": {"completed_topics": [], "current_topic_idx": 0}
         }
         self.mock_state.learning_context = {"current_track": "test-track"}
-        success, _, __ = cmd_track_complete_topic("t1")
+        success, _, _, __ = cmd_track_complete_topic("t1")
         self.assertTrue(success)
         # Check that topic was added to completed list
         self.assertIn(
@@ -447,7 +447,7 @@ class TestHandlersTracks(unittest.TestCase):
         self.mock_state.tracks_enrolled = []
         # Engine returns recommendations sorted
         self.mock_engine.recommend_tracks.return_value = [(self.sample_track, 5.0)]
-        success, msg, _ = cmd_track_recommend()
+        success, _, msg, _ = cmd_track_recommend()
         self.assertTrue(success)
         self.assertIn("РЕКОМЕНДАЦИИ", msg)
         self.assertIn("Test Track", msg)
@@ -457,7 +457,7 @@ class TestHandlersTracks(unittest.TestCase):
 
         self.mock_state.learning_context = {}
         self.mock_state.tracks_enrolled = []
-        success, msg, _ = cmd_track_status()
+        success, _, msg, _ = cmd_track_status()
         self.assertFalse(success)
         self.assertIn("Нет активного трека", msg)
 
@@ -469,7 +469,7 @@ class TestHandlersTracks(unittest.TestCase):
         self.mock_state.track_progress = {
             "test-track": {"current_topic_idx": 0, "completed_topics": []}
         }
-        success, msg, _ = cmd_track_status()
+        success, _, msg, _ = cmd_track_status()
         self.assertTrue(success)
         self.assertIn("Test Track", msg)
         self.assertIn("Прогресс", msg)
@@ -479,7 +479,7 @@ class TestHandlersTracks(unittest.TestCase):
 
         self.mock_state.tracks_enrolled = ["test-track"]
         self.mock_state.track_progress = {"test-track": {"current_topic_idx": 1}}
-        success, _, __ = cmd_track_reset("test-track")
+        success, _, _, __ = cmd_track_reset("test-track")
         self.assertTrue(success)
         self.assertNotIn("test-track", self.mock_state.tracks_enrolled)
         self.assertNotIn("test-track", self.mock_state.track_progress)

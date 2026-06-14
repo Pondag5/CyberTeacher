@@ -1,0 +1,23 @@
+networks:
+  ct_lab_net:
+    driver: bridge
+services:
+  metasploitable:
+    container_name: ct_metasploitable
+    image: tleemcjr/metasploitable2:latest
+    networks:
+    - ct_lab_net
+    ports:
+    - '2121:21'
+    - '2222:22'
+    - 8081:80
+    restart: unless-stopped
+  nginx_vuln:
+    container_name: ct_nginx_vuln
+    image: nginx:1.14.0
+    networks:
+    - ct_lab_net
+    ports:
+    - 8083:80
+    restart: unless-stopped
+version: '3.8'

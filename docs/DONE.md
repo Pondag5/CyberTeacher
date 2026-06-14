@@ -1,6 +1,52 @@
 # CyberTeacher — Реализованные фичи
 
-*Все что уже сделано. Версия 5.0. Последнее обновление: 2026-05-18*
+*Все что уже сделано. Версия 5.2. Последнее обновление: 2026-05-29*
+
+---
+
+## 🧠 Атмосфера и личность (SPRINT 12 — 2026-05-29)
+
+| Фича | Команда | Описание |
+|------|---------|----------|
+| Context Awareness | Автоматически | Время суток (утро/день/вечер/ночь/глубокая ночь), паттерны сессии (binge/night_owl/perfectionist/chaotic) |
+| Personality Drift | Автоматически | Динамическая динамика: sarcasm, patience, paranoia, enthusiasm, formality — адаптируется под поведение |
+| Atmosphere Hints | Автоматически | "...3 часа ночи. Мы оба ещё не спим." "...ты в ударе. Не забывай делать перерывы." |
+| LLM Stats | Автоматически | llm_call_count и llm_total_tokens инкрементируются в CachedLLM |
+| Backup Rotation | Автоматически | Макс 5 бэкапов, старые удаляются |
+| Terminal Log Rotation | Автоматически | 512 KB cap, ротация (keep second half) |
+| Setup Ollama | `scripts/setup_ollama.bat` | Пошаговая установка Ollama + модели (Windows) |
+| Setup Ollama | `scripts/setup_ollama.sh` | Пошаговая установка Ollama + модели (Linux/Mac) |
+
+---
+
+## 🛡️ Стабильность (SPRINT 4 — 2026-05-29)
+
+| Фича | Команда | Описание |
+|------|---------|----------|
+| Context Budget Manager | `/context stats` | Токен-осознанный budget manager (4 chars/token), budget allocation, stats |
+| Context Clear | `/context clear` | Очистка истории чата |
+| Provider Fallback Chain | Автоматически | ResilientLLM с retry (2), circuit breaker (3 fails), fallback chain (ollama→groq→openrouter→hf) |
+| CachedLLM hardened | Автоматически | try/except + логирование ошибок в CachedLLM.invoke() и .stream() |
+| Achievement service wired | Автоматически | `state.check_achievements()` → `services/achievement_service` (29 достижений, rule-based) |
+| Memory caps | Автоматически | exploit_success(200), bounty(100), writeups(100), purchases(100), versus(50), htb/thm(100) |
+| QueryCache cap | Автоматически | Max 1000 строк, eviction expired entries при insert |
+| Log rotation | Автоматически | RotatingFileHandler 5MB × 3 для cyberteacher.log |
+| Periodic cleanup | Автоматически | Cleanup сообщений каждые 50, auto-summarize каждые 20 |
+| HANDLES optimization | Автоматически | Исключён из JSON-сериализации |
+
+## 🤖 Гибридная LLM-архитектура (2026-05-29)
+
+| Фича | Команда | Описание |
+|------|---------|----------|
+| MockLLM | Автоматически (fallback) | Оффлайн заглушка — при пустом .env все команды работают через шаблоны |
+| /doctor | `/doctor` | Onboarding — статус всех LLM провайдеров, таблица health check |
+| /doctor setup ollama | `/doctor setup ollama` | Пошаговая инструкция установки Ollama + модели |
+| /doctor setup groq | `/doctor setup groq` | Пошаговая инструкция настройки Groq API |
+| /doctor setup openrouter | `/doctor setup openrouter` | Пошаговая инструкция настройки OpenRouter API |
+| /doctor mock | `/doctor mock` | Переключение в оффлайн-режим (MockLLM) |
+| LazyLoader + MockLLM | Автоматически | При пустом .env → MockLLM → ResilientLLM не создаётся |
+| Fallback + MockLLM | Автоматически | MockLLM как последний fallback в цепочке (ollama→groq→openrouter→hf→mock) |
+| Integration tests | Автоматически | 20 тестов: context budget, quiz→XP→achievement, memory caps, provider fallback |
 
 ---
 
@@ -419,6 +465,31 @@ GUI-панель запуска (`python launcher.py`):
 | Backups | Сокращено с 30 до 3 файлов (оставлены новейшие) |
 | Import updates | Обновлены импорты в state.py и тестах |
 | .gitignore | Обновлён для новой структуры |
+
+---
+
+## 🗄️ State Migration (Спринт 9)
+
+| Фича | Описание |
+|------|----------|
+| AppStateRecord model | Новая модель в `db.py` — хранит состояние в БД (JSON column) |
+| DB save/load | `save_app_state()`, `load_app_state()`, `migrate_json_to_db()` |
+| STATE_BACKEND | Переменная окружения: `json` (default) или `db` |
+| JSON fallback | Автоматический fallback на JSON если БД недоступна |
+| Alembic migration | `8ff380d95f4a_add_app_state_table.py` |
+| CLI команды | `/state migrate to-db`, `/state migrate to-json`, `/state migrate status` |
+| Refactored state.py | `_to_dict()`, `_from_dict()`, `_save_json()` — чистая архитектура |
+
+---
+
+## 🔤 Type Hints (Спринт 10 — Partial)
+
+| Файл | Исправлено |
+|------|------------|
+| di.py | `get_llm()`, `get_knowledge_base()`, `save_state()`, `inject()` |
+| knowledge.py | `get_current_vectordb()`, `set_current_vectordb()`, `ProgressEmbeddings`, `load_metadata()`, `save_metadata()`, `scan_knowledge_files()`, `load_and_split_file()`, `load_knowledge_base()`, `get_relevant_docs()`, `get_knowledge_status()` |
+| main.py | `CachedLLM`, `get_llm()`, `get_cached_llm()`, `set_learning_context()`, `get_learning_context()`, `get_news_context()`, `get_embeddings()`, `main()`, `_save_session_summary()` |
+| api_server.py | `scan_code_simple()`, `analyze_malware()`, `start_api_server()`, `stop_api_server()`, `is_server_running()` |
 
 ---
 

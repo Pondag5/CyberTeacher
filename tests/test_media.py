@@ -17,7 +17,7 @@ class TestMediaPlayer(unittest.TestCase):
     def test_display_media(self):
         """Отображение списка ресурсов."""
         with patch("handlers.media.console.print"):
-            result, action_taken = handle_media("")
+            _, result, _, action_taken = handle_media("")
             self.assertTrue(action_taken)
 
     def test_play_valid_resource(self):
@@ -47,13 +47,13 @@ class TestMediaPlayer(unittest.TestCase):
     def test_help_command(self):
         """Вызов справки /media help."""
         with patch("handlers.media.console.print"):
-            result, action_taken = handle_media("help")
+            _, result, _, action_taken = handle_media("help")
             self.assertTrue(action_taken)
 
     def test_unknown_subcommand(self):
         """Неизвестная подкоманда."""
         with patch("handlers.media.console.print"):
-            result, action_taken = handle_media("unknown")
+            _, result, _, action_taken = handle_media("unknown")
             self.assertTrue(action_taken)
 
     def test_media_structure(self):

@@ -107,19 +107,19 @@ class TestCrossPlatformSync(unittest.TestCase):
     def test_sync_help(self):
         """Вызов справки /sync help."""
         with patch("handlers.sync.console.print"):
-            result, action_taken = handle_sync("help")
+            _, result, _, action_taken = handle_sync("help")
             self.assertTrue(action_taken)
 
     def test_sync_id(self):
         """Показ ID /sync id."""
         with patch("handlers.sync.console.print"):
-            result, action_taken = handle_sync("id")
+            _, result, _, action_taken = handle_sync("id")
             self.assertTrue(action_taken)
 
     def test_sync_unknown_subcommand(self):
         """Неизвестная подкоманда."""
         with patch("handlers.sync.console.print"):
-            result, action_taken = handle_sync("unknown")
+            _, result, _, action_taken = handle_sync("unknown")
             self.assertTrue(action_taken)
 
 

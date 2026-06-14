@@ -5,14 +5,14 @@ Tests for CVE lookup handler.
 import unittest
 from unittest.mock import MagicMock, patch
 
-from handlers.cve import _cve_cache, handle_cve
+from handlers.cve import CVE_CACHE, handle_cve
 
 
 class TestCVEHandler(unittest.TestCase):
     """Tests for /cve command handler."""
 
     def setUp(self):
-        _cve_cache.clear()
+        CVE_CACHE.clear()
 
     @patch("handlers.cve.console")
     def test_cve_no_id_provided(self, mock_console):
@@ -26,10 +26,11 @@ class TestCVEHandler(unittest.TestCase):
     @patch("handlers.cve.console")
     def test_cve_found(self, mock_console, mock_fetch):
         mock_fetch.return_value = {
-            "descriptions": [{"value": "Test CVE description"}],
-            "metrics": {
-                "cvssMetricV31": [{"cvssData": {"baseScore": 7.5}}]
-            },
+            "id": "CVE-2024-1234",
+            "description": "Test CVE description",
+            "published": "2024-01-01",
+            "severity": "HIGH",
+            "score": 7.5,
             "references": [{"url": "https://example.com"}],
         }
 
@@ -51,11 +52,18 @@ class TestCVEHandler(unittest.TestCase):
     @patch("handlers.cve.console")
     def test_cve_cache_hit(self, mock_console):
         import time
-        _cve_cache["CVE-2024-1234"] = (time.time(), {
-            "descriptions": [{"value": "Cached CVE"}],
-            "metrics": {"cvssMetricV31": [{"cvssData": {"baseScore": 5.0}}]},
-            "references": [],
-        })
+
+        CVE_CACHE["CVE-2024-1234"] = (
+            time.time(),
+            {
+                "id": "CVE-2024-1234",
+                "description": "Cached CVE",
+                "published": "2024-01-01",
+                "severity": "MEDIUM",
+                "score": 5.0,
+                "references": [],
+            },
+        )
 
         with patch("handlers.cve._fetch_cve") as mock_fetch:
             handle_cve("/cve CVE-2024-1234")
@@ -65,8 +73,11 @@ class TestCVEHandler(unittest.TestCase):
     @patch("handlers.cve.console")
     def test_cve_missing_metrics(self, mock_console, mock_fetch):
         mock_fetch.return_value = {
-            "descriptions": [{"value": "CVE without metrics"}],
-            "metrics": {},
+            "id": "CVE-2024-5678",
+            "description": "CVE without metrics",
+            "published": "2024-01-01",
+            "severity": "UNKNOWN",
+            "score": 0,
             "references": [],
         }
 

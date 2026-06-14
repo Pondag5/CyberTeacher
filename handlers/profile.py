@@ -8,17 +8,40 @@ from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 AVATARS = [
-    "🐱", "🐶", "🦊", "🐼", "🐨", "🦁", "🐯", "🐸",
-    "🤖", "👾", "🎃", "👻", "💀", "🤠", "🥷", "🧙",
-    "🦹", "🧑‍💻", "🕵️", "👨‍🚀", "🧑‍🔬", "🦸", "🥷", "🧛",
+    "🐱",
+    "🐶",
+    "🦊",
+    "🐼",
+    "🐨",
+    "🦁",
+    "🐯",
+    "🐸",
+    "🤖",
+    "👾",
+    "🎃",
+    "👻",
+    "💀",
+    "🤠",
+    "🥷",
+    "🧙",
+    "🦹",
+    "🧑‍💻",
+    "🕵️",
+    "👨‍🚀",
+    "🧑‍🔬",
+    "🦸",
+    "🥷",
+    "🧛",
 ]
 
 
-def handle_profile(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_profile(action: str) -> HandlerResult:
     """Handle profile management commands."""
     parts = action.split(maxsplit=2)
 
@@ -42,11 +65,13 @@ def handle_profile(action: str) -> tuple[bool, Any | None, Any | None, bool]:
     if subcommand == "stats":
         return _show_detailed_stats()
 
-    console.print("[yellow]Usage: /profile name <name> | avatar <emoji> | stats | reset[/yellow]")
+    console.print(
+        "[yellow]Usage: /profile name <name> | avatar <emoji> | stats | reset[/yellow]"
+    )
     return True, None, None, True
 
 
-def _show_profile() -> tuple[bool, Any | None, Any | None, bool]:
+def _show_profile() -> HandlerResult:
     """Show user profile."""
     ctx = get_context()
     state = ctx.state
@@ -55,24 +80,26 @@ def _show_profile() -> tuple[bool, Any | None, Any | None, bool]:
     handle = state.get_handle()
     rep = state.reputation
 
-    console.print(Panel(
-        f"[bold]{avatar} {username}[/bold]\n\n"
-        f"Handle: {handle}\n"
-        f"Reputation: {rep}\n"
-        f"XP: {state.points:.0f}\n"
-        f"Flags: {state.total_flags_collected}\n"
-        f"Quizzes: {state.quizzes_taken}\n"
-        f"Labs: {state.labs_started}\n\n"
-        f"[dim]/profile name <name> — change name[/dim]\n"
-        f"[dim]/profile avatar — choose avatar[/dim]\n"
-        f"[dim]/profile stats — detailed stats[/dim]",
-        title="PROFILE",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            f"[bold]{avatar} {username}[/bold]\n\n"
+            f"Handle: {handle}\n"
+            f"Reputation: {rep}\n"
+            f"XP: {state.points:.0f}\n"
+            f"Flags: {state.total_flags_collected}\n"
+            f"Quizzes: {state.quizzes_taken}\n"
+            f"Labs: {state.labs_started}\n\n"
+            f"[dim]/profile name <name> — change name[/dim]\n"
+            f"[dim]/profile avatar — choose avatar[/dim]\n"
+            f"[dim]/profile stats — detailed stats[/dim]",
+            title="PROFILE",
+            border_style="cyan",
+        )
+    )
     return True, None, None, True
 
 
-def _set_name(name: str) -> tuple[bool, Any | None, Any | None, bool]:
+def _set_name(name: str) -> HandlerResult:
     """Set user name."""
     ctx = get_context()
     state = ctx.state
@@ -92,13 +119,15 @@ def _set_name(name: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _set_avatar(avatar: str) -> tuple[bool, Any | None, Any | None, bool]:
+def _set_avatar(avatar: str) -> HandlerResult:
     """Set user avatar."""
     ctx = get_context()
     state = ctx.state
     avatar = avatar.strip()
     if avatar not in AVATARS:
-        console.print(f"[yellow]⚠️ '{avatar}' not in list. /profile avatar for list.[/yellow]")
+        console.print(
+            f"[yellow]⚠️ '{avatar}' not in list. /profile avatar for list.[/yellow]"
+        )
         # Still allow custom emoji
         state.avatar = avatar
         ctx.save_state()
@@ -111,7 +140,7 @@ def _set_avatar(avatar: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _list_avatars() -> tuple[bool, Any | None, Any | None, bool]:
+def _list_avatars() -> HandlerResult:
     """Show available avatars."""
     ctx = get_context()
     state = ctx.state
@@ -122,20 +151,24 @@ def _list_avatars() -> tuple[bool, Any | None, Any | None, bool]:
         marker = " ←" if a == current else ""
         lines.append(f"  {a}{marker}")
 
-    console.print(Panel(
-        " ".join(lines[:12]) + "\n" + " ".join(lines[12:]),
-        title="AVATARS",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            " ".join(lines[:12]) + "\n" + " ".join(lines[12:]),
+            title="AVATARS",
+            border_style="cyan",
+        )
+    )
     console.print("[dim]Usage: /profile avatar <emoji>[/dim]")
     return True, None, None, True
 
 
-def _reset_profile() -> tuple[bool, Any | None, Any | None, bool]:
+def _reset_profile() -> HandlerResult:
     """Reset profile."""
     ctx = get_context()
     state = ctx.state
-    console.print("[bold red]⚠️ Reset profile? Name and avatar will be deleted.[/bold red]")
+    console.print(
+        "[bold red]⚠️ Reset profile? Name and avatar will be deleted.[/bold red]"
+    )
     confirm = input("Type 'yes': ").strip().lower()
     if confirm == "yes":
         state.username = "Anonymous"
@@ -147,7 +180,7 @@ def _reset_profile() -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def _show_detailed_stats() -> tuple[bool, Any | None, Any | None, bool]:
+def _show_detailed_stats() -> HandlerResult:
     """Show detailed stats."""
     ctx = get_context()
     state = ctx.state
@@ -166,9 +199,17 @@ def _show_detailed_stats() -> tuple[bool, Any | None, Any | None, bool]:
 
     if skills:
         lines.append(f"\n[bold]🎯 Skills:[/bold]")
-        for s in skills[:5]:
+        skills_list: list[dict[str, Any]] = [
+            {"name": k, **v}
+            if isinstance(v, dict)
+            else {"name": k, "level": 0, "success_rate": 0}
+            for k, v in list(skills.items())[:5]
+        ]
+        for s in skills_list:
             bar = "█" * s["level"] + "░" * (5 - s["level"])
-            lines.append(f"  {s['name']:<20} [{bar}] L{s['level']} ({s['success_rate']}%)")
+            lines.append(
+                f"  {s['name']:<20} [{bar}] L{s['level']} ({s['success_rate']}%)"
+            )
 
     console.print(Panel("\n".join(lines), title="DETAILED STATS", border_style="cyan"))
     return True, None, None, True

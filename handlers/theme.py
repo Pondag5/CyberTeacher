@@ -7,6 +7,8 @@ from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
@@ -41,7 +43,7 @@ THEMES = {
 }
 
 
-def handle_theme(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_theme(action: str) -> HandlerResult:
     """Handle /theme command for theme switching."""
     ctx = get_context()
     state = ctx.state

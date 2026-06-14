@@ -2,444 +2,86 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CyberTeacher</title>
-    <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="/style.css">
-    <meta name="theme-color" content="#1e1e2e">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>CyberTeacher — AI-наставник по кибербезопасности</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00FFC3">
+    <meta name="description" content="AI-наставник по кибербезопасности с интерактивными лабораториями">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <!-- Main stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Non-critical fonts (async) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Fira+Code:wght@400;500;600&family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Fira+Code:wght@400&display=swap" rel="stylesheet"></noscript>
+    <!-- Non-critical: Font Awesome + Markdown (defer) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"></noscript>
 </head>
 <body>
-    <header class="app-header">
+<div id="scanlines"></div>
+<div class="app">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
         <div class="logo">
-            <span class="logo-icon">🛡️</span>
-            <h1>CyberTeacher</h1>
+            <h1 class="glitch-trigger">CyberTeacher</h1>
+            <p>AI-наставник по кибербезопасности</p>
         </div>
-        <div class="connection-status" id="status">
-            <span class="dot offline"></span> Offline
+        <div class="nav" id="navContainer"></div>
+        <div id="difficultyBadge"></div>
+        <div class="theme-toggle" id="themeToggle"></div>
+    </div>
+
+    <!-- Main area -->
+    <div class="main">
+        <div class="header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">&#9776; Меню</button>
+            </div>
+            <div class="header-right">
+                <button class="notif-btn" id="notifBtn" title="Уведомления">&#128276;</button>
+                <button class="sound-toggle" id="soundToggle">&#128266;</button>
+                <div class="user-info" id="userInfo"></div>
+            </div>
         </div>
-    </header>
+        <div class="content" id="content"></div>
+        <div class="status-bar" id="statusBar">
+            <span class="status-item"><span class="status-dot green"></span> Online</span>
+            <span class="status-item" id="statusLLM">LLM: —</span>
+            <span class="status-item" id="statusRisk">Risk: —</span>
+            <span class="status-item" id="statusCyber">Cyberpsychosis: —</span>
+            <span class="status-item" id="statusXP">XP: 0</span>
+            <span class="status-item sound-indicator" id="soundIndicator">
+                <span class="wave"></span><span class="wave"></span><span class="wave"></span>
+            </span>
+            <span class="status-item" style="margin-left:auto;">
+                <span id="statusTime"></span>
+            </span>
+        </div>
+    </div>
+</div>
 
-    <main class="content">
-        <!-- Вкладка Режимы -->
-        <section id="tab-modes" class="tab-content">
-            <div class="card">
-                <h2>🎭 Режимы обучения</h2>
-                <p class="quiz-desc">Выбери стиль общения с учителем.</p>
-                <div id="modes-list" class="modes-list">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Чат -->
-        <section id="tab-chat" class="tab-content active">
-            <div class="chat-container">
-                <div id="chat-messages" class="chat-messages">
-                    <div class="message system">
-                        <div class="message-content">👋 Добро пожаловать в CyberTeacher! Задайте вопрос по кибербезопасности.</div>
-                    </div>
-                </div>
-                <div class="chat-input-area">
-                    <input type="text" id="chat-input" placeholder="Введите сообщение..." autocomplete="off">
-                    <button id="chat-send-btn" class="btn-send">➤</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Прогресс -->
-        <section id="tab-progress" class="tab-content">
-            <div class="card">
-                <h2>📊 Прогресс</h2>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-value" id="xp-val">0</span>
-                        <span class="stat-label">XP</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="level-val">1</span>
-                        <span class="stat-label">Уровень</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="streak-val">0</span>
-                        <span class="stat-label">Стрик 🔥</span>
-                    </div>
-                </div>
-                <div class="xp-bar-container">
-                    <div class="xp-bar">
-                        <div class="xp-bar-fill" id="xp-bar-fill" style="width: 0%"></div>
-                    </div>
-                    <span class="xp-bar-text" id="xp-bar-text">0 / 100 XP</span>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2>🎯 Навыки</h2>
-                <div id="skills-list" class="skills-list">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Квиз -->
-        <section id="tab-quiz" class="tab-content">
-            <div class="card">
-                <h2>📝 Быстрый Квиз</h2>
-                <p class="quiz-desc">Проверь свои знания по кибербезопасности.</p>
-                <div class="quiz-controls">
-                    <select id="quiz-topic" class="quiz-select">
-                        <option value="general">Общие вопросы</option>
-                        <option value="networking">Сети</option>
-                        <option value="crypto">Криптография</option>
-                        <option value="web">Веб-безопасность</option>
-                        <option value="malware">Вредоносы</option>
-                    </select>
-                    <button id="start-quiz-btn" class="btn primary">Начать тест</button>
-                </div>
-                
-                <div id="quiz-area" class="hidden">
-                    <div id="quiz-progress" class="quiz-progress">
-                        <span id="quiz-counter">1/10</span>
-                        <span id="quiz-score-display">Счёт: 0</span>
-                    </div>
-                    <div id="question-container">
-                        <h3 id="question-text">Вопрос...</h3>
-                        <div id="options-container" class="options-grid"></div>
-                    </div>
-                    <div id="result-container" class="hidden">
-                        <h3 id="result-text"></h3>
-                        <p id="result-explanation" class="result-explanation"></p>
-                        <button id="next-question-btn" class="btn secondary">Следующий</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Курсы -->
-        <section id="tab-courses" class="tab-content">
-            <div class="card">
-                <h2>📚 Курсы</h2>
-                <div id="courses-list" class="courses-list">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка История -->
-        <section id="tab-story" class="tab-content">
-            <div class="card">
-                <h2>📖 История</h2>
-                <p class="quiz-desc">Игровой режим с 21 эпизодом.</p>
-                <div id="story-list" class="story-list">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Треки -->
-        <section id="tab-tracks" class="tab-content">
-            <div class="card">
-                <h2>🛤️ Треки обучения</h2>
-                <p class="quiz-desc">Структурированные пути обучения.</p>
-                <div id="tracks-list" class="tracks-list">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка CTF -->
-        <section id="tab-ctf" class="tab-content">
-            <div class="card">
-                <h2>🚩 CTF</h2>
-                <div id="ctf-status" class="ctf-status">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-                <div class="ctf-submit-area">
-                    <input type="text" id="ctf-flag-input" placeholder="Введи флаг..." class="ctf-input">
-                    <button onclick="submitFlag()" class="btn primary">Отправить</button>
-                </div>
-                <div id="ctf-result" class="ctf-result hidden"></div>
-            </div>
-        </section>
-
-        <!-- Вкладка Лаборатории -->
-        <section id="tab-labs" class="tab-content">
-            <div class="card">
-                <h2>🐳 Лаборатории</h2>
-                <p class="quiz-desc">Docker-лаборатории для практики.</p>
-                <div id="labs-list" class="labs-list">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка OSINT -->
-        <section id="tab-osint" class="tab-content">
-            <div class="card">
-                <h2>🔍 OSINT & Разведка</h2>
-                <div id="osint-tabs" class="osint-tabs">
-                    <button class="osint-tab-btn active" onclick="showOsintSection('threats')">🎯 APT Группы</button>
-                    <button class="osint-tab-btn" onclick="showOsintSection('news')">📰 Новости</button>
-                    <button class="osint-tab-btn" onclick="showOsintSection('cve')">🔓 CVE Lookup</button>
-                </div>
-                <div id="osint-threats" class="osint-section">
-                    <div id="threats-list" class="threats-list">
-                        <p class="placeholder">Загрузка...</p>
-                    </div>
-                </div>
-                <div id="osint-news" class="osint-section hidden">
-                    <div id="news-list" class="news-list">
-                        <p class="placeholder">Загрузка...</p>
-                    </div>
-                </div>
-                <div id="osint-cve" class="osint-section hidden">
-                    <div class="cve-lookup">
-                        <input type="text" id="cve-input" placeholder="CVE-2024-XXXX" class="cve-input">
-                        <button onclick="lookupCVE()" class="btn primary">Найти</button>
-                    </div>
-                    <div id="cve-result" class="cve-result hidden"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Сканер -->
-        <section id="tab-scanner" class="tab-content">
-            <div class="card">
-                <h2>💻 Сканер кода</h2>
-                <p class="quiz-desc">Анализ кода на уязвимости и секреты.</p>
-                <textarea id="scanner-code" class="scanner-code" placeholder="Вставь код для анализа..."></textarea>
-                <div class="scanner-controls">
-                    <select id="scanner-lang" class="quiz-select">
-                        <option value="python">Python</option>
-                        <option value="javascript">JavaScript</option>
-                    </select>
-                    <button onclick="scanCode()" class="btn primary">Сканировать</button>
-                </div>
-                <div id="scanner-result" class="scanner-result hidden"></div>
-            </div>
-        </section>
-
-        <!-- Вкладка Магазин -->
-        <section id="tab-shop" class="tab-content">
-            <div class="card">
-                <h2>🛒 Магазин</h2>
-                <div id="shop-status" class="shop-status">
-                    <span id="shop-points">Очки: 0</span>
-                    <span id="shop-discount" class="hidden">Скидка: 0%</span>
-                </div>
-                <div id="shop-list" class="shop-list">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Malware -->
-        <section id="tab-malware" class="tab-content">
-            <div class="card">
-                <h2>🦠 Malware Analysis</h2>
-                <p class="quiz-desc">Симуляция анализа вредоносного ПО.</p>
-                <div class="malware-input-area">
-                    <input type="text" id="malware-hash" placeholder="MD5/SHA256 хэш файла" class="malware-input">
-                    <button onclick="analyzeMalware()" class="btn primary">Анализировать</button>
-                </div>
-                <div id="malware-result" class="malware-result hidden"></div>
-            </div>
-        </section>
-
-        <!-- Вкладка Достижения -->
-        <section id="tab-achievements" class="tab-content">
-            <div class="card">
-                <h2>🏆 Достижения</h2>
-                <div id="achievements-stats" class="achievements-stats">
-                    <span id="achievements-count">0 / 8</span>
-                </div>
-                <div id="achievements-list" class="achievements-list">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Дуэль -->
-        <section id="tab-versus" class="tab-content">
-            <div class="versus-container">
-                <div id="versus-menu" class="versus-menu">
-                    <h2>🥊 Выбери сценарий</h2>
-                    <div id="versus-scenarios" class="versus-scenarios">
-                        <p class="placeholder">Загрузка...</p>
-                    </div>
-                </div>
-                
-                <div id="versus-game" class="versus-game hidden">
-                    <div class="versus-header">
-                        <span id="versus-scenario-name">Сценарий</span>
-                        <span id="versus-attempts" class="versus-attempts">Попыток: 0</span>
-                        <button id="versus-exit-btn" class="btn-small danger">✕ Выход</button>
-                    </div>
-                    <div id="versus-messages" class="versus-messages">
-                        <!-- Сообщения дуэли -->
-                    </div>
-                    <div class="versus-input-area">
-                        <input type="text" id="versus-input" placeholder="Введи команду или запрос..." autocomplete="off">
-                        <button id="versus-send-btn" class="btn-send">➤</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Статистика -->
-        <section id="tab-stats" class="tab-content">
-            <div class="card">
-                <h2>📈 Статистика</h2>
-                <div id="stats-content">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Ежедневный -->
-        <section id="tab-daily" class="tab-content">
-            <div class="card">
-                <h2>🎯 Ежедневный челлендж</h2>
-                <div id="daily-content">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Профиль -->
-        <section id="tab-profile" class="tab-content">
-            <div class="card">
-                <div id="profile-content">
-                    <p class="placeholder">Загрузка...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка Настройки -->
-        <section id="tab-settings" class="tab-content">
-            <div class="card">
-                <h2>⚙️ Настройки</h2>
-                <div class="setting-row">
-                    <span>Адрес сервера</span>
-                    <input type="text" id="server-url" value="http://localhost:8000" placeholder="http://IP:PORT">
-                </div>
-                <button id="save-settings" class="btn primary">Сохранить</button>
-            </div>
-            <div class="card">
-                <h2>🎨 Оформление</h2>
-                <div class="setting-row">
-                    <span>Тема</span>
-                    <select id="theme-select" class="quiz-select">
-                        <option value="ocean">🌊 Ocean</option>
-                        <option value="sunset">🌅 Sunset</option>
-                        <option value="matrix">💻 Matrix</option>
-                    </select>
-                </div>
-            </div>
-            <div class="card">
-                <h2>🔔 Уведомления</h2>
-                <div class="setting-row">
-                    <span>Push-уведомления</span>
-                    <button id="enable-notifications" class="btn secondary">Включить</button>
-                </div>
-                <p id="notif-status" class="placeholder">Уведомления отключены</p>
-            </div>
-            <div class="card">
-                <h2>📴 Офлайн-режим</h2>
-                <div class="setting-row">
-                    <span>Работа без LLM</span>
-                    <button id="toggle-offline" class="btn secondary">Включить</button>
-                </div>
-                <p id="offline-status" class="placeholder">Онлайн-режим</p>
-            </div>
-            <div class="card">
-                <h2>ℹ️ О приложении</h2>
-                <p>Версия: 1.2.0 (PWA)</p>
-                <p>Режим: Companion App</p>
-            </div>
-        </section>
-    </main>
-
-    <nav class="bottom-nav">
-        <button class="nav-btn" data-tab="tab-modes">
-            <span class="icon">🎭</span>
-            <span class="label">Режимы</span>
-        </button>
-        <button class="nav-btn active" data-tab="tab-chat">
-            <span class="icon">💬</span>
-            <span class="label">Чат</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-progress">
-            <span class="icon">📊</span>
-            <span class="label">Прогресс</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-quiz">
-            <span class="icon">📝</span>
-            <span class="label">Квиз</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-daily">
-            <span class="icon">🎯</span>
-            <span class="label">Дейли</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-profile">
-            <span class="icon">👤</span>
-            <span class="label">Профиль</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-courses">
-            <span class="icon">📚</span>
-            <span class="label">Курсы</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-story">
-            <span class="icon">📖</span>
-            <span class="label">История</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-tracks">
-            <span class="icon">🛤️</span>
-            <span class="label">Треки</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-ctf">
-            <span class="icon">🚩</span>
-            <span class="label">CTF</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-labs">
-            <span class="icon">🐳</span>
-            <span class="label">Лабы</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-osint">
-            <span class="icon">🔍</span>
-            <span class="label">OSINT</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-scanner">
-            <span class="icon">💻</span>
-            <span class="label">Сканер</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-shop">
-            <span class="icon">🛒</span>
-            <span class="label">Магазин</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-malware">
-            <span class="icon">🦠</span>
-            <span class="label">Malware</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-achievements">
-            <span class="icon">🏆</span>
-            <span class="label">Ачивки</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-versus">
-            <span class="icon">🥊</span>
-            <span class="label">Дуэль</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-stats">
-            <span class="icon">📈</span>
-            <span class="label">Стата</span>
-        </button>
-        <button class="nav-btn" data-tab="tab-settings">
-            <span class="icon">⚙️</span>
-            <span class="label">Настройки</span>
-        </button>
-    </nav>
-
-    <script src="/script.js"></script>
+<!-- Scripts -->
+<script src="js/utils.js" defer></script>
+<script src="js/app.js" defer></script>
+<script src="js/themes.js" defer></script>
+<script src="js/sounds.js" defer></script>
+<script src="js/heatmap.js" defer></script>
+<script src="js/charts.js" defer></script>
+<script src="js/particles.js" defer></script>
+<script src="js/effects.js" defer></script>
+<script src="js/components/cyberpsychosis.js" defer></script>
+<script src="js/offline.js" defer></script>
+<script src="js/notifications.js" defer></script>
+<script src="js/notifications_ws.js" defer></script>
+<script src="js/glitch.js" defer></script>
+<script src="js/onboarding.js" defer></script>
+<script src="js/components/risk_indicators.js" defer></script>
+<!-- Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
 </body>
 </html>

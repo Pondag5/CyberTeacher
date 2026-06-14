@@ -1,0 +1,86 @@
+{
+  "name": "coder-project",
+  "version": "1.0.0",
+  "schema": "v1",
+  "experimental": {
+    "agentmode": true
+  },
+  "models": [
+    {
+      "name": "autodetect",
+      "provider": "lmstudio",
+      "model": "autodetect",
+      "apiBase": "http://localhost:1234/v1",
+      "apiKey": "sk-lm-KN3VuMjH:YovWNHGHWo5hqTjCxBUR",
+      "contextLength": 32768,
+      "roles": [
+        "chat",
+        "autocomplete",
+        "edit"
+      ],
+      "defaultCompletionOptions": {
+        "temperature": 0.1,
+        "maxTokens": 4096
+      }
+    },
+    {
+      "name": "Autodetect",
+      "provider": "lmstudio",
+      "model": "AUTODETECT",
+      "apiBase": "http://localhost:1234/v1/"
+    },
+    {
+      "name": "nomic-embed",
+      "provider": "lmstudio",
+      "model": "text-embedding-nomic-embed-text-v1.5",
+      "apiBase": "http://localhost:1234/v1",
+      "apiKey": "sk-lm-KN3VuMjH:YovWNHGHWo5hqTjCxBUR",
+      "roles": ["embed"]
+    }
+  ],
+  "context": [
+    {
+      "provider": "codebase"
+    },
+    {
+      "provider": "file"
+    },
+    {
+      "provider": "folder"
+    },
+    {
+      "provider": "terminal"
+    }
+  ],
+  "rules": [
+    {
+      "name": "Use FAISS for any project question",
+      "rule": "When the user asks about the project, code, or documentation, you MUST call the tool 'search_codebase' with the user's query. You have access to this tool via MCP. Use it, then answer based on the results. Do not suggest manual commands.",
+      "alwaysApply": true
+    }
+  ],
+  "mcpServers": [
+    {
+      "name": "cyberteacher-faiss",
+      "command": "python",
+      "args": [
+        "M:/Cyber_Teacher/Cyber_Teacher/mcp_server_faiss.py"
+      ],
+      "cwd": "M:/Cyber_Teacher/Cyber_Teacher",
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    {
+      "name": "cyberteacher-project",
+      "command": "python",
+      "args": [
+        "M:/Cyber_Teacher/Cyber_Teacher/mcp_server.py"
+      ],
+      "cwd": "M:/Cyber_Teacher/Cyber_Teacher",
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  ]
+}

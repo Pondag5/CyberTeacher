@@ -8,9 +8,7 @@ from pydantic import BaseModel, Field
 class PersonaState(BaseModel):
     """Current persona (mode) of the assistant."""
     
-    current_persona: str = Field(default="teacher")  # teacher, expert, ctf, review
-    current_mode: str = Field(default="teacher")  # режим для совместимости
+    current_persona: str = Field(default="teacher")
+    current_mode: str = Field(default="teacher")
 
-    model_config = {
-        "validate_assignment": True
-    }
+    model_config = {"validate_assignment": True}

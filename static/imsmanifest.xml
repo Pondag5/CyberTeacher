@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="CyberTeacher"
+    xmlns="http://www.imsproject.org/xsd/imscp_rootv1p1p2"
+    xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_rootv1p2"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.imsproject.org/xsd/imscp_rootv1p1p2 imscp_rootv1p1p2.xsd
+        http://www.adlnet.org/xsd/adlcp_rootv1p2 adlcp_rootv1p2.xsd">
+
+    <metadata>
+        <schema>ADL SCORM</schema>
+        <schemaversion>1.2</schemaversion>
+    </metadata>
+
+    <organizations default="CyberTeacher_Org">
+        <organization identifier="CyberTeacher_Org">
+            <title>CyberTeacher — AI Cybersecurity Tutor</title>
+
+            <item identifier="MODULE_INTRO" identifierref="RES_INTRO">
+                <title>Introduction to Cybersecurity</title>
+                <item identifier="LESSON_01" identifierref="RES_LESSON">
+                    <title>Web Security — OWASP Top 10</title>
+                </item>
+                <item identifier="QUIZ_01" identifierref="RES_QUIZ">
+                    <title>Quiz: Web Security Basics</title>
+                </item>
+            </item>
+
+            <item identifier="MODULE_NETWORK" identifierref="RES_NETWORK">
+                <title>Network Security</title>
+                <item identifier="LESSON_02" identifierref="RES_NETWORK_LESSON">
+                    <title>TCP/IP and Firewalls</title>
+                </item>
+                <item identifier="QUIZ_02" identifierref="RES_NETWORK_QUIZ">
+                    <title>Quiz: Network Security</title>
+                </item>
+            </item>
+
+            <item identifier="MODULE_CRYPTO" identifierref="RES_CRYPTO">
+                <title>Cryptography</title>
+                <item identifier="LESSON_03" identifierref="RES_CRYPTO_LESSON">
+                    <title>Symmetric and Asymmetric Encryption</title>
+                </item>
+            </item>
+
+            <item identifier="MODULE_PRACTICE" identifierref="RES_PRACTICE">
+                <title>Hands-on Practice</title>
+                <item identifier="LAB_01" identifierref="RES_LAB">
+                    <title>DVWA Lab — SQL Injection</title>
+                </item>
+            </item>
+
+            <item identifier="MODULE_CTF" identifierref="RES_CTF">
+                <title>CTF Challenges</title>
+                <item identifier="CHALLENGE_01" identifierref="RES_CTF_CHALLENGE">
+                    <title>Capture The Flag</title>
+                </item>
+            </item>
+
+        </organization>
+    </organizations>
+
+    <resources>
+        <resource identifier="RES_INTRO" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#courses"/>
+        </resource>
+        <resource identifier="RES_LESSON" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#chat"/>
+        </resource>
+        <resource identifier="RES_QUIZ" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#quiz"/>
+        </resource>
+        <resource identifier="RES_NETWORK" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#courses"/>
+        </resource>
+        <resource identifier="RES_NETWORK_LESSON" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#chat"/>
+        </resource>
+        <resource identifier="RES_NETWORK_QUIZ" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#quiz"/>
+        </resource>
+        <resource identifier="RES_CRYPTO" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#courses"/>
+        </resource>
+        <resource identifier="RES_CRYPTO_LESSON" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#chat"/>
+        </resource>
+        <resource identifier="RES_PRACTICE" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#labs"/>
+        </resource>
+        <resource identifier="RES_LAB" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#labs"/>
+        </resource>
+        <resource identifier="RES_CTF" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#ctf"/>
+        </resource>
+        <resource identifier="RES_CTF_CHALLENGE" type="webcontent" adlcp:scormtype="sco">
+            <file href="index.html#ctf"/>
+        </resource>
+    </resources>
+</manifest>

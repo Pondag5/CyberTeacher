@@ -3,7 +3,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Dict, List, Optional, Union
 
 
 @dataclass
@@ -16,7 +16,7 @@ class Topic:
 
 
 # Команды Kali Linux для каждой уязвимости
-KALI_COMMANDS = {
+KALI_COMMANDS: dict[str, dict[str, Any]] = {
     "sql": {
         "name": "SQL Инъекция",
         "tools": ["sqlmap", "burpsuite", "ffuf"],
@@ -124,7 +124,7 @@ KALI_COMMANDS = {
 }
 
 # Учебные траектории
-COURSES = {
+COURSES: dict[str, dict[str, Any]] = {
     "web-basics": {
         "name": "Основы веб-безопасности",
         "desc": "Базовые уязвимости веб-приложений",
@@ -244,7 +244,7 @@ COURSES = {
                 quiz_topics=["web", "sql", "xss"],
             ),
             Topic(
-                name="Энumeration",
+                name="Эnumeration",
                 description="Разведка и сканирование",
                 labs=["metasploitable2"],
                 quiz_topics=["network"],
@@ -253,7 +253,7 @@ COURSES = {
     },
 }
 
-LEVELS = {
+LEVELS: dict[str, dict[str, str]] = {
     "beginner": {
         "name": "Новичок",
         "emoji": "🌱",
@@ -272,28 +272,27 @@ LEVELS = {
 }
 
 
-def get_course(course_id: str) -> dict | None:
+def get_course(course_id: str) -> dict[str, Any] | None:
     """Получить курс по ID"""
     return COURSES.get(course_id)
 
 
 # Сохраняем маппинг номеров для handle_course
-COURSE_MAP = {str(i): cid for i, (cid, _) in enumerate(list(COURSES.items()), 1)}
+COURSE_MAP: dict[str, str] = {str(i): cid for i, (cid, _) in enumerate(list(COURSES.items()), 1)}
 
 
 def list_courses() -> str:
     """Список всех курсов"""
-    # Создаем нумерованный список
     course_list = list(COURSES.items())
 
     result = "📚 УЧЕБНЫЕ КУРСЫ:\n\n"
 
     for i, (course_id, course) in enumerate(course_list, 1):
-        level = LEVELS.get(course["level"], {})
+        level = LEVELS.get(course.get("level", ""), {})
         emoji = level.get("emoji", "📖")
-        result += f"{i}. {emoji} {course['name']} [{course['level']}]\n"
+        result += f"{i}. {emoji} {course['name']} [{course.get('level', 'unknown')}]\n"
         result += f"   {course['desc']}\n"
-        result += f"   Тем: {len(course['topics'])}\n\n"
+        result += f"   Тем: {len(course.get('topics', []))}\n\n"
 
     result += "📝 Использование:\n"
     result += "   /course <номер> - начать курс\n"
@@ -310,25 +309,25 @@ def start_course(course_id: str) -> str:
     if not course:
         return f"❌ Курс '{course_id}' не найден. Напиши /courses для списка."
 
-    level = LEVELS.get(course["level"], {})
+    level = LEVELS.get(course.get("level", ""), {})
     emoji = level.get("emoji", "📖")
 
     result = f"""
 ╔══════════════════════════════════════════════════════╗
 ║  {emoji} КУРС: {course["name"]}                      ║
 ╠══════════════════════════════════════════════════════╣
-║  Уровень: {course["level"]}                                    ║
+║  Уровень: {course.get('level', 'unknown')}                                    ║
 ║  Описание: {course["desc"]}                        ║
-║  Тем в курсе: {len(course["topics"])}                              ║
+║  Тем в курсе: {len(course.get("topics", []))}                              ║
 ╚══════════════════════════════════════════════════════╝
 
 🎯 ПЕРВОЕ ЗАДАНИЕ:
 
 """
 
-    # Первая тема
-    if course["topics"]:
-        topic = course["topics"][0]
+    topics = course.get("topics", [])
+    if topics:
+        topic = topics[0]
         result += f"""
 📌 Тема: {topic.name}
    {topic.description}
@@ -353,7 +352,7 @@ def get_course_progress(course_id: str, current_topic: int) -> str:
     if not course:
         return "Курс не найден"
 
-    topics = course["topics"]
+    topics = course.get("topics", [])
     if current_topic >= len(topics):
         return f"""
 🎉 ПОЗДРАВЛЯЮ! Курс '{course["name"]}' пройден!
@@ -372,8 +371,35 @@ def get_course_progress(course_id: str, current_topic: int) -> str:
 🔧 Лабы: {", ".join(topic.labs)}
 📝 Квизы: {", ".join(topic.quiz_topics)}
 
-Команды:
-   /lab start <name> - запустить лабу
-   /quiz {topic.quiz_topics[0]} - пройти квиз
-   /next - следующая тема
+    Команды:
+    /lab start <name> - запустить лабу
+    /quiz {topic.quiz_topics[0]} - пройти квиз
+    /next - следующая тема
 """
+
+
+def list_all_topics(course_progress: dict[str, int] | None = None) -> list[dict[str, Any]]:
+    """CNT-03: Получить все темы всех курсов с прогрессом."""
+    result = []
+    for course_id, course in COURSES.items():
+        current_topic_idx = course_progress.get(course_id, 0) if course_progress else 0
+        topics = course.get("topics", [])
+        for idx, topic in enumerate(topics):
+            if not isinstance(topic, Topic):
+                continue
+            if idx < current_topic_idx:
+                status = "completed"
+            elif idx == current_topic_idx:
+                status = "in_progress"
+            else:
+                status = "not_started"
+            result.append({
+                "course": course["name"],
+                "course_id": course_id,
+                "topic": topic.name,
+                "description": topic.description,
+                "status": status,
+                "labs": topic.labs,
+                "quiz_topics": topic.quiz_topics,
+            })
+    return result

@@ -3,7 +3,13 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from story_mode import StoryPlayer, get_level, get_story_list
+from story_mode import (
+    get_level,
+    get_story_list,
+    start_story_mode,
+    submit_flag,
+    _check_achievements,
+)
 
 
 class TestGetLevel(unittest.TestCase):
@@ -32,68 +38,62 @@ class TestGetLevel(unittest.TestCase):
         self.assertEqual(get_level(5000), "Legend")
 
 
-class TestStoryPlayer(unittest.TestCase):
-    def test_init_defaults(self):
-        player = StoryPlayer()
-        self.assertEqual(player.xp, 0)
-        self.assertEqual(player.completed_episodes, [])
-        self.assertEqual(player.current_episode, 1)
+class TestStartStoryMode(unittest.TestCase):
+    @patch("story_mode.get_state")
+    def test_start_story_mode_returns_string(self, mock_get_state):
+        mock_state = MagicMock()
+        mock_state.xp = 0
+        mock_state.story_completed = []
+        mock_get_state.return_value = mock_state
+        result = start_story_mode(1)
+        self.assertIsInstance(result, str)
+        self.assertIn("ЭПИЗОД #1", result)
 
-    def test_complete_episode_adds_and_gives_xp(self):
-        player = StoryPlayer()
-        player.complete_episode(1, 100)
-        self.assertIn(1, player.completed_episodes)
-        self.assertEqual(player.xp, 100)
 
-    def test_complete_episode_duplicate(self):
-        player = StoryPlayer()
-        player.complete_episode(1, 100)
-        player.complete_episode(1, 100)  # duplicate
-        self.assertEqual(len(player.completed_episodes), 1)
-        self.assertEqual(player.xp, 100)  # no additional XP
+class TestSubmitFlag(unittest.TestCase):
+    @patch("story_mode.get_state")
+    def test_submit_invalid_flag(self, mock_get_state):
+        mock_state = MagicMock()
+        mock_state.xp = 0
+        mock_state.story_completed = []
+        mock_get_state.return_value = mock_state
+        result = submit_flag("WRONG_FLAG")
+        self.assertIn("Неверный флаг", result)
 
-    def test_level_property(self):
-        player = StoryPlayer()
-        player.xp = 250
-        self.assertEqual(player.level, "Hacker")
-
-    def test_check_achievements_first_blood(self):
-        player = StoryPlayer()
-        achievements = player.check_achievements()
-        # No achievements initially
-        self.assertFalse(any(a == "first_blood" for a in achievements))
-        # Complete first episode
-        player.complete_episode(1, 100)
-        achievements = player.check_achievements()
-        self.assertIn("first_blood", achievements)
-
-    def test_check_achievements_web_hacker(self):
-        player = StoryPlayer()
-        # Complete 5 web episodes (ids 1-5)
-        for ep_id in range(1, 6):
-            player.complete_episode(ep_id, 100)
-        achievements = player.check_achievements()
-        self.assertIn("web_hacker", achievements)
-
-    def test_check_achievements_behavior(self):
-        player = StoryPlayer()
-        player.complete_episode(1, 100)
-        ach1 = player.check_achievements()
-        self.assertIn("first_blood", ach1)
-        # Subsequent call still includes it due to implementation
-        ach2 = player.check_achievements()
-        self.assertIn("first_blood", ach2)
+    @patch("story_mode.get_state")
+    def test_submit_valid_flag(self, mock_get_state):
+        mock_state = MagicMock()
+        mock_state.xp = 0
+        mock_state.story_completed = []
+        mock_get_state.return_value = mock_state
+        result = submit_flag("FLAG{SQL_1nj3ct10n}")
+        self.assertIn("ПРОЙДЕН", result)
+        self.assertIn(1, mock_state.story_completed)
 
 
 class TestGetStoryList(unittest.TestCase):
-    def test_get_story_list_returns_string(self):
+    @patch("story_mode.get_state")
+    def test_get_story_list_returns_string(self, mock_get_state):
+        mock_state = MagicMock()
+        mock_state.xp = 0
+        mock_state.story_completed = []
+        mock_get_state.return_value = mock_state
         result = get_story_list()
         self.assertIsInstance(result, str)
         self.assertTrue(len(result) > 0)
-        # Check for some episode title substrings
         self.assertIn("Первое", result)
         self.assertIn("XSS", result)
-        self.assertIn("CSRF ловушка", result)
+
+
+class TestCheckAchievements(unittest.TestCase):
+    def test_first_blood(self):
+        self.assertIn("first_blood", _check_achievements([1]))
+
+    def test_web_hacker(self):
+        self.assertIn("web_hacker", _check_achievements(list(range(1, 6))))
+
+    def test_network_ninja(self):
+        self.assertIn("network_ninja", _check_achievements(list(range(6, 11))))
 
 
 if __name__ == "__main__":

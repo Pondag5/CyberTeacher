@@ -12,11 +12,13 @@ from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 
-def handle_offline(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_offline(action: str) -> HandlerResult:
     """Обработка /offline [on|off|status]."""
     ctx = get_context()
     state = ctx.state

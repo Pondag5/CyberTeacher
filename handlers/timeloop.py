@@ -15,6 +15,8 @@ from rich.table import Table
 
 from di import get_context
 from ui import console
+from handlers.types import HandlerResult
+
 
 STORY_NODES: dict[str, dict[str, Any]] = {
     "start": {
@@ -228,7 +230,7 @@ def _reset_timeloop() -> None:
     ))
 
 
-def handle_timeloop(args: str) -> tuple[str, bool]:
+def handle_timeloop(args: str) -> HandlerResult:
     """Главный обработчик команды /timeloop."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""
@@ -236,13 +238,13 @@ def handle_timeloop(args: str) -> tuple[str, bool]:
 
     if subcommand == "" or subcommand == "start":
         _start_timeloop()
-        return "", True
+        return True, None, None, True
     elif subcommand == "choice" and query:
         _make_choice(query)
-        return "", True
+        return True, None, None, True
     elif subcommand == "reset":
         _reset_timeloop()
-        return "", True
+        return True, None, None, True
     elif subcommand == "help":
         console.print(Panel(
             "[bold]Команды временной петли:[/bold]\n"
@@ -251,7 +253,7 @@ def handle_timeloop(args: str) -> tuple[str, bool]:
             "/timeloop reset        — Сбросить петлю",
             border_style="yellow",
         ))
-        return "", True
+        return True, None, None, True
     else:
         console.print(f"[red]Неизвестная подкоманда: {subcommand}[/red]")
-        return "", True
+        return True, None, None, True

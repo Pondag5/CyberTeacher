@@ -1,6 +1,6 @@
 """Daily challenge handler."""
 
-from typing import Any
+from typing import Any, Tuple
 
 from daily_challenge import (
     generate_daily_challenge,
@@ -10,9 +10,11 @@ from daily_challenge import (
 )
 from di import get_context
 from ui import console
+from handlers.types import HandlerResult
 
 
-def handle_daily(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+
+def handle_daily(action: str) -> HandlerResult:
     """Handle /daily command and its subcommands."""
     ctx = get_context()
     state = ctx.state
@@ -42,13 +44,15 @@ def handle_daily(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         import os
 
         from daily_challenge import CHALLENGE_FILE, _get_today_str
+
         if os.path.exists(CHALLENGE_FILE):
             import json
-            with open(CHALLENGE_FILE, "r") as f:
+
+            with open(CHALLENGE_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
             today = _get_today_str()
             data.get("history", {}).pop(today, None)
-            with open(CHALLENGE_FILE, "w") as f:
+            with open(CHALLENGE_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f)
         challenge = generate_daily_challenge(difficulty=arg if arg else None)
         console.print(get_daily_status())
@@ -62,7 +66,9 @@ def handle_daily(action: str) -> tuple[bool, Any | None, Any | None, bool]:
         console.print(f"[bold]+{result['xp_reward']} XP[/bold]")
         state.points += result["xp_reward"]
         if result.get("streak_bonus", 0) > 0:
-            console.print(f"[yellow]🔥 Бонус за стрик: +{result['streak_bonus']} XP[/yellow]")
+            console.print(
+                f"[yellow]🔥 Бонус за стрик: +{result['streak_bonus']} XP[/yellow]"
+            )
     else:
         console.print(f"[yellow]❌ {result['feedback']}[/yellow]")
 

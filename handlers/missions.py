@@ -8,18 +8,55 @@ from rich.console import Console
 from rich.table import Table
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 MISSIONS_DIR = os.path.join(os.path.dirname(__file__), "..", "missions")
 
 
-def _load_mission(mission_id: str) -> dict[str, Any] | None:
+def _load_mission(mission_id: str) -> Any | None:
     path = os.path.join(MISSIONS_DIR, f"{mission_id}.json")
     if not os.path.exists(path):
         return None
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _list_missions_api() -> list[dict[str, Any]]:
+    """Return missions as plain dicts for API consumption."""
+    import glob as _glob
+
+    ctx = get_context()
+    state = ctx.state
+    completed = set(
+        state.missions_completed if hasattr(state, "missions_completed") else []
+    )
+    result = []
+    for path in sorted(_glob.glob(os.path.join(MISSIONS_DIR, "*.json"))):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            mid = data.get("id", os.path.basename(path).replace(".json", ""))
+            prereqs = data.get("prerequisites", [])
+            locked = any(p not in completed for p in prereqs)
+            result.append(
+                {
+                    "id": mid,
+                    "name": data.get("title", ""),
+                    "desc": data.get("description", ""),
+                    "category": data.get("category", ""),
+                    "difficulty": data.get("difficulty", "medium"),
+                    "xp_reward": data.get("xp_reward", 0),
+                    "completed": mid in completed,
+                    "locked": locked,
+                    "prerequisites": prereqs,
+                }
+            )
+        except (OSError, IOError, json.JSONDecodeError):
+            continue
+    return result
 
 
 def _list_missions() -> str:
@@ -52,7 +89,7 @@ def _list_missions() -> str:
             labs = ", ".join(data.get("labs", []))
             status = "[green]✅[/green]" if mid in completed else "[dim]⬜[/dim]"
             table.add_row(f"{status} {mid}", title, cat, diff, xp, labs)
-        except Exception:
+        except (OSError, IOError, json.JSONDecodeError):
             continue
 
     console.print(table)
@@ -66,9 +103,16 @@ def _start_mission(mission_id: str) -> str:
 
     ctx = get_context()
     state = ctx.state
-    # Check if already completed
     if mission_id in (getattr(state, "missions_completed", [])):
         return f"[yellow]Миссия '{mission_id}' уже пройдена[/yellow]"
+
+    # Check prerequisites
+    prereqs = data.get("prerequisites", [])
+    completed = set(getattr(state, "missions_completed", []))
+    missing = [p for p in prereqs if p not in completed]
+    if missing:
+        names = ", ".join(missing)
+        return f"[red]❌ Требуются миссии: {names}. Заверши их сначала.[/red]"
 
     # Display mission info
     out = [
@@ -114,6 +158,14 @@ def _submit_mission(mission_id: str) -> str:
     if mission_id in (getattr(state, "missions_completed", [])):
         return f"[yellow]Миссия '{mission_id}' уже завершена[/yellow]"
 
+    # Check prerequisites
+    prereqs = data.get("prerequisites", [])
+    completed_set = set(getattr(state, "missions_completed", []))
+    missing = [p for p in prereqs if p not in completed_set]
+    if missing:
+        names = ", ".join(missing)
+        return f"[red]❌ Требуются миссии: {names}. Заверши их сначала.[/red]"
+
     # Check PoC steps if any
     steps = data.get("steps", [])
     exploit_steps = [s for s in steps if s.get("accepts_exploit", False)]
@@ -136,14 +188,34 @@ def _submit_mission(mission_id: str) -> str:
     # All checks passed, complete mission
     if not hasattr(state, "missions_completed"):
         state.missions_completed = []
-    state.missions_completed.append(mission_id)
+    if mission_id not in state.missions_completed:
+        state.missions_completed.append(mission_id)
+        from handlers.debt import clear_debt
+
+        clear_debt("", count=1, prefix=f"Миссия: {mission_id}")
+        try:
+            from behavior_profile import record_action
+
+            record_action(state, "mission_complete")
+        except ImportError:
+            pass
     xp = data.get("xp_reward", 0)
     state.points += xp
+    # Auto-track skill from mission category
+    try:
+        from handlers.skills import guess_skill_from_topic
+
+        topic = data.get("category", "") or data.get("title", "")
+        skill = guess_skill_from_topic(topic)
+        if skill:
+            state.track_skill(skill, True, xp=xp)
+    except ImportError:
+        pass
     ctx.save_state()
     return f"[green]✅ Миссия '{mission_id}' завершена! +{xp} XP[/green]"
 
 
-def handle_missions(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_missions(action: str) -> HandlerResult:
     """Обработка команд миссий."""
     parts = action.split()
     if len(parts) == 1 or parts[0] != "mission":

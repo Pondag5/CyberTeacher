@@ -18,25 +18,25 @@ class TestShodan(unittest.TestCase):
     def test_shodan_help(self):
         """Вызов справки /shodan."""
         with patch("handlers.shodan_censys.console.print"):
-            result, action_taken = handle_shodan("")
+            _, result, _, action_taken = handle_shodan("")
             self.assertTrue(action_taken)
 
     def test_shodan_search(self):
         """Поиск в Shodan."""
         with patch("handlers.shodan_censys.console.print"):
-            result, action_taken = handle_shodan("search apache")
+            _, result, _, action_taken = handle_shodan("search apache")
             self.assertTrue(action_taken)
 
     def test_shodan_host(self):
         """Информация о хосте Shodan."""
         with patch("handlers.shodan_censys.console.print"):
-            result, action_taken = handle_shodan("host 8.8.8.8")
+            _, result, _, action_taken = handle_shodan("host 8.8.8.8")
             self.assertTrue(action_taken)
 
     def test_shodan_search_empty(self):
         """Поиск без запроса."""
         with patch("handlers.shodan_censys.console.print"):
-            result, action_taken = handle_shodan("search")
+            _, result, _, action_taken = handle_shodan("search")
             self.assertFalse(action_taken)
 
     def test_simulate_shodan_search(self):
@@ -60,25 +60,25 @@ class TestCensys(unittest.TestCase):
     def test_censys_help(self):
         """Вызов справки /censys."""
         with patch("handlers.shodan_censys.console.print"):
-            result, action_taken = handle_censys("")
+            _, result, _, action_taken = handle_censys("")
             self.assertTrue(action_taken)
 
     def test_censys_search(self):
         """Поиск в Censys."""
         with patch("handlers.shodan_censys.console.print"):
-            result, action_taken = handle_censys("search nginx")
+            _, result, _, action_taken = handle_censys("search nginx")
             self.assertTrue(action_taken)
 
     def test_censys_host(self):
         """Информация о хосте Censys."""
         with patch("handlers.shodan_censys.console.print"):
-            result, action_taken = handle_censys("host 8.8.4.4")
+            _, result, _, action_taken = handle_censys("host 8.8.4.4")
             self.assertTrue(action_taken)
 
     def test_censys_search_empty(self):
         """Поиск без запроса."""
         with patch("handlers.shodan_censys.console.print"):
-            result, action_taken = handle_censys("search")
+            _, result, _, action_taken = handle_censys("search")
             self.assertFalse(action_taken)
 
     def test_simulate_censys_search(self):

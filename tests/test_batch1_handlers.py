@@ -1,5 +1,5 @@
 """
-Tests for daily, network, equipment, mermaid, and mindmap handlers.
+Tests for daily, network, equipment, and mermaid handlers.
 """
 
 import json
@@ -17,7 +17,9 @@ class TestDailyHandler(unittest.TestCase):
     @patch("handlers.daily.console")
     @patch("handlers.daily.generate_daily_challenge")
     @patch("handlers.daily.get_daily_status")
-    def test_daily_show_challenge(self, mock_status, mock_gen, mock_console, mock_get_context):
+    def test_daily_show_challenge(
+        self, mock_status, mock_gen, mock_console, mock_get_context
+    ):
         mock_state = MagicMock()
         mock_ctx = MagicMock()
         mock_ctx.state = mock_state
@@ -26,6 +28,7 @@ class TestDailyHandler(unittest.TestCase):
         mock_status.return_value = "Status info"
 
         from handlers.daily import handle_daily
+
         success, _, _, continue_loop = handle_daily("/daily")
 
         self.assertTrue(success)
@@ -42,6 +45,7 @@ class TestDailyHandler(unittest.TestCase):
         mock_hint.return_value = "This is a hint"
 
         from handlers.daily import handle_daily
+
         success, _, _, continue_loop = handle_daily("/daily hint")
 
         self.assertTrue(success)
@@ -58,6 +62,7 @@ class TestDailyHandler(unittest.TestCase):
         mock_status.return_value = "Status info"
 
         from handlers.daily import handle_daily
+
         success, _, _, continue_loop = handle_daily("/daily status")
 
         self.assertTrue(success)
@@ -80,16 +85,21 @@ class TestNetworkHandler(unittest.TestCase):
 
         with patch.dict("sys.modules", {"practice": MagicMock()}):
             import sys
+
             sys.modules["practice"].DOCKER_LABS = mock_docker_labs
-            sys.modules["practice"].get_container_status = MagicMock(return_value=mock_container_status)
+            sys.modules["practice"].get_container_status = MagicMock(
+                return_value=mock_container_status
+            )
 
             # Re-import to get patched version
             import importlib
 
             import handlers.network
+
             importlib.reload(handlers.network)
 
             from handlers.network import handle_network
+
             success, _, _, continue_loop = handle_network("/network")
 
             self.assertTrue(success)
@@ -111,6 +121,7 @@ class TestEquipmentHandler(unittest.TestCase):
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 2, "sqlmap": 3}):
             with patch("handlers.equipment.MAX_RAM", 10):
                 from handlers.equipment import handle_tools
+
                 success, _, _, continue_loop = handle_tools("/tools")
 
                 self.assertTrue(success)
@@ -128,6 +139,7 @@ class TestEquipmentHandler(unittest.TestCase):
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 2, "sqlmap": 3}):
             with patch("handlers.equipment.MAX_RAM", 10):
                 from handlers.equipment import handle_equip
+
                 success, _, _, continue_loop = handle_equip("/equip nmap")
 
                 self.assertTrue(success)
@@ -146,6 +158,7 @@ class TestEquipmentHandler(unittest.TestCase):
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 2}):
             with patch("handlers.equipment.MAX_RAM", 10):
                 from handlers.equipment import handle_equip
+
                 success, _, _, continue_loop = handle_equip("/equip unknown")
 
                 self.assertTrue(success)
@@ -163,6 +176,7 @@ class TestEquipmentHandler(unittest.TestCase):
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 5, "sqlmap": 6}):
             with patch("handlers.equipment.MAX_RAM", 10):
                 from handlers.equipment import handle_equip
+
                 success, _, _, continue_loop = handle_equip("/equip sqlmap")
 
                 self.assertTrue(success)
@@ -180,6 +194,7 @@ class TestEquipmentHandler(unittest.TestCase):
         with patch("handlers.equipment.TOOL_RAM_COSTS", {"nmap": 2}):
             with patch("handlers.equipment.MAX_RAM", 10):
                 from handlers.equipment import handle_equip
+
                 success, _, _, continue_loop = handle_equip("/equip nmap")
 
                 self.assertTrue(success)
@@ -193,6 +208,7 @@ class TestMermaidHandler(unittest.TestCase):
     @patch("handlers.mermaid.console")
     def test_mermaid_no_args(self, mock_console):
         from handlers.mermaid import handle_mermaid
+
         success, _, _, continue_loop = handle_mermaid("/mermaid")
 
         self.assertTrue(success)
@@ -202,6 +218,7 @@ class TestMermaidHandler(unittest.TestCase):
     @patch("handlers.mermaid.console")
     def test_mermaid_list(self, mock_console):
         from handlers.mermaid import handle_mermaid
+
         success, _, _, continue_loop = handle_mermaid("/mermaid list")
 
         self.assertTrue(success)
@@ -217,6 +234,7 @@ class TestMermaidHandler(unittest.TestCase):
         mock_get_context.return_value = mock_ctx
 
         from handlers.mermaid import handle_mermaid
+
         success, _, _, continue_loop = handle_mermaid("/mermaid show sqli")
 
         self.assertTrue(success)
@@ -231,6 +249,7 @@ class TestMermaidHandler(unittest.TestCase):
         mock_get_context.return_value = mock_ctx
 
         from handlers.mermaid import handle_mermaid
+
         success, _, _, continue_loop = handle_mermaid("/mermaid show nonexistent")
 
         self.assertTrue(success)
@@ -239,6 +258,7 @@ class TestMermaidHandler(unittest.TestCase):
     @patch("handlers.mermaid.console")
     def test_mermaid_show_no_topic(self, mock_console):
         from handlers.mermaid import handle_mermaid
+
         success, _, _, continue_loop = handle_mermaid("/mermaid show")
 
         self.assertTrue(success)
@@ -247,6 +267,7 @@ class TestMermaidHandler(unittest.TestCase):
     @patch("handlers.mermaid.console")
     def test_mermaid_generate_no_topic(self, mock_console):
         from handlers.mermaid import handle_mermaid
+
         success, _, _, continue_loop = handle_mermaid("/mermaid generate")
 
         self.assertTrue(success)
@@ -255,45 +276,11 @@ class TestMermaidHandler(unittest.TestCase):
     @patch("handlers.mermaid.console")
     def test_mermaid_unknown_subcommand(self, mock_console):
         from handlers.mermaid import handle_mermaid
+
         success, _, _, continue_loop = handle_mermaid("/mermaid unknown")
 
         self.assertTrue(success)
         mock_console.print.assert_called()
-
-
-# ── Mindmap Handler ───────────────────────────────────────────
-class TestMindmapHandler(unittest.TestCase):
-    """Tests for /mindmap command handler."""
-
-    @patch("handlers.mindmap.console")
-    def test_mindmap_full_tree(self, mock_console):
-        from handlers.mindmap import handle_mindmap
-        response, should_continue = handle_mindmap("/mindmap")
-
-        self.assertTrue(should_continue)
-        mock_console.print.assert_called()
-
-    @patch("handlers.mindmap.console")
-    def test_mindmap_specific_topic(self, mock_console):
-        from handlers.mindmap import handle_mindmap
-        response, should_continue = handle_mindmap("/mindmap Web Security")
-
-        self.assertTrue(should_continue)
-        mock_console.print.assert_called()
-
-    @patch("handlers.mindmap.console")
-    def test_mindmap_help(self, mock_console):
-        from handlers.mindmap import handle_mindmap
-        response, should_continue = handle_mindmap("/mindmap help")
-
-        self.assertTrue(should_continue)
-        mock_console.print.assert_called()
-
-    def test_build_ascii_tree_no_cycles(self):
-        from handlers.mindmap import _build_ascii_tree
-        tree = _build_ascii_tree("CyberSecurity")
-        self.assertIn("Network Security", tree)
-        self.assertIn("Web Security", tree)
 
 
 if __name__ == "__main__":

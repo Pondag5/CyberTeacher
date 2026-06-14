@@ -17,11 +17,13 @@ import os
 import re
 import struct
 from collections import Counter, defaultdict
-from typing import Any
+from typing import Any, List, Dict, Optional, Tuple, Union
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from handlers.types import HandlerResult
+
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -29,6 +31,7 @@ logger = logging.getLogger(__name__)
 # Попытка импорта scapy
 try:
     from scapy.all import DNS, DNSQR, HTTP, IP, TCP, UDP, Raw, rdpcap
+
     HAS_SCAPY = True
 except ImportError:
     HAS_SCAPY = False
@@ -37,12 +40,12 @@ except ImportError:
 class PcapParser:
     """Минимальный парсер pcap без scapy."""
 
-    def __init__(self, filepath: str):
-        self.filepath = filepath
-        self.packets = []
+    def __init__(self, filepath: str) -> None:
+        self.filepath: str = filepath
+        self.packets: List[Dict[str, Any]] = []
         self._parse()
 
-    def _parse(self):
+    def _parse(self) -> None:
         """Парсинг pcap файла (формат libpcap)."""
         try:
             with open(self.filepath, "rb") as f:
@@ -60,20 +63,26 @@ class PcapParser:
                         break
 
                     if magic == b"\xd4\xc3\xb2\xa1":
-                        ts_sec, ts_usec, incl_len, orig_len = struct.unpack("<IIII", pkt_header)
+                        ts_sec, ts_usec, incl_len, orig_len = struct.unpack(
+                            "<IIII", pkt_header
+                        )
                     else:
-                        ts_sec, ts_usec, incl_len, orig_len = struct.unpack(">IIII", pkt_header)
+                        ts_sec, ts_usec, incl_len, orig_len = struct.unpack(
+                            ">IIII", pkt_header
+                        )
 
                     data = f.read(incl_len)
                     if len(data) < incl_len:
                         break
 
-                    self.packets.append({
-                        "timestamp": ts_sec + ts_usec / 1_000_000,
-                        "length": orig_len,
-                        "captured_len": incl_len,
-                        "data": data,
-                    })
+                    self.packets.append(
+                        {
+                            "timestamp": ts_sec + ts_usec / 1_000_000,
+                            "length": orig_len,
+                            "captured_len": incl_len,
+                            "data": data,
+                        }
+                    )
         except Exception as e:
             logger.error(f"Error parsing pcap: {e}")
 
@@ -90,15 +99,19 @@ class PcapParser:
             "total_packets": len(self.packets),
             "total_bytes": total_bytes,
             "duration_sec": round(duration, 2),
-            "avg_packet_size": round(total_bytes / len(self.packets), 1) if self.packets else 0,
-            "packets_per_sec": round(len(self.packets) / duration, 1) if duration > 0 else 0,
+            "avg_packet_size": round(total_bytes / len(self.packets), 1)
+            if self.packets
+            else 0,
+            "packets_per_sec": round(len(self.packets) / duration, 1)
+            if duration > 0
+            else 0,
         }
 
 
-def analyze_pcap_scapy(filepath: str) -> dict:
+def analyze_pcap_scapy(filepath: str) -> Dict[str, Any]:
     """Анализ pcap с помощью scapy."""
     packets = rdpcap(filepath)
-    results = {
+    results: Dict[str, Any] = {
         "total_packets": len(packets),
         "total_bytes": sum(len(p) for p in packets),
         "protocols": Counter(),
@@ -127,15 +140,19 @@ def analyze_pcap_scapy(filepath: str) -> dict:
                 # HTTP detection
                 if (pkt[TCP].dport == 80 or pkt[TCP].sport == 80) and pkt.haslayer(Raw):
                     payload = pkt[Raw].load.decode("utf-8", errors="ignore")
-                    if payload.startswith(("GET ", "POST ", "PUT ", "DELETE ", "HEAD ")):
+                    if payload.startswith(
+                        ("GET ", "POST ", "PUT ", "DELETE ", "HEAD ")
+                    ):
                         results["http_requests"].append(payload.split("\r\n")[0])
 
                 # Suspicious: common attack ports
                 if pkt[TCP].dport in (4444, 5555, 1337, 31337, 1234, 6667):
-                    results["suspicious"].append({
-                        "type": "suspicious_port",
-                        "detail": f"{src_ip} → {dst_ip}:{pkt[TCP].dport}",
-                    })
+                    results["suspicious"].append(
+                        {
+                            "type": "suspicious_port",
+                            "detail": f"{src_ip} → {dst_ip}:{pkt[TCP].dport}",
+                        }
+                    )
 
             elif pkt.haslayer(UDP):
                 results["protocols"]["UDP"] += 1
@@ -148,10 +165,12 @@ def analyze_pcap_scapy(filepath: str) -> dict:
 
                 # Suspicious DNS
                 if len(qname) > 50:
-                    results["suspicious"].append({
-                        "type": "long_dns_query",
-                        "detail": qname[:80],
-                    })
+                    results["suspicious"].append(
+                        {
+                            "type": "long_dns_query",
+                            "detail": qname[:80],
+                        }
+                    )
 
         elif pkt.haslayer("ARP"):
             results["protocols"]["ARP"] += 1
@@ -188,9 +207,11 @@ def analyze_pcap_basic(filepath: str) -> dict:
             if re.search(r"(password|passwd|pwd)\s*[:=]", text, re.IGNORECASE):
                 suspicious.append({"type": "password_in_clear", "detail": text[:80]})
             if re.search(r"(4444|5555|1337|31337|6667)", text):
-                suspicious.append({"type": "suspicious_port_pattern", "detail": text[:80]})
+                suspicious.append(
+                    {"type": "suspicious_port_pattern", "detail": text[:80]}
+                )
 
-        except Exception:
+        except (ValueError, IndexError, AttributeError, TypeError):
             continue
 
     return {
@@ -206,7 +227,7 @@ def analyze_pcap_basic(filepath: str) -> dict:
     }
 
 
-def handle_pcap_analyze(filepath: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_pcap_analyze(filepath: str) -> HandlerResult:
     """Общий анализ pcap файла."""
     if not os.path.exists(filepath):
         console.print(f"[red]Файл не найден: {filepath}[/red]")
@@ -247,7 +268,9 @@ def handle_pcap_analyze(filepath: str) -> tuple[bool, Any | None, Any | None, bo
         # Suspicious
         suspicious = results.get("suspicious", [])
         if suspicious:
-            console.print(f"[yellow]⚠️ Подозрительная активность ({len(suspicious)}):[/yellow]")
+            console.print(
+                f"[yellow]⚠️ Подозрительная активность ({len(suspicious)}):[/yellow]"
+            )
             for s in suspicious[:10]:
                 console.print(f"  • [{s['type']}] {s['detail']}")
 
@@ -258,7 +281,7 @@ def handle_pcap_analyze(filepath: str) -> tuple[bool, Any | None, Any | None, bo
         return True, None, None, True
 
 
-def handle_pcap_stats(filepath: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_pcap_stats(filepath: str) -> HandlerResult:
     """Статистика пакетов."""
     if not os.path.exists(filepath):
         console.print(f"[red]Файл не найден: {filepath}[/red]")
@@ -297,7 +320,7 @@ def handle_pcap_stats(filepath: str) -> tuple[bool, Any | None, Any | None, bool
         return True, None, None, True
 
 
-def handle_pcap_dns(filepath: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_pcap_dns(filepath: str) -> HandlerResult:
     """DNS запросы из pcap."""
     if not os.path.exists(filepath):
         console.print(f"[red]Файл не найден: {filepath}[/red]")
@@ -325,7 +348,7 @@ def handle_pcap_dns(filepath: str) -> tuple[bool, Any | None, Any | None, bool]:
         return True, None, None, True
 
 
-def handle_pcap_http(filepath: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_pcap_http(filepath: str) -> HandlerResult:
     """HTTP запросы из pcap."""
     if not os.path.exists(filepath):
         console.print(f"[red]Файл не найден: {filepath}[/red]")
@@ -354,7 +377,7 @@ def handle_pcap_http(filepath: str) -> tuple[bool, Any | None, Any | None, bool]
         return True, None, None, True
 
 
-def handle_pcap_suspicious(filepath: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_pcap_suspicious(filepath: str) -> HandlerResult:
     """Поиск подозрительной активности."""
     if not os.path.exists(filepath):
         console.print(f"[red]Файл не найден: {filepath}[/red]")
@@ -368,12 +391,16 @@ def handle_pcap_suspicious(filepath: str) -> tuple[bool, Any | None, Any | None,
 
         suspicious = results.get("suspicious", [])
         if suspicious:
-            console.print(Panel(
-                f"Найдено {len(suspicious)} подозрительных событий:\n\n" +
-                "\n".join(f"• [{s['type']}] {s['detail']}" for s in suspicious[:20]),
-                title="🚨 Suspicious Activity",
-                border_style="red",
-            ))
+            console.print(
+                Panel(
+                    f"Найдено {len(suspicious)} подозрительных событий:\n\n"
+                    + "\n".join(
+                        f"• [{s['type']}] {s['detail']}" for s in suspicious[:20]
+                    ),
+                    title="🚨 Suspicious Activity",
+                    border_style="red",
+                )
+            )
         else:
             console.print("[green]✅ Подозрительная активность не обнаружена[/green]")
 
@@ -384,7 +411,7 @@ def handle_pcap_suspicious(filepath: str) -> tuple[bool, Any | None, Any | None,
         return True, None, None, True
 
 
-def handle_pcap_action(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_pcap_action(action: str) -> HandlerResult:
     """Обработка /pcap <subcommand>."""
     parts = action.split()
 

@@ -17,6 +17,8 @@ from rich.panel import Panel
 
 from di import get_context
 from ui import console
+from handlers.types import HandlerResult
+
 
 
 def _generate_user_id() -> str:
@@ -25,10 +27,10 @@ def _generate_user_id() -> str:
     state = ctx.state
     if not hasattr(state, "sync_id"):
         state.sync_id = str(uuid.uuid4())[:8]
-    return state.sync_id
+    return str(state.sync_id)
 
 
-def _export_progress(filepath: str = None) -> bool:
+def _export_progress(filepath: str | None = None) -> bool:
     """Экспорт прогресса в JSON файл."""
     ctx = get_context()
     state = ctx.state
@@ -54,12 +56,14 @@ def _export_progress(filepath: str = None) -> bool:
     try:
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(sync_data, f, indent=2, ensure_ascii=False)
-        console.print(Panel(
-            f"[green]✅ Прогресс экспортирован в:[/green] {filepath}\n"
-            f"[bold]Sync ID:[/bold] {sync_data['sync_id']}\n"
-            f"[dim]Перенесите файл на другое устройство и используйте /sync import.[/dim]",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"[green]✅ Прогресс экспортирован в:[/green] {filepath}\n"
+                f"[bold]Sync ID:[/bold] {sync_data['sync_id']}\n"
+                f"[dim]Перенесите файл на другое устройство и используйте /sync import.[/dim]",
+                border_style="green",
+            )
+        )
         return True
     except Exception as e:
         console.print(f"[red]Ошибка экспорта: {e}[/red]")
@@ -94,19 +98,21 @@ def _import_progress(filepath: str) -> bool:
         state.skills = progress.get("skills", {})
         state.reputation = progress.get("reputation", 0)
 
-        console.print(Panel(
-            f"[green]✅ Прогресс импортирован![/green]\n"
-            f"[bold]XP:[/bold] {state.xp} | [bold]Уровень:[/bold] {state.level}\n"
-            f"[bold]Достижений:[/bold] {len(state.achievements)} | [bold]Репутация:[/bold] {state.reputation}",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"[green]✅ Прогресс импортирован![/green]\n"
+                f"[bold]XP:[/bold] {state.xp} | [bold]Уровень:[/bold] {state.level}\n"
+                f"[bold]Достижений:[/bold] {len(state.achievements)} | [bold]Репутация:[/bold] {state.reputation}",
+                border_style="green",
+            )
+        )
         return True
     except Exception as e:
         console.print(f"[red]Ошибка импорта: {e}[/red]")
         return False
 
 
-def handle_sync(args: str) -> tuple[str, bool]:
+def handle_sync(args: str) -> HandlerResult:
     """Главный обработчик команды /sync."""
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else ""
@@ -114,29 +120,33 @@ def handle_sync(args: str) -> tuple[str, bool]:
 
     if subcommand == "export":
         success = _export_progress(query if query else None)
-        return "", success
+        return True, None, None, success
     elif subcommand == "import" and query:
         success = _import_progress(query)
-        return "", success
+        return True, None, None, success
     elif subcommand == "id":
         user_id = _generate_user_id()
-        console.print(Panel(
-            f"[bold]Ваш Sync ID:[/bold] {user_id}\n"
-            f"[dim]Используйте этот ID для идентификации при синхронизации.[/dim]",
-            border_style="cyan",
-        ))
-        return "", True
+        console.print(
+            Panel(
+                f"[bold]Ваш Sync ID:[/bold] {user_id}\n"
+                f"[dim]Используйте этот ID для идентификации при синхронизации.[/dim]",
+                border_style="cyan",
+            )
+        )
+        return True, None, None, True
     elif subcommand == "help":
-        console.print(Panel(
-            "[bold]Команды синхронизации:[/bold]\n"
-            "/sync export [file]  — Экспорт прогресса в JSON\n"
-            "/sync import <file>  — Импорт прогресса из JSON\n"
-            "/sync id             — Показать ID пользователя\n\n"
-            "[dim]Для синхронизации между устройствами перенесите файл\n"
-            "через облако (Google Drive, Dropbox) или USB.[/dim]",
-            border_style="yellow",
-        ))
-        return "", True
+        console.print(
+            Panel(
+                "[bold]Команды синхронизации:[/bold]\n"
+                "/sync export [file]  — Экспорт прогресса в JSON\n"
+                "/sync import <file>  — Импорт прогресса из JSON\n"
+                "/sync id             — Показать ID пользователя\n\n"
+                "[dim]Для синхронизации между устройствами перенесите файл\n"
+                "через облако (Google Drive, Dropbox) или USB.[/dim]",
+                border_style="yellow",
+            )
+        )
+        return True, None, None, True
     else:
         console.print(f"[red]Неизвестная подкоманда: {subcommand}[/red]")
-        return "", True
+        return True, None, None, True

@@ -80,13 +80,13 @@ class TestTimeLoop(unittest.TestCase):
     def test_help_command(self):
         """Вызов справки /timeloop help."""
         with patch("handlers.timeloop.console.print"):
-            result, action_taken = handle_timeloop("help")
+            _, result, _, action_taken = handle_timeloop("help")
             self.assertTrue(action_taken)
 
     def test_unknown_subcommand(self):
         """Неизвестная подкоманда."""
         with patch("handlers.timeloop.console.print"):
-            result, action_taken = handle_timeloop("unknown")
+            _, result, _, action_taken = handle_timeloop("unknown")
             self.assertTrue(action_taken)
 
     def test_story_nodes_structure(self):

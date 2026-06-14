@@ -7,13 +7,15 @@
 """
 
 import random
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 from rich.panel import Panel
 from rich.table import Table
 
 from di import get_context
 from ui import console
+from handlers.types import HandlerResult
+
 
 ERAS: list[dict[str, Any]] = [
     {
@@ -21,7 +23,10 @@ ERAS: list[dict[str, Any]] = [
         "period": "1980-1989",
         "description": "Появление первых компьютерных вирусов и хакерской культуры.",
         "events": [
-            {"year": 1983, "event": "Термин 'computer virus' впервые использован Фредом Коэном"},
+            {
+                "year": 1983,
+                "event": "Термин 'computer virus' впервые использован Фредом Коэном",
+            },
             {"year": 1986, "event": "Вирус Brain — первый IBM PC вирус (Пакистан)"},
             {"year": 1988, "event": "Червь Морриса — первая крупная сетевая атака"},
         ],
@@ -34,7 +39,10 @@ ERAS: list[dict[str, Any]] = [
         "period": "1990-1999",
         "description": "Рост интернета, появление веб-уязвимостей и антивирусов.",
         "events": [
-            {"year": 1990, "event": "Первая коммерческая антивирусная компания (McAfee)"},
+            {
+                "year": 1990,
+                "event": "Первая коммерческая антивирусная компания (McAfee)",
+            },
             {"year": 1995, "event": "Появление SSL 1.0 (Netscape)"},
             {"year": 1998, "event": "Back Orifice — удалённый доступ к Windows"},
             {"year": 1999, "event": "Вирус Melissa — массовая рассылка через email"},
@@ -55,7 +63,11 @@ ERAS: list[dict[str, Any]] = [
             {"year": 2008, "event": "Stuxnet (разработка началась)"},
         ],
         "tools": ["Metasploit", "Wireshark", "Burp Suite", "Hydra"],
-        "vulnerabilities": ["Remote Code Execution", "Privilege Escalation", "Zero-day в IE"],
+        "vulnerabilities": [
+            "Remote Code Execution",
+            "Privilege Escalation",
+            "Zero-day в IE",
+        ],
         "xp": 30,
     },
     {
@@ -85,7 +97,11 @@ ERAS: list[dict[str, Any]] = [
             {"year": 2024, "event": "MOVEit Transfer и облачные утечки"},
         ],
         "tools": ["LLM-фреймворки", "Cloud Pentest Tools", "AI Red Team"],
-        "vulnerabilities": ["Prompt Injection", "Cloud Misconfigurations", "AI Model Theft"],
+        "vulnerabilities": [
+            "Prompt Injection",
+            "Cloud Misconfigurations",
+            "AI Model Theft",
+        ],
         "xp": 40,
     },
 ]
@@ -154,18 +170,23 @@ def _display_era_details(era_name: str) -> bool:
     era = next((e for e in ERAS if era_name.lower() in e["name"].lower()), None)
     if not era:
         console.print(f"[red]Эпоха '{era_name}' не найдена.[/red]")
-        console.print("[yellow]Доступные:[/yellow] " + ", ".join([e["name"].split(":")[0] for e in ERAS]))
+        console.print(
+            "[yellow]Доступные:[/yellow] "
+            + ", ".join([e["name"].split(":")[0] for e in ERAS])
+        )
         return False
 
-    content = f"""[bold]Период:[/bold] {era['period']}
-[bold]Описание:[/bold] {era['description']}
+    content = f"""[bold]Период:[/bold] {era["period"]}
+[bold]Описание:[/bold] {era["description"]}
 
 [bold]📅 Ключевые события:[/bold]"""
     for e in era["events"]:
         content += f"\n  • {e['year']}: {e['event']}"
 
     content += f"\n\n[bold]🛠️ Инструменты эпохи:[/bold] {', '.join(era['tools'])}"
-    content += f"\n\n[bold]⚠️ Типичные уязвимости:[/bold] {', '.join(era['vulnerabilities'])}"
+    content += (
+        f"\n\n[bold]⚠️ Типичные уязвимости:[/bold] {', '.join(era['vulnerabilities'])}"
+    )
 
     console.print(Panel(content, title=era["name"], border_style="cyan"))
 
@@ -179,7 +200,9 @@ def _display_era_details(era_name: str) -> bool:
 
 def _run_history_quiz() -> None:
     """Запустить викторину по истории кибербезопасности."""
-    console.print(Panel("🧠 Викторина: История кибербезопасности", border_style="magenta"))
+    console.print(
+        Panel("🧠 Викторина: История кибербезопасности", border_style="magenta")
+    )
 
     questions = random.sample(QUIZ_QUESTIONS, min(3, len(QUIZ_QUESTIONS)))
     score = 0
@@ -202,32 +225,34 @@ def _run_history_quiz() -> None:
         console.print(f"[green]+{bonus} XP за викторину![/green]")
 
 
-def handle_timeline(args: str) -> tuple[str, bool]:
+def handle_timeline(args: str) -> HandlerResult:
     """Главный обработчик команды /timeline."""
     parts = args.strip().split(maxsplit=1)
     if not parts or parts[0] == "":
         _display_timeline()
-        return "", True
+        return True, None, None, True
 
     subcommand = parts[0].lower()
     query = parts[1] if len(parts) > 1 else ""
 
     if subcommand == "era" and query:
         success = _display_era_details(query)
-        return "", success
+        return True, None, None, success
     elif subcommand == "quiz":
         _run_history_quiz()
-        return "", True
+        return True, None, None, True
     elif subcommand == "help":
-        console.print(Panel(
-            "[bold]Команды Historical Mode:[/bold]\n"
-            "/timeline              — Хронология эпох\n"
-            "/timeline era <name>   — Детали эпохи\n"
-            "/timeline quiz         — Викторина по истории",
-            border_style="yellow",
-        ))
-        return "", True
+        console.print(
+            Panel(
+                "[bold]Команды Historical Mode:[/bold]\n"
+                "/timeline              — Хронология эпох\n"
+                "/timeline era <name>   — Детали эпохи\n"
+                "/timeline quiz         — Викторина по истории",
+                border_style="yellow",
+            )
+        )
+        return True, None, None, True
     else:
         console.print(f"[red]Неизвестная подкоманда: {subcommand}[/red]")
         _display_timeline()
-        return "", True
+        return True, None, None, True

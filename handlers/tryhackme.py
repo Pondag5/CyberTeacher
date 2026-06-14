@@ -22,29 +22,34 @@ from rich.table import Table
 
 from di import get_context
 from state import get_state
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 THM_API_BASE = "https://tryhackme.com/api"
-THM_KEY_FILE = os.path.join(os.path.dirname(__file__), "..", "memory", "thm_api_key.json")
+THM_KEY_FILE = os.path.join(
+    os.path.dirname(__file__), "..", "memory", "thm_api_key.json"
+)
 
 
 def _load_thm_key() -> str | None:
     """Загрузить API ключ TryHackMe."""
     if os.path.exists(THM_KEY_FILE):
-        with open(THM_KEY_FILE, "r") as f:
-            return json.load(f).get("api_key")
+        with open(THM_KEY_FILE, "r", encoding="utf-8") as f:
+            data: dict[str, Any] = json.load(f)
+            return data.get("api_key")
     return None
 
 
-def _save_thm_key(api_key: str):
+def _save_thm_key(api_key: str) -> None:
     """Сохранить API ключ."""
     os.makedirs(os.path.dirname(THM_KEY_FILE), exist_ok=True)
-    with open(THM_KEY_FILE, "w") as f:
+    with open(THM_KEY_FILE, "w", encoding="utf-8") as f:
         json.dump({"api_key": api_key}, f)
 
 
-def _thm_request(endpoint: str, params: dict | None = None) -> dict | None:
+def _thm_request(endpoint: str, params: dict | None = None) -> dict[str, Any] | None:
     """Выполнить запрос к TryHackMe API."""
     api_key = _load_thm_key()
     if not api_key:
@@ -59,14 +64,15 @@ def _thm_request(endpoint: str, params: dict | None = None) -> dict | None:
 
         response = requests.get(url, headers=headers, params=params, timeout=30)
         if response.status_code == 200:
-            return response.json()
+            data: dict[str, Any] = response.json()
+            return data
     except Exception:
         pass
 
     return None
 
 
-def handle_thm_login(api_key: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_thm_login(api_key: str) -> HandlerResult:
     """Авторизация в TryHackMe."""
     _save_thm_key(api_key)
 
@@ -75,22 +81,28 @@ def handle_thm_login(api_key: str) -> tuple[bool, Any | None, Any | None, bool]:
     if data and data.get("success"):
         user = data.get("data", {})
         username = user.get("username", "Unknown")
-        console.print(Panel(
-            f"✅ Авторизация успешна!\n\n"
-            f"👤 Username: {username}\n"
-            f"🏆 Rank: {user.get('publicProfile', {}).get('rank', 'N/A')}\n"
-            f"⭐ Level: {user.get('publicProfile', {}).get('level', 'N/A')}\n"
-            f"🔥 Streak: {user.get('publicProfile', {}).get('streak', 0)} дней",
-            title="TryHackMe Login",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                f"✅ Авторизация успешна!\n\n"
+                f"👤 Username: {username}\n"
+                f"🏆 Rank: {user.get('publicProfile', {}).get('rank', 'N/A')}\n"
+                f"⭐ Level: {user.get('publicProfile', {}).get('level', 'N/A')}\n"
+                f"🔥 Streak: {user.get('publicProfile', {}).get('streak', 0)} дней",
+                title="TryHackMe Login",
+                border_style="green",
+            )
+        )
     else:
-        console.print("[yellow]⚠️ Ключ сохранён, но не удалось проверить. Проверьте API ключ.[/yellow]")
+        console.print(
+            "[yellow]⚠️ Ключ сохранён, но не удалось проверить. Проверьте API ключ.[/yellow]"
+        )
 
     return True, None, None, True
 
 
-def handle_thm_rooms(room_type: str = "all") -> tuple[bool, Any | None, Any | None, bool]:
+def handle_thm_rooms(
+    room_type: str = "all",
+) -> HandlerResult:
     """Получить список комнат."""
     state = get_state()
 
@@ -98,6 +110,7 @@ def handle_thm_rooms(room_type: str = "all") -> tuple[bool, Any | None, Any | No
     cache = getattr(state, "thm_rooms_cache", {})
     if cache.get("rooms") and cache.get("timestamp", 0) > 0:
         import time
+
         if time.time() - cache["timestamp"] < 3600:  # 1 час
             _display_rooms(cache["rooms"], room_type)
             return True, None, None, True
@@ -105,20 +118,23 @@ def handle_thm_rooms(room_type: str = "all") -> tuple[bool, Any | None, Any | No
     # Запрос к API
     data = _thm_request("/v2/rooms")
     if not data or not data.get("success"):
-        console.print("[red]Не удалось получить список комнат. Проверьте API ключ.[/red]")
+        console.print(
+            "[red]Не удалось получить список комнат. Проверьте API ключ.[/red]"
+        )
         return True, None, None, True
 
     rooms = data.get("data", [])
 
     # Кэшируем
     import time
+
     state.thm_rooms_cache = {"rooms": rooms, "timestamp": time.time()}
 
     _display_rooms(rooms, room_type)
     return True, None, None, True
 
 
-def _display_rooms(rooms: list[dict], room_type: str = "all"):
+def _display_rooms(rooms: list[dict[str, Any]], room_type: str = "all") -> None:
     """Отобразить список комнат."""
     if not rooms:
         console.print("[yellow]Комнаты не найдены.[/yellow]")
@@ -154,10 +170,12 @@ def _display_rooms(rooms: list[dict], room_type: str = "all"):
     console.print(table)
 
     if len(rooms) > 50:
-        console.print(f"[dim]...и ещё {len(rooms) - 50} комнат. Используйте /thm room <id> для деталей.[/dim]")
+        console.print(
+            f"[dim]...и ещё {len(rooms) - 50} комнат. Используйте /thm room <id> для деталей.[/dim]"
+        )
 
 
-def handle_thm_room(room_id: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_thm_room(room_id: str) -> HandlerResult:
     """Получить детали комнаты."""
     data = _thm_request(f"/v2/rooms/{room_id}")
     if not data or not data.get("success"):
@@ -166,16 +184,18 @@ def handle_thm_room(room_id: str) -> tuple[bool, Any | None, Any | None, bool]:
 
     room = data.get("data", {})
 
-    console.print(Panel(
-        f"[bold]{room.get('title', '')}[/bold]\n\n"
-        f"📝 Type: {room.get('type', 'N/A')}\n"
-        f"📊 Difficulty: {room.get('difficulty', 'N/A')}\n"
-        f"👥 Users: {room.get('user_count', 'N/A')}\n"
-        f"⭐ Rating: {room.get('rating', 'N/A')}/5\n\n"
-        f"[bold]Description:[/bold]\n{room.get('description', 'N/A')[:500]}",
-        title=f"Room #{room_id}",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            f"[bold]{room.get('title', '')}[/bold]\n\n"
+            f"📝 Type: {room.get('type', 'N/A')}\n"
+            f"📊 Difficulty: {room.get('difficulty', 'N/A')}\n"
+            f"👥 Users: {room.get('user_count', 'N/A')}\n"
+            f"⭐ Rating: {room.get('rating', 'N/A')}/5\n\n"
+            f"[bold]Description:[/bold]\n{room.get('description', 'N/A')[:500]}",
+            title=f"Room #{room_id}",
+            border_style="cyan",
+        )
+    )
 
     # Задачи
     tasks = room.get("tasks", [])
@@ -189,7 +209,7 @@ def handle_thm_room(room_id: str) -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def handle_thm_submit(room_id: str, task_id: str, answer: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_thm_submit(room_id: str, task_id: str, answer: str) -> HandlerResult:
     """Отправить ответ на задачу."""
     api_key = _load_thm_key()
     if not api_key:
@@ -224,7 +244,7 @@ def handle_thm_submit(room_id: str, task_id: str, answer: str) -> tuple[bool, An
     return True, None, None, True
 
 
-def handle_thm_status() -> tuple[bool, Any | None, Any | None, bool]:
+def handle_thm_status() -> HandlerResult:
     """Показать статус пользователя."""
     data = _thm_request("/v2/user/info")
     if not data or not data.get("success"):
@@ -234,22 +254,24 @@ def handle_thm_status() -> tuple[bool, Any | None, Any | None, bool]:
     user = data.get("data", {})
     profile = user.get("publicProfile", {})
 
-    console.print(Panel(
-        f"👤 Username: {user.get('username', 'N/A')}\n"
-        f"🏆 Rank: {profile.get('rank', 'N/A')}\n"
-        f"⭐ Level: {profile.get('level', 'N/A')}\n"
-        f"🔥 Streak: {profile.get('streak', 0)} дней\n"
-        f"📊 Points: {profile.get('points', 0)}\n"
-        f"🏅 Badges: {len(profile.get('badges', []))}\n"
-        f"📚 Rooms Completed: {profile.get('completedRooms', 0)}",
-        title="TryHackMe Status",
-        border_style="green",
-    ))
+    console.print(
+        Panel(
+            f"👤 Username: {user.get('username', 'N/A')}\n"
+            f"🏆 Rank: {profile.get('rank', 'N/A')}\n"
+            f"⭐ Level: {profile.get('level', 'N/A')}\n"
+            f"🔥 Streak: {profile.get('streak', 0)} дней\n"
+            f"📊 Points: {profile.get('points', 0)}\n"
+            f"🏅 Badges: {len(profile.get('badges', []))}\n"
+            f"📚 Rooms Completed: {profile.get('completedRooms', 0)}",
+            title="TryHackMe Status",
+            border_style="green",
+        )
+    )
 
     return True, None, None, True
 
 
-def handle_thm_sync() -> tuple[bool, Any | None, Any | None, bool]:
+def handle_thm_sync() -> HandlerResult:
     """Синхронизировать прогресс с TryHackMe."""
     state = get_state()
     data = _thm_request("/v2/user/info")
@@ -276,7 +298,7 @@ def handle_thm_sync() -> tuple[bool, Any | None, Any | None, bool]:
     return True, None, None, True
 
 
-def handle_thm_action(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_thm_action(action: str) -> HandlerResult:
     """Обработка /thm <subcommand>."""
     parts = action.split()
 

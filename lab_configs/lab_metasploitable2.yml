@@ -1,0 +1,16 @@
+networks:
+  ct_lab_net:
+    driver: bridge
+services:
+  metasploitable2:
+    container_name: ct_metasploitable2
+    image: tleemcjr/metasploitable2
+    ports:
+      - "2222:22"
+      - "4444:4444"
+      - "8000:8000"
+      - "8080:80"
+      - "21:21"
+      - "23:23"
+    restart: unless-stopped
+version: '3.8'

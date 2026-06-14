@@ -13,3 +13,4 @@ class Mode(Enum):
     CTF = "CTF"
     CODE_REVIEW = "Анализ кода"
     QUIZ = "Викторина"
+    HYBRID = "Адаптивный"

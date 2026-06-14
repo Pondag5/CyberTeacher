@@ -151,10 +151,22 @@ class TestSkillsHandler(unittest.TestCase):
     @patch("handlers.skills.console")
     def test_handle_skills_list_with_skills(self, mock_console, mock_get_context):
         mock_state = MagicMock()
-        mock_state.get_all_skills.return_value = [
-            {"name": "sql_injection", "level": 3, "xp": 45, "success_rate": 80, "attempts": 5},
-            {"name": "xss", "level": 2, "xp": 30, "success_rate": 60, "attempts": 3},
-        ]
+        mock_state.get_all_skills.return_value = {
+            "sql_injection": {
+                "name": "sql_injection",
+                "level": 3,
+                "xp": 45,
+                "success_rate": 80,
+                "attempts": 5,
+            },
+            "xss": {
+                "name": "xss",
+                "level": 2,
+                "xp": 30,
+                "success_rate": 60,
+                "attempts": 3,
+            },
+        }
         mock_ctx = MagicMock()
         mock_ctx.state = mock_state
         mock_get_context.return_value = mock_ctx

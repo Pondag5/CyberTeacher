@@ -3,7 +3,7 @@
 
 id: web-fundamentals
 name: Основы веб-безопасности
-description: Изучение 4 основных веб-уязвимостей: SQLi, XSS, CSRF, Command Injection
+description: "Изучение 4 основных веб-уязвимостей: SQLi, XSS, CSRF, Command Injection"
 level: beginner
 adaptive: true
 estimated_hours: 8

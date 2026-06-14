@@ -7,11 +7,13 @@ from rich.console import Console
 from rich.table import Table
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 
-def handle_health(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_health(action: str) -> HandlerResult:
     """Handle /health command."""
     ctx = get_context()
     state = ctx.state

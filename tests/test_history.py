@@ -18,25 +18,25 @@ class TestTimelineDisplay(unittest.TestCase):
     def test_display_timeline(self):
         """Отображение полной хронологии."""
         with patch("handlers.history.console.print"):
-            result, action_taken = handle_timeline("")
+            _, result, _, action_taken = handle_timeline("")
             self.assertTrue(action_taken)
 
     def test_display_timeline_help(self):
         """Отображение справки /timeline help."""
         with patch("handlers.history.console.print"):
-            result, action_taken = handle_timeline("help")
+            _, result, _, action_taken = handle_timeline("help")
             self.assertTrue(action_taken)
 
     def test_display_unknown_era(self):
         """Запрос несуществующей эпохи."""
         with patch("handlers.history.console.print"):
-            result, action_taken = handle_timeline("era nonexistent")
+            _, result, _, action_taken = handle_timeline("era nonexistent")
             self.assertFalse(action_taken)
 
     def test_display_valid_era(self):
         """Запрос существующей эпохи."""
         with patch("handlers.history.console.print"):
-            result, action_taken = handle_timeline("era 1980")
+            _, result, _, action_taken = handle_timeline("era 1980")
             self.assertTrue(action_taken)
 
 

@@ -38,7 +38,7 @@ class TestDashboard(unittest.TestCase):
         mock_ctx.state = mock_state
         mock_get_context.return_value = mock_ctx
 
-        success, msg, _ = handle_dashboard("dashboard", "")
+        success, _, msg, _ = handle_dashboard("dashboard", "")
         self.assertTrue(success)
         self.assertIn("Learner Dashboard", msg)
         self.assertIn("Total XP", msg)
@@ -54,7 +54,7 @@ class TestDashboard(unittest.TestCase):
         mock_ctx.state = mock_state
         mock_get_context.return_value = mock_ctx
 
-        success, msg, _ = handle_dashboard("dashboard", "")
+        success, _, msg, _ = handle_dashboard("dashboard", "")
         self.assertTrue(success)
         self.assertIn("Weak Topics", msg)
         self.assertIn("SQLi", msg)
@@ -87,7 +87,7 @@ class TestDashboard(unittest.TestCase):
             mock_engine.get_track.return_value = mock_track
             mock_engine_func.return_value = mock_engine
 
-            success, msg, _ = handle_dashboard("dashboard", "")
+            success, _, msg, _ = handle_dashboard("dashboard", "")
             self.assertTrue(success)
             self.assertIn("Learning Tracks", msg)
             self.assertIn("test-track", msg)
@@ -102,9 +102,9 @@ class TestDashboard(unittest.TestCase):
         mock_ctx.state = mock_state
         mock_get_context.return_value = mock_ctx
 
-        success, msg, _ = handle_dashboard("dashboard", "")
+        success, _, msg, _ = handle_dashboard("dashboard", "")
         self.assertTrue(success)
-        self.assertIn("all topics >=70%", msg)
+        self.assertIn("None", msg)
 
 
 if __name__ == "__main__":

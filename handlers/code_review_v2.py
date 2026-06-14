@@ -24,6 +24,8 @@ from typing import Any
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from handlers.types import HandlerResult
+
 
 console = Console()
 
@@ -57,30 +59,73 @@ LANGUAGE_EXTENSIONS = {
 
 # OWASP Top 10 2021 mapping
 OWASP_CATEGORIES = {
-    "A01": {"name": "Broken Access Control", "items": ["Path Traversal", "Open Redirect", "IDOR", "CORS Misconfiguration"]},
-    "A02": {"name": "Cryptographic Failures", "items": ["Weak Crypto", "Hardcoded Secrets", "Insecure Random"]},
-    "A03": {"name": "Injection", "items": ["SQL Injection", "XSS", "Command Injection", "LDAP Injection", "XXE"]},
-    "A04": {"name": "Insecure Design", "items": ["Missing Rate Limit", "Weak Password Policy"]},
-    "A05": {"name": "Security Misconfiguration", "items": ["Debug Enabled", "Default Credentials", "Verbose Errors"]},
-    "A06": {"name": "Vulnerable and Outdated Components", "items": ["Known CVE", "Outdated Dependency"]},
-    "A07": {"name": "Identification and Authentication Failures", "items": ["Hardcoded Credentials", "Weak Session", "Brute Force"]},
-    "A08": {"name": "Software and Data Integrity Failures", "items": ["Insecure Deserialization", "CI/CD Tampering"]},
-    "A09": {"name": "Security Logging and Monitoring Failures", "items": ["Missing Logging", "Insufficient Monitoring"]},
+    "A01": {
+        "name": "Broken Access Control",
+        "items": ["Path Traversal", "Open Redirect", "IDOR", "CORS Misconfiguration"],
+    },
+    "A02": {
+        "name": "Cryptographic Failures",
+        "items": ["Weak Crypto", "Hardcoded Secrets", "Insecure Random"],
+    },
+    "A03": {
+        "name": "Injection",
+        "items": ["SQL Injection", "XSS", "Command Injection", "LDAP Injection", "XXE"],
+    },
+    "A04": {
+        "name": "Insecure Design",
+        "items": ["Missing Rate Limit", "Weak Password Policy"],
+    },
+    "A05": {
+        "name": "Security Misconfiguration",
+        "items": ["Debug Enabled", "Default Credentials", "Verbose Errors"],
+    },
+    "A06": {
+        "name": "Vulnerable and Outdated Components",
+        "items": ["Known CVE", "Outdated Dependency"],
+    },
+    "A07": {
+        "name": "Identification and Authentication Failures",
+        "items": ["Hardcoded Credentials", "Weak Session", "Brute Force"],
+    },
+    "A08": {
+        "name": "Software and Data Integrity Failures",
+        "items": ["Insecure Deserialization", "CI/CD Tampering"],
+    },
+    "A09": {
+        "name": "Security Logging and Monitoring Failures",
+        "items": ["Missing Logging", "Insufficient Monitoring"],
+    },
     "A10": {"name": "Server-Side Request Forgery", "items": ["SSRF", "URL Redirect"]},
 }
 
 # Паттерны для поиска секретов
 SECRET_PATTERNS = [
     ("AWS Access Key", r"AKIA[0-9A-Z]{16}", "A07"),
-    ("AWS Secret Key", r"(?i)aws_secret_access_key\s*[:=]\s*[\"']?[A-Za-z0-9/+=]{40}", "A07"),
+    (
+        "AWS Secret Key",
+        r"(?i)aws_secret_access_key\s*[:=]\s*[\"']?[A-Za-z0-9/+=]{40}",
+        "A07",
+    ),
     ("GitHub Token", r"ghp_[0-9a-zA-Z]{36}", "A07"),
     ("Slack Token", r"xox[baprs]-[0-9a-zA-Z-]+", "A07"),
     ("OpenAI Key", r"sk-[a-zA-Z0-9]{48}", "A07"),
-    ("Generic API Key", r"(?i)(api_key|apikey|api-key)\s*[:=]\s*[\"']?[^\s\"'`]{16,}", "A07"),
-    ("Generic Password", r"(?i)(password|passwd|pwd|secret|token)\s*[:=]\s*[\"']?[^\s\"'`]{8,}", "A07"),
+    (
+        "Generic API Key",
+        r"(?i)(api_key|apikey|api-key)\s*[:=]\s*[\"']?[^\s\"'`]{16,}",
+        "A07",
+    ),
+    (
+        "Generic Password",
+        r"(?i)(password|passwd|pwd|secret|token)\s*[:=]\s*[\"']?[^\s\"'`]{8,}",
+        "A07",
+    ),
     ("Private Key", r"-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----", "A02"),
     ("JWT Secret", r"(?i)jwt_secret\s*[:=]\s*[\"']?[^\s\"'`]{16,}", "A02"),
-    ("Database URL", r"(?i)(database_url|db_url|connection_string)\s*[:=]\s*[\"']?(postgres|mysql|mongodb)://[^\s\"'`]+", "A07"),
+    (
+        "Database URL",
+        r"(?i)(database_url|db_url|connection_string)\s*[:=]\s*[\"']?(postgres|mysql|mongodb)://[^\s\"'`]+",
+        "A07",
+    ),
 ]
 
 
@@ -96,7 +141,10 @@ def find_source_files(directory: str, max_files: int = 50) -> list[str]:
     extensions = set(LANGUAGE_EXTENSIONS.keys())
 
     for root, _, files in os.walk(directory):
-        if any(part.startswith(".") or part in ("node_modules", "vendor", ".git") for part in root.split(os.sep)):
+        if any(
+            part.startswith(".") or part in ("node_modules", "vendor", ".git")
+            for part in root.split(os.sep)
+        ):
             continue
 
         for fname in files:
@@ -119,16 +167,18 @@ def scan_file_secrets(file_path: str) -> list[dict[str, Any]]:
         for i, line in enumerate(lines, start=1):
             for name, pattern, owasp_id in SECRET_PATTERNS:
                 if re.search(pattern, line, re.IGNORECASE):
-                    findings.append({
-                        "file": file_path,
-                        "line": i,
-                        "type": name,
-                        "severity": "critical",
-                        "snippet": line.strip()[:100],
-                        "owasp": owasp_id,
-                        "tool": "secrets-scan",
-                    })
-    except Exception:
+                    findings.append(
+                        {
+                            "file": file_path,
+                            "line": i,
+                            "type": name,
+                            "severity": "critical",
+                            "snippet": line.strip()[:100],
+                            "owasp": owasp_id,
+                            "tool": "secrets-scan",
+                        }
+                    )
+    except (OSError, IOError, re.error):
         pass
 
     return findings
@@ -148,14 +198,16 @@ def run_bandit(file_path: str) -> list[dict[str, Any]]:
             data = json.loads(result.stdout)
             findings = []
             for res in data.get("results", []):
-                findings.append({
-                    "file": res.get("filename", file_path),
-                    "line": res.get("line_number", 0),
-                    "type": res.get("test_name", "Unknown"),
-                    "severity": res.get("issue_severity", "medium"),
-                    "description": res.get("issue_text", ""),
-                    "tool": "bandit",
-                })
+                findings.append(
+                    {
+                        "file": res.get("filename", file_path),
+                        "line": res.get("line_number", 0),
+                        "type": res.get("test_name", "Unknown"),
+                        "severity": res.get("issue_severity", "medium"),
+                        "description": res.get("issue_text", ""),
+                        "tool": "bandit",
+                    }
+                )
             return findings
     except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
         pass
@@ -182,16 +234,20 @@ def run_semgrep(file_path: str, custom_rules: bool = True) -> list[dict[str, Any
                     extra = res.get("extra", {})
                     metadata = extra.get("metadata", {})
                     owasp = metadata.get("owasp", "Unknown")
-                    findings.append({
-                        "file": res.get("path", file_path),
-                        "line": res.get("start", {}).get("line", 0),
-                        "type": res.get("rule_id", "Unknown"),
-                        "severity": _map_semgrep_severity(extra.get("severity", "medium")),
-                        "description": extra.get("message", ""),
-                        "owasp": owasp,
-                        "tool": "semgrep-custom",
-                        "cwe": metadata.get("cwe", ""),
-                    })
+                    findings.append(
+                        {
+                            "file": res.get("path", file_path),
+                            "line": res.get("start", {}).get("line", 0),
+                            "type": res.get("rule_id", "Unknown"),
+                            "severity": _map_semgrep_severity(
+                                extra.get("severity", "medium")
+                            ),
+                            "description": extra.get("message", ""),
+                            "owasp": owasp,
+                            "tool": "semgrep-custom",
+                            "cwe": metadata.get("cwe", ""),
+                        }
+                    )
         except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
             pass
 
@@ -210,16 +266,22 @@ def run_semgrep(file_path: str, custom_rules: bool = True) -> list[dict[str, Any
                 for res in data.get("results", []):
                     extra = res.get("extra", {})
                     metadata = extra.get("metadata", {})
-                    findings.append({
-                        "file": res.get("path", file_path),
-                        "line": res.get("start", {}).get("line", 0),
-                        "type": res.get("rule_id", "Unknown"),
-                        "severity": _map_semgrep_severity(extra.get("severity", "medium")),
-                        "description": extra.get("message", ""),
-                        "owasp": metadata.get("owasp", _guess_owasp(extra.get("message", ""))),
-                        "tool": "semgrep-auto",
-                        "cwe": metadata.get("cwe", ""),
-                    })
+                    findings.append(
+                        {
+                            "file": res.get("path", file_path),
+                            "line": res.get("start", {}).get("line", 0),
+                            "type": res.get("rule_id", "Unknown"),
+                            "severity": _map_semgrep_severity(
+                                extra.get("severity", "medium")
+                            ),
+                            "description": extra.get("message", ""),
+                            "owasp": metadata.get(
+                                "owasp", _guess_owasp(extra.get("message", ""))
+                            ),
+                            "tool": "semgrep-auto",
+                            "cwe": metadata.get("cwe", ""),
+                        }
+                    )
         except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
             pass
 
@@ -281,7 +343,9 @@ def scan_file(file_path: str, use_semgrep: bool = True) -> dict[str, Any]:
     }
 
 
-def scan_directory(directory: str, max_files: int = 50, use_semgrep: bool = True) -> dict[str, Any]:
+def scan_directory(
+    directory: str, max_files: int = 50, use_semgrep: bool = True
+) -> dict[str, Any]:
     """Рекурсивный анализ директории."""
     source_files = find_source_files(directory, max_files)
     results = []
@@ -354,17 +418,19 @@ def generate_sarif(results: dict[str, Any], version: str = "2.1.0") -> dict[str,
     sarif = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": version,
-        "runs": [{
-            "tool": {
-                "driver": {
-                    "name": "CyberTeacher Code Review",
-                    "version": "3.0",
-                    "informationUri": "https://github.com/cyberteacher",
-                    "rules": _build_sarif_rules(results),
-                }
-            },
-            "results": _build_sarif_results(results),
-        }]
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "CyberTeacher Code Review",
+                        "version": "3.0",
+                        "informationUri": "https://github.com/cyberteacher",
+                        "rules": _build_sarif_rules(results),
+                    }
+                },
+                "results": _build_sarif_results(results),
+            }
+        ],
     }
     return sarif
 
@@ -379,12 +445,14 @@ def _build_sarif_rules(results: dict[str, Any]) -> list[dict]:
                 "id": rule_id,
                 "name": f.get("type", "Unknown"),
                 "shortDescription": {"text": f.get("description", "")[:100]},
-                "defaultConfiguration": {"level": _severity_to_sarif_level(f.get("severity", "medium"))},
+                "defaultConfiguration": {
+                    "level": _severity_to_sarif_level(f.get("severity", "medium"))
+                },
                 "properties": {
                     "owasp": f.get("owasp", ""),
                     "cwe": f.get("cwe", ""),
                     "tags": ["security", "vulnerability"],
-                }
+                },
             }
     return list(rules.values())
 
@@ -393,24 +461,28 @@ def _build_sarif_results(results: dict[str, Any]) -> list[dict]:
     """Построить список результатов для SARIF."""
     sarif_results = []
     for f in results.get("findings", []):
-        sarif_results.append({
-            "ruleId": f.get("type", "unknown"),
-            "level": _severity_to_sarif_level(f.get("severity", "medium")),
-            "message": {"text": f.get("description", f.get("snippet", ""))},
-            "locations": [{
-                "physicalLocation": {
-                    "artifactLocation": {"uri": f.get("file", "")},
-                    "region": {
-                        "startLine": f.get("line", 1),
+        sarif_results.append(
+            {
+                "ruleId": f.get("type", "unknown"),
+                "level": _severity_to_sarif_level(f.get("severity", "medium")),
+                "message": {"text": f.get("description", f.get("snippet", ""))},
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": f.get("file", "")},
+                            "region": {
+                                "startLine": f.get("line", 1),
+                            },
+                        }
                     }
-                }
-            }],
-            "properties": {
-                "owasp": f.get("owasp", ""),
-                "cwe": f.get("cwe", ""),
-                "tool": f.get("tool", ""),
+                ],
+                "properties": {
+                    "owasp": f.get("owasp", ""),
+                    "cwe": f.get("cwe", ""),
+                    "tool": f.get("tool", ""),
+                },
             }
-        })
+        )
     return sarif_results
 
 
@@ -422,7 +494,7 @@ def _severity_to_sarif_level(severity: str) -> str:
 
 def calculate_ci_exit_code(results: dict[str, Any], fail_on: str = "high") -> int:
     """Рассчитать exit code для CI/CD mode.
-    
+
     fail_on: "critical" | "high" | "medium" | "low"
     Возвращает 0 если нет находок >= fail_on, иначе 1.
     """
@@ -436,7 +508,9 @@ def calculate_ci_exit_code(results: dict[str, Any], fail_on: str = "high") -> in
     return 0
 
 
-def generate_llm_report(code: str, language: str, findings: list[dict]) -> dict[str, Any] | None:
+def generate_llm_report(
+    code: str, language: str, findings: list[dict[str, Any]]
+) -> dict[str, Any] | None:
     """Сгенерировать LLM-отчёт с рекомендациями."""
     from config import LazyLoader
     from state import get_state
@@ -488,22 +562,30 @@ def generate_llm_report(code: str, language: str, findings: list[dict]) -> dict[
         content = response.content if hasattr(response, "content") else str(response)
         json_match = re.search(r"\{[\s\S]*\}", content)
         if json_match:
-            return json.loads(json_match.group())
-    except Exception:
+            result = json.loads(json_match.group())
+            if isinstance(result, dict):
+                return result
+            else:
+                return None
+    except (json.JSONDecodeError, ValueError, AttributeError):
         pass
 
     return None
 
 
-def display_scan_results(results: dict[str, Any], llm_report: dict | None = None, ci_mode: bool = False):
+def display_scan_results(
+    results: dict[str, Any], llm_report: dict | None = None, ci_mode: bool = False
+) -> None:
     """Отобразить результаты сканирования в CLI."""
     # Заголовок
-    console.print(Panel(
-        f"📁 Файлов: {results.get('files_scanned', 1)} | "
-        f"Находок: {results.get('total_findings', len(results.get('findings', [])))}",
-        title="🔐 CODE REVIEW v3",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            f"📁 Файлов: {results.get('files_scanned', 1)} | "
+            f"Находок: {results.get('total_findings', len(results.get('findings', [])))}",
+            title="🔐 CODE REVIEW v3",
+            border_style="cyan",
+        )
+    )
 
     # OWASP Summary
     owasp_summary = results.get("owasp_summary", {})
@@ -514,7 +596,11 @@ def display_scan_results(results: dict[str, Any], llm_report: dict | None = None
             name = category.get("name", owasp_id)
             owasp_text += f"  {owasp_id} ({name}): {count}\n"
         if owasp_text:
-            console.print(Panel(owasp_text.strip(), title="📋 OWASP Top 10", border_style="yellow"))
+            console.print(
+                Panel(
+                    owasp_text.strip(), title="📋 OWASP Top 10", border_style="yellow"
+                )
+            )
 
     # Таблица находок
     findings = results.get("findings", [])
@@ -529,7 +615,12 @@ def display_scan_results(results: dict[str, Any], llm_report: dict | None = None
 
         for f in findings[:30]:
             sev = f.get("severity", "medium").lower()
-            sev_style = {"critical": "red", "high": "yellow", "medium": "blue", "low": "green"}.get(sev, "white")
+            sev_style = {
+                "critical": "red",
+                "high": "yellow",
+                "medium": "blue",
+                "low": "green",
+            }.get(sev, "white")
             owasp = f.get("owasp", "")
             owasp_id = owasp[:3] if owasp else ""
             table.add_row(
@@ -548,16 +639,18 @@ def display_scan_results(results: dict[str, Any], llm_report: dict | None = None
 
     # LLM отчёт
     if llm_report:
-        console.print(Panel(
-            f"[bold]Оценка:[/bold] {llm_report.get('overall_score', 'N/A')}\n\n"
-            f"[bold]Summary:[/bold] {llm_report.get('summary', '')}\n\n"
-            f"[bold]Critical Issues:[/bold]\n" +
-            "\n".join(f"• {i}" for i in llm_report.get("critical_issues", [])) +
-            "\n\n[bold]Recommendations:[/bold]\n" +
-            "\n".join(f"• {r}" for r in llm_report.get("recommendations", [])),
-            title="🤖 LLM Analysis",
-            border_style="yellow",
-        ))
+        console.print(
+            Panel(
+                f"[bold]Оценка:[/bold] {llm_report.get('overall_score', 'N/A')}\n\n"
+                f"[bold]Summary:[/bold] {llm_report.get('summary', '')}\n\n"
+                f"[bold]Critical Issues:[/bold]\n"
+                + "\n".join(f"• {i}" for i in llm_report.get("critical_issues", []))
+                + "\n\n[bold]Recommendations:[/bold]\n"
+                + "\n".join(f"• {r}" for r in llm_report.get("recommendations", [])),
+                title="🤖 LLM Analysis",
+                border_style="yellow",
+            )
+        )
 
     # Сводка
     sev_counts = results.get("severity_counts", {})
@@ -574,10 +667,15 @@ def display_scan_results(results: dict[str, Any], llm_report: dict | None = None
     if ci_mode:
         exit_code = calculate_ci_exit_code(results, fail_on="high")
         status = "❌ FAIL" if exit_code else "✅ PASS"
-        console.print(Panel(f"CI/CD Result: {status} (exit code: {exit_code})", border_style="red" if exit_code else "green"))
+        console.print(
+            Panel(
+                f"CI/CD Result: {status} (exit code: {exit_code})",
+                border_style="red" if exit_code else "green",
+            )
+        )
 
 
-def handle_code_review_v2(action: str) -> tuple[bool, Any | None, Any | None, bool]:
+def handle_code_review_v2(action: str) -> HandlerResult:
     """
     Обработка /scanv2 <path|url> [branch] [--ci] [--sarif] [--no-semgrep]
 
@@ -687,10 +785,14 @@ def handle_code_review_v2(action: str) -> tuple[bool, Any | None, Any | None, bo
             for r in results.get("results", []):
                 if r.get("findings"):
                     try:
-                        with open(r["file"], "r", encoding="utf-8", errors="ignore") as f:
+                        with open(
+                            r["file"], "r", encoding="utf-8", errors="ignore"
+                        ) as f:
                             code = f.read()
-                        llm_report = generate_llm_report(code, r.get("language", "unknown"), r.get("findings", []))
-                    except Exception:
+                        llm_report = generate_llm_report(
+                            code, r.get("language", "unknown"), r.get("findings", [])
+                        )
+                    except (OSError, IOError, UnicodeDecodeError):
                         pass
                     break
 

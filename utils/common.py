@@ -39,10 +39,13 @@ def parse_json_response(message: Any) -> dict:
         text = str(message)
 
     # Попробовать найти markdown-блок
-    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL | re.IGNORECASE)
+    match = re.search(
+        r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL | re.IGNORECASE
+    )
     if match:
         try:
-            return json.loads(match.group(1))
+            result: dict[Any, Any] = json.loads(match.group(1))
+            return result
         except json.JSONDecodeError:
             pass
 
@@ -50,7 +53,8 @@ def parse_json_response(message: Any) -> dict:
     json_str = extract_json_block(text)
     if json_str:
         try:
-            return json.loads(json_str)
+            result = json.loads(json_str)
+            return result
         except json.JSONDecodeError:
             pass
 
@@ -63,7 +67,7 @@ def ask_confirm(message: str) -> bool:
         from rich.prompt import Confirm
 
         return Confirm.ask(message)
-    except Exception:
+    except ImportError:
         resp = input(f"{message} (yn): ").strip().lower()
         return resp in ("y", "yes", "true", "1")
 
@@ -74,7 +78,7 @@ def clear_chat_db(conn: Any) -> None:
         from memory import clear_chat as db_clear_chat
 
         db_clear_chat(conn)
-    except Exception:
+    except ImportError:
         pass
 
 

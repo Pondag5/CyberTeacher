@@ -2,18 +2,20 @@
 import json
 import os
 import re
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 from rich.console import Console
 
 from di import get_context
+from handlers.types import HandlerResult
+
 
 console = Console()
 
 
 def handle_flag_check(
-    flag: str | None = None,
-) -> tuple[bool, Any | None, Any | None, bool]:
+    flag: Optional[str] = None,
+) -> HandlerResult:
     """Проверка флага"""
     if not flag:
         console.print("[cyan]Использование: /flag <FLAG{...}>[/cyan]")
@@ -23,7 +25,6 @@ def handle_flag_check(
         console.print(f"[bold red]❌ Флаг '{flag}' неверного формата.[/bold red]")
         return True, None, None, True
     try:
-        # Проверка в активном задании
         ctx = get_context()
         state = ctx.state
         if state.active_assignment:
@@ -37,11 +38,17 @@ def handle_flag_check(
                 conn2 = init_db()
                 update_stats(conn2, points)
                 state.increment_flag()
+                try:
+                    from cyberpsychosis import get_cyberpsychosis
+
+                    get_cyberpsychosis().on_risky_action(10)
+                except (ImportError, RuntimeError):
+                    pass
                 newly_earned = state.check_achievements()
                 if newly_earned:
                     for ach in newly_earned:
                         console.print(
-                            f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points', 0)} XP[/bold magenta]"
+                            f"[bold magenta]🏆 Достижение: {ach} [/bold magenta]"
                         )
                 if state.is_assignment_complete():
                     console.print(
@@ -52,18 +59,24 @@ def handle_flag_check(
                     if newly_earned:
                         for ach in newly_earned:
                             console.print(
-                                f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points', 0)} XP[/bold magenta]"
+                                f"[bold magenta]🏆 Достижение: {ach} [/bold magenta]"
                             )
                 return True, None, None, True
-        # Проверка в глобальной базе флагов
+
         flags_file = "data/flags.json"
         if not os.path.exists(flags_file):
             console.print(
                 "[yellow]База флагов не найдена. Создайте data/flags.json[/yellow]"
             )
             return True, None, None, True
+
         with open(flags_file, "r", encoding="utf-8") as f:
             data = json.load(f)
+
+        if not isinstance(data, dict):
+            console.print("[red]Неверный формат flags.json[/red]")
+            return True, None, None, True
+
         for fdata in data.get("flags", []):
             if fdata["flag"] == flag:
                 pts = fdata.get("points", 10)
@@ -78,13 +91,13 @@ def handle_flag_check(
                 if newly_earned:
                     for ach in newly_earned:
                         console.print(
-                            f"[bold magenta]🏆 Достижение: {ach['name']} ({ach['icon']}) +{ach.get('points', 0)} XP[/bold magenta]"
+                            f"[bold magenta]🏆 Достижение: {ach} [/bold magenta]"
                         )
-                # Remove flag after use to prevent reuse
                 data["flags"] = [f for f in data["flags"] if f["flag"] != flag]
                 with open(flags_file, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 return True, None, None, True
+
         console.print(f"[bold red]❌ Флаг '{flag}' неверный.[/bold red]")
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
