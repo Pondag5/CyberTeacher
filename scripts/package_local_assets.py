@@ -20,7 +20,19 @@ def package(src, dst, verbose=True):
         print(f'Not found: {src}')
         return False
     dst.parent.mkdir(parents=True, exist_ok=True)
-    files = [f for p in INCLUDE for f in src.rglob(p.replace('**', '')) if f.is_file() and should_inc(f, src)]
+    files = []
+    for pattern in INCLUDE:
+        if '**' in pattern:
+            base = pattern.split('**')[0].rstrip('/')
+            base_path = src / base if base != '' else src
+            if base_path.exists():
+                for f in base_path.rglob('*'):
+                    if f.is_file() and should_inc(f, src):
+                        files.append(f)
+        else:
+            for f in src.rglob(pattern):
+                if f.is_file() and should_inc(f, src):
+                    files.append(f)
     if not files:
         print('Nothing to package')
         return False
@@ -48,7 +60,16 @@ if __name__ == '__main__':
     a = ap.parse_args()
     if a.list:
         s = Path(a.source).resolve()
-        for p in INCLUDE:
-            for f in s.rglob(p.replace('**', '')):
-                if f.is_file() and should_inc(f, s): print(f'  {f.relative_to(s)} ({f.stat().st_size:,} bytes)')
+        for pattern in INCLUDE:
+            if '**' in pattern:
+                base = pattern.split('**')[0].rstrip('/')
+                base_path = s / base if base != '' else s
+                if base_path.exists():
+                    for f in base_path.rglob('*'):
+                        if f.is_file() and should_inc(f, s):
+                            print(f'  {f.relative_to(s)} ({f.stat().st_size:,} bytes)')
+            else:
+                for f in s.rglob(pattern):
+                    if f.is_file() and should_inc(f, s):
+                        print(f'  {f.relative_to(s)} ({f.stat().st_size:,} bytes)')
     else: sys.exit(0 if package(a.source, a.output, not a.quiet) else 1)
