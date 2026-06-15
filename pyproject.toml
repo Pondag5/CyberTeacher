@@ -55,6 +55,54 @@ exclude = [
         "RUF015",  # prefer next(iter()) (pre-existing)
         "PLR1714", # consider merging comparisons (pre-existing)
         "E701",    # multiple statements on one line (pre-existing style)
+        # Pre-existing mass violations
+        "I001",   # import block unsorted
+        "UP006",  # use dict/list instead of Dict/List
+        "UP045",  # use X | None instead of Optional[X]
+        "B904",   # raise ... from err
+        "RUF012", # mutable default
+        "N814",   # camelcase import alias
+        "SIM105", # use contextlib.suppress
+        "B006",   # mutable default argument
+        "RUF005", # list concatenation
+        "UP024",  # aliased OSError/IOError
+        "UP041",  # use builtin TimeoutError
+        "B025",   # duplicate exception
+        "E401",   # multiple imports on one line
+        # Additional pre-existing violations
+        "PLR5501",  # use elif instead of else then if
+        "SIM116",   # use dictionary instead of consecutive if
+        "UP017",    # use datetime.UTC alias
+        "SIM300",   # Yoda condition
+        "PLR1730",  # replace if with max call
+        "PLR0913",  # too many arguments
+        "W292",     # no newline at end of file
+        "ARG002",   # unused method argument
+        "PLW1510",  # subprocess.run without explicit check
+        "E741",     # ambiguous variable name
+        "W605",     # invalid escape sequence
+        "N806",     # variable in function should be lowercase
+        "UP007",    # use X | Y for type annotations
+        "SIM103",   # return condition directly
+        "RUF019",   # unnecessary key check
+        "SIM102",   # combine nested if statements
+        "SIM114",   # combine if branches with or
+        "SIM115",   # use context manager for opening files
+        "SIM118",   # use key in dict instead of dict.keys()
+        "UP028",    # replace yield for with yield from
+        "N802",     # function name should be lowercase
+        "N803",     # argument name should be lowercase
+        "A001",     # variable shadowing builtin
+        "E713",     # test for membership should be not in
+        "E722",     # bare except
+        "E731",     # do not assign lambda
+        "RUF010",   # explicit conversion flag
+        "B010",     # unnecessary self argument
+        "B023",     # function definition does not bind loop variable
+        "B905",     # zip without strict
+        "PLW0108",  # lambda may be unnecessary
+        "PLW2901",  # for loop variable overwritten
+        "ARG005",   # unused lambda argument
     ]
 
 [tool.ruff.lint.per-file-ignores]

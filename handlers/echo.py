@@ -4,6 +4,7 @@ Echo messages — ghost-сообщения от прошлых студенто�
 Появляются случайно в чате при определённых условиях.
 """
 
+from typing import Optional
 import random
 
 from state import get_state

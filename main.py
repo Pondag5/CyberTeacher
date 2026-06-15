@@ -560,7 +560,7 @@ def main():
                 risk_info = (
                     f"⚠️ Уровень риска: {risk_status} ({state.risk_level}/100).\n"
                 )
-            from practice import get_all_running_labs, get_container_logs
+            from practice import get_all_running_labs, get_container_logs, get_terminal_log
 
             terminal_log = get_terminal_log(last_n=10)
             if terminal_log and terminal_log != "Лог пуст":
@@ -779,17 +779,15 @@ def main():
             msg_count = getattr(state, "_msg_count_since_summary", 0)
             if msg_count > 0 and msg_count % 50 == 0:
                 cleanup_old_messages(conn, keep_last=500)
+    # Save context budget on exit
+    try:
+        setattr(get_state(), "context_budget", budget_manager.to_dict())
+        get_state().save_to_file()
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
     atexit.register(_response_cache._save)
     atexit.register(_save_session_summary)
-    atexit.register(
-        lambda: (
-            setattr(get_state(), "context_budget", budget_manager.to_dict())
-            if budget_manager
-            else None,
-            get_state().save_to_file(),
-        )
-    )
     main()
