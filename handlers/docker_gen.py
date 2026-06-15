@@ -87,7 +87,7 @@ def handle_docker_gen(action: str) -> HandlerResult:
                 "  /dockergen sqli              — лаба для SQLi\n"
                 "  /dockergen web               — веб-лаборатории\n"
                 "  /dockergen network           — сетевые лаборатории\n"
-                "  /dockergen custom <имя>  \[ports] — кастомный",
+                "  /dockergen custom <имя>  \\[ports] — кастомный",
                 title="DOCKER GEN",
                 border_style="cyan",
             )
