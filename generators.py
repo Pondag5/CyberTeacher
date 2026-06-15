@@ -34,7 +34,7 @@ ALLOWED_TOPICS = [
 
 
 class Task:
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         task_id: int,
         question: str,

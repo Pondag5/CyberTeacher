@@ -62,7 +62,7 @@ class TestHandlersWriteupAuto(unittest.TestCase):
     @patch("handlers.writeup_auto.get_relevant_docs")
     @patch("handlers.writeup_auto.LazyLoader")
     @patch("builtins.input", return_value="n")
-    def test_handle_auto_writeup_quiz_success(  # noqa: PLR0913
+    def test_handle_auto_writeup_quiz_success(
         self,
         mock_input,
         mock_lazy,
@@ -122,7 +122,7 @@ class TestHandlersWriteupAuto(unittest.TestCase):
     @patch("handlers.writeup_auto.LazyLoader")
     @patch("builtins.input", return_value="y")
     @patch("builtins.open", new_callable=mock_open)
-    def test_handle_auto_writeup_saves_to_file(  # noqa: PLR0913
+    def test_handle_auto_writeup_saves_to_file(
         self,
         mock_file_open,
         mock_input,
