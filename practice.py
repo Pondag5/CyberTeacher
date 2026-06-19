@@ -5,12 +5,10 @@ import subprocess
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-from rich.console import Console
 from rich.table import Table
 
 from state import get_state
-
-console = Console()
+from ui import console
 
 # Docker labs configuration
 DOCKER_LABS: Dict[str, Dict[str, Any]] = {
@@ -168,7 +166,7 @@ def handle_practice(action: str) -> Tuple[bool, Optional[Any], Optional[Any], bo
 
 def _list_labs() -> Tuple[bool, Optional[Any], Optional[Any], bool]:
     """Display list of available labs."""
-    table = Table(title="🐳 Docker лаборатории")
+    table = Table(title="[DOCKER] Docker лаборатории")
     table.add_column("ID", style="cyan")
     table.add_column("Название", style="green")
     table.add_column("Описание", style="yellow")

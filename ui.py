@@ -6,7 +6,7 @@ from rich.prompt import Prompt
 
 from shared_types import Mode
 
-console = Console()
+console = Console(legacy_windows=False, emoji=False)
 
 
 def print_banner() -> None:

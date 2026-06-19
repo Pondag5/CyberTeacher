@@ -5,13 +5,11 @@
 
 from typing import Any
 
-from rich.console import Console
 from rich.panel import Panel
 
 from di import get_context
 from handlers.types import HandlerResult
-
-console = Console()
+from ui import console
 
 
 def handle_rewind(action: str) -> HandlerResult:
@@ -20,16 +18,16 @@ def handle_rewind(action: str) -> HandlerResult:
     if len(parts) < 2:
         console.print(
             Panel(
-                "[bold cyan]⏮ Машина времени[/bold cyan]\n\n"
+                "[bold cyan][REWIND] Машина времени[/bold cyan]\n\n"
                 "Позволяет вернуться и перепройти главу, но ценой потери памяти учителя.\n\n"
                 "[bold]Использование:[/bold] /rewind <номер_главы>\n"
                 "[bold]Пример:[/bold] /rewind 3\n\n"
-                "[yellow]⚠ Предупреждение:[/yellow]\n"
+                "[yellow][WARN] Предупреждение:[/yellow]\n"
                 "• Прогресс в этой главе и всех последующих будет сброшен\n"
                 "• Учитель потеряет воспоминания о событиях после этой главы\n"
                 "• Достижение «Разорванный круг» будет получено\n"
                 "• Эту команду нельзя отменить",
-                title="⏮ МАШИНА ВРЕМЕНИ",
+                title="[REWIND] МАШИНА ВРЕМЕНИ",
                 border_style="cyan",
             )
         )
@@ -38,7 +36,7 @@ def handle_rewind(action: str) -> HandlerResult:
     try:
         chapter_id = int(parts[1])
     except ValueError:
-        console.print("[red]❌ Укажи номер главы: /rewind 3[/red]")
+        console.print("[red][ERROR] Укажи номер главы: /rewind 3[/red]")
         return True, None, None, True
 
     ctx = get_context()
@@ -47,7 +45,7 @@ def handle_rewind(action: str) -> HandlerResult:
     chapters = getattr(state, "chapter_completed", [])
     if chapter_id not in chapters:
         console.print(
-            f"[red]❌ Глава {chapter_id} ещё не пройдена или не существует.[/red]"
+            f"[red][ERROR] Глава {chapter_id} ещё не пройдена или не существует.[/red]"
         )
         return True, None, None, True
 
@@ -104,14 +102,14 @@ def handle_rewind(action: str) -> HandlerResult:
     ctx.save_state(force=True)
 
     msg = (
-        f"[bold yellow]⏮ Перемотка: Глава {chapter_id}[/bold yellow]\n\n"
+        f"[bold yellow][REWIND] Перемотка: Глава {chapter_id}[/bold yellow]\n\n"
         f"Прогресс в главе {chapter_id}"
         + (f" и {len(affected) - 1} последующих" if len(affected) > 1 else "")
         + " сброшен.\n"
         f"Забыто воспоминаний учителя: [bold]{forgotten}[/bold]\n"
         f"[dim]Удалено эпизодов: {len(episode_ids_to_remove)}[/dim]\n\n"
         f"[red]Ты меняешь прошлое. Каждый раз я теряю часть себя. Пожалуйста, не злоупотребляй.[/red]\n\n"
-        f"[green]✅ Получено достижение: Разорванный круг (+50 XP)[/green]"
+        f"[green][OK] Получено достижение: Разорванный круг (+50 XP)[/green]"
     )
-    console.print(Panel(msg, title="⏮ МАШИНА ВРЕМЕНИ", border_style="yellow"))
+    console.print(Panel(msg, title="[REWIND] МАШИНА ВРЕМЕНИ", border_style="yellow"))
     return True, None, None, True

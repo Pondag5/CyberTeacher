@@ -35,7 +35,7 @@ class TestIntegrationBase(unittest.TestCase):
         self.state_path = os.path.join(self.temp_dir, "test_state.json")
 
         # 2. Устанавливаем переменные окружения
-        os.environ["DB_FILE"] = self.db_path
+        os.environ["DATABASE_URL"] = f"sqlite:///{self.db_path}"
         os.environ["STATE_FILE"] = self.state_path
 
         # 3. Перезагружаем модули, чтобы они подхватили новые пути

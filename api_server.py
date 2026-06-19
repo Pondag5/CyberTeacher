@@ -635,7 +635,7 @@ def chat_with_llm(req: ChatRequest):
                 state._vectordb = vectordb
             if vectordb:
                 docs = (
-                    get_relevant_docs(vectordb, req.message, k=3)
+                    get_relevant_docs(vectordb, req.message, top_k=3)
                     if hasattr(vectordb, "similarity_search")
                     else []
                 )

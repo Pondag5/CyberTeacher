@@ -22,7 +22,7 @@ class TestStabilityBase(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp()
         self.db_path = os.path.join(self.temp_dir, "test_stability.db")
         self.state_path = os.path.join(self.temp_dir, "test_state.json")
-        os.environ["DB_FILE"] = self.db_path
+        os.environ["DATABASE_URL"] = f"sqlite:///{self.db_path}"
         os.environ["STATE_FILE"] = self.state_path
 
         import db
@@ -296,7 +296,7 @@ class TestMemoryCaps(TestStabilityBase):
         self.state.points = 1000
         self.state.quizzes_taken = 15
         self.state.exploit_success = [{"x": 1}] * 5
-        self.state.save_to_file(self.state_path)
+        self.state.save_to_file(self.state_path, force=True)
 
         import state as state_mod
 

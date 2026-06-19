@@ -55,7 +55,7 @@ def handle_adaptive(action: str) -> HandlerResult:
                         for t in weak
                     ]
                 ),
-                title="📉 Слабые темы",
+                title="[CHART] Слабые темы",
                 border_style="yellow",
             )
         )
@@ -1036,7 +1036,7 @@ def handle_ghost_log(action: str) -> HandlerResult:
     if args == "ghost_log":
         args = ""
     else:
-        args = args[len("ghost_log"):].strip()
+        args = args[len("ghost_log") :].strip()
 
     result = ghost_log_handler(args)
     console.print(result)
@@ -1051,7 +1051,7 @@ def handle_backdoor(action: str) -> HandlerResult:
     if args == "backdoor":
         args = ""
     else:
-        args = args[len("backdoor"):].strip()
+        args = args[len("backdoor") :].strip()
 
     result = backdoor_handler(args)
     console.print(result)
@@ -1068,14 +1068,18 @@ def handle_stability(action: str) -> HandlerResult:
 
     if sub == "status":
         status = state.get_world_stability_status()
-        console.print(f"[bold]World Stability:[/bold] {state.world_stability}/100 — {status}")
+        console.print(
+            f"[bold]World Stability:[/bold] {state.world_stability}/100 — {status}"
+        )
         return True, None, None, True
 
     if sub == "damage" and len(parts) > 2:
         try:
             amount = int(parts[2])
             state.adjust_world_stability(-abs(amount))
-            console.print(f"[red]World Stability damaged by {amount}. Current: {state.world_stability}[/red]")
+            console.print(
+                f"[red]World Stability damaged by {amount}. Current: {state.world_stability}[/red]"
+            )
         except ValueError:
             console.print("[red]Invalid amount[/red]")
         return True, None, None, True
@@ -1084,12 +1088,16 @@ def handle_stability(action: str) -> HandlerResult:
         try:
             amount = int(parts[2])
             state.adjust_world_stability(abs(amount))
-            console.print(f"[green]World Stability healed by {amount}. Current: {state.world_stability}[/green]")
+            console.print(
+                f"[green]World Stability healed by {amount}. Current: {state.world_stability}[/green]"
+            )
         except ValueError:
             console.print("[red]Invalid amount[/red]")
         return True, None, None, True
 
-    console.print("[yellow]Usage: /stability [status|damage <amount>|heal <amount>][/yellow]")
+    console.print(
+        "[yellow]Usage: /stability [status|damage <amount>|heal <amount>][/yellow]"
+    )
     return True, None, None, True
 
 
@@ -1129,9 +1137,12 @@ def handle_faiss_watch(action: str) -> HandlerResult:
 
     if sub == "start":
         console.print("[bold cyan]🔄 Запуск FAISS Watcher...[/bold cyan]")
-        console.print("[dim]Наблюдение за изменениями в проекте. Ctrl+C для остановки.[/dim]")
+        console.print(
+            "[dim]Наблюдение за изменениями в проекте. Ctrl+C для остановки.[/dim]"
+        )
         try:
             from faiss_watcher import run_watcher
+
             run_watcher()
         except KeyboardInterrupt:
             console.print("[yellow]Watcher остановлен[/yellow]")
@@ -1142,7 +1153,9 @@ def handle_faiss_watch(action: str) -> HandlerResult:
         return True, None, None, True
 
     if sub == "status":
-        console.print("[dim]FAISS Watcher: не запущен (команда /faiss_watch start для запуска)[/dim]")
+        console.print(
+            "[dim]FAISS Watcher: не запущен (команда /faiss_watch start для запуска)[/dim]"
+        )
         return True, None, None, True
 
     console.print("[yellow]Usage: /faiss_watch [start|status][/yellow]")

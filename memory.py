@@ -210,15 +210,10 @@ def cache_response(
             .delete()
         )
         if not deleted:
-            newest = (
-                conn.query(QueryCache.id)
-                .order_by(QueryCache.created_at.desc())
-                .limit(1000)
-                .all()
-            )
-            if newest:
-                min_keep = min(r[0] for r in newest)
-                conn.query(QueryCache).filter(QueryCache.id < min_keep).delete()
+            latest = conn.query(QueryCache.query_hash).order_by(QueryCache.created_at.desc()).limit(1000).all()
+            if latest:
+                keep_hashes = [r[0] for r in latest]
+                conn.query(QueryCache).filter(~QueryCache.query_hash.in_(keep_hashes)).delete(synchronize_session=False)
         conn.commit()
 
 

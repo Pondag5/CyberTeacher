@@ -113,6 +113,10 @@ class TestMemory(unittest.TestCase):
         from db import QueryCache
         from memory import cache_response, cleanup_expired_cache, get_cache_stats
 
+        # Очищаем кэш от возможных остатков предыдущих тестов
+        self.conn.query(QueryCache).delete()
+        self.conn.commit()
+
         cache_response(self.conn, "h1", "valid", ttl_seconds=3600)
         cache_response(self.conn, "h2", "expired", ttl_seconds=3600)
 

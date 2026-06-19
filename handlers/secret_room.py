@@ -65,10 +65,10 @@ def enter_secret_room() -> Optional[str]:
     status = get_secret_room_status()
     if not status["unlocked"]:
         if not check_unlock(state):
-            return "❌ Тайная комната заперта. Заверши все главы, выбери фракцию и встреть Watchers."
-        return "❌ Тайная комната закрыта. Она появляется только на 24 часа."
+            return "[ERROR] Тайная комната заперта. Заверши все главы, выбери фракцию и встреть Watchers."
+        return "[ERROR] Тайная комната закрыта. Она появляется только на 24 часа."
     if status["remaining"] <= 0:
-        return "❌ Тайная комната исчезла. Слишком поздно."
+        return "[ERROR] Тайная комната исчезла. Слишком поздно."
     if state.secret_room_visited:
         from ui import console, Panel
 
@@ -79,7 +79,7 @@ def enter_secret_room() -> Optional[str]:
             Panel(
                 f"Ты уже был здесь. Комната исчезнет через {hours}ч {mins}мин.\n\n"
                 + "".join(f"  {f}\n" for f in TRUTH_FRAGMENTS[:3]),
-                title="🗝 Тайная комната (снова)",
+                title="[KEY] Тайная комната (снова)",
                 border_style="dark_green",
             )
         )
@@ -94,7 +94,7 @@ def enter_secret_room() -> Optional[str]:
             f"Ты нашёл тайную комнату.\n\n{lore}\n\n"
             + "".join(f"  • {f}\n" for f in TRUTH_FRAGMENTS)
             + "\n[bold]Ты получил артефакт: Слепок правды[/bold]",
-            title="🗝 Тайная комната",
+            title="[KEY] Тайная комната",
             border_style="bright_yellow",
         )
     )
@@ -117,9 +117,9 @@ def handle_secret(action: str) -> tuple:
             console.print(
                 Panel(
                     f"Тайная комната открыта! Осталось: {hours}ч {mins}мин.\n"
-                    f"Посещена: {'✅' if status['visited'] else '❌'}\n"
-                    f"Артефакт: {'✅' if status['has_artifact'] else '❌'}",
-                    title="🗝 Secret Room",
+                    f"Посещена: {'[OK]' if status['visited'] else '[ERROR]'}\n"
+                    f"Артефакт: {'[OK]' if status['has_artifact'] else '[ERROR]'}",
+                    title="[KEY] Secret Room",
                     border_style="bright_yellow",
                 )
             )
