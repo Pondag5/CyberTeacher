@@ -2,7 +2,7 @@
 
 Версия: **6.0**
 Статус: **Стабильный, все фичи реализованы**
-Последнее обновление: 2026-06-08
+Последнее обновление: 2026-09-18
 
 ## Ключевые метрики
 | Метрика | Значение |
@@ -12,10 +12,15 @@
 | Handlers | 79 .py |
 | API endpoints | ~140 REST + 3 WebSocket |
 | PWA табов | 58 зарегистрировано |
-| Тестов | ~129 (89 существующих + 40 новых) |
+| Тестов | 105+ passed в ключевых модулях; 85 test файлов |
 | LLM провайдеров | 6 (ollama, groq, openrouter, huggingface, lmstudio, mock) |
 | Launcher кнопок | 34 |
 | Docker сервисов | 2 (postgres:16 + pgadmin4) |
+| DB таблиц | 16 |
+| Story chapters | 8 (Signal → Convergence) |
+| Story mechanics | 15/15 ✅ |
+| Achievements | 29 |
+| Shop items | 17 |
 
 ## Активные провайдеры
 - **LM Studio:** Работает на `http://localhost:1234/v1`, 9 моделей
@@ -27,6 +32,8 @@
 - `config.py` — LazyLoader, все провайдеры
 - `resilient_llm.py` — fallback chain + circuit breaker
 - `handlers/` — 79 обработчиков команд
+- `services/learning_memory_service.py` — память учителя об ошибках
+- `knowledge.py` — FAISS + BM25 + RRF + query expansion
 
 ## Статус спринтов
 | Спринт | Фокус | Статус |
@@ -41,13 +48,11 @@
 | P1 | Security + Rate Limiting | ✅ |
 | PWA | 58 табов, lazy-load | ✅ |
 | **6.0** | **LM Studio, Provider Settings, launcher v6** | **✅** |
+| **6.1** | **Learning Memory System, Knowledge Base Optimization** | **✅** |
 
-## Последние изменения (v6.0)
-- Provider Settings окно в лаунчере (API keys + URL + Test Connection + Save)
-- LM Studio интеграция (детекция, переключение)
-- Чат: WebSocket теперь использует LazyLoader (полный fallback до MockLLM)
-- 40 новых тестов для 7 ранее непокрытых хендлеров
-- settings.py синхронизирован (добавлены lmstudio, mock)
-- Очищена docs/ (удалено 8 мёртвых файлов)
-- CI/CD: path filters, lint + test stages
-- Исправлен дубль chat_stream(), починена сетка лаунчера
+## Последние изменения (v6.1)
+- Learning Memory System: SQLite `learning_events`, semantic retrieval, personality insights
+- Knowledge Base Optimization: категоризация, BM25 full-corpus, RRF fusion, query expansion
+- Personality drift расширен параметрами из learning events
+- GitHub repo description и topics обновлены
+- Alembic миграция `cb007d8d52d1` применена

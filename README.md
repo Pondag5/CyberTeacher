@@ -68,15 +68,16 @@ python main.py              # CLI интерфейс
 
 ---
 
-## Ключевые метрики (v6.0)
-- **Тесты:** 1268 passed, 0 fail, 8 skip
+## Ключевые метрики (v6.1)
+- **Тесты:** 105+ passed в ключевых модулях; 85 test файлов
 - **Handlers:** 79
 - **PWA Tabs:** 58
 - **Story Mechanics:** 15/15 ✅
 - **Risk Mechanics:** Noise/Trace/Debt/Stealth ✅
 - **Factions:** Rick/Ghost/Archive ✅
 - **Cyberpsychosis:** 4 levels, PWA glitches ✅
-- **Teacher Memory:** learning events + semantic retrieval ✅
+- **Teacher Memory:** learning events + semantic retrieval + personality drift ✅
+- **Knowledge Base:** FAISS + BM25 full-corpus + RRF + query expansion ✅
 
 ---
 
