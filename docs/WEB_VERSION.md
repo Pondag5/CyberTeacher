@@ -1,3 +1,19 @@
+# ⚠️ DEPRECATED — Web Version Specification
+
+**This document is deprecated as of 2026-09-18.**
+
+It describes an outdated view of CyberTeacher as a "stub" PWA with 132 lines and 18 tabs. The actual project has evolved significantly:
+- PWA is a full SPA at `static/` with 58+ JS tab files
+- API has ~140 endpoints in `api_server.py`
+- Service Worker, manifest, offline mode, WebSocket chat are all implemented
+- Story mode, risk mechanics, cyberpsychosis, learning memory, FAISS+BM25 RAG are production-ready
+
+**Do not reference this document for current architecture.** Use `docs/ARCHITECTURE.md`, `docs/PROJECT_STATE.md`, and `docs/IDEAS_STATUS.md` instead.
+
+---
+
+*Original content preserved below for historical reference only.*
+
 # CyberTeacher — Полное описание для веб-реализации
 
 *Версия: 5.2 | Дата: 2026-05-29*
