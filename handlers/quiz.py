@@ -138,6 +138,23 @@ def handle_quiz_action() -> HandlerResult:
             }
         )
 
+        if score < 10:
+            try:
+                from services.learning_memory_service import get_learning_memory_service
+
+                learning_svc = get_learning_memory_service()
+                event_type = "misconception" if score == 0 else "error"
+                learning_svc.record_event(
+                    topic=quiz_topic,
+                    event_type=event_type,
+                    user_belief=user_ans,
+                    correct_model=correct if "options" in q else feedback,
+                    root_cause=feedback,
+                    context_ref=q.get("question", ""),
+                )
+            except (ImportError, RuntimeError, Exception):
+                pass
+
     # Показать итоги и обновить weak_topics
     if scores:
         success_rate = (total_score / max_total * 100) if max_total > 0 else 0
@@ -434,6 +451,23 @@ def handle_quiz_generation(
             }
         )
 
+        if score < 10:
+            try:
+                from services.learning_memory_service import get_learning_memory_service
+
+                learning_svc = get_learning_memory_service()
+                event_type = "misconception" if score == 0 else "error"
+                learning_svc.record_event(
+                    topic=quiz_topic,
+                    event_type=event_type,
+                    user_belief=user_ans,
+                    correct_model=correct if "options" in q else feedback,
+                    root_cause=feedback,
+                    context_ref=q.get("question", ""),
+                )
+            except (ImportError, RuntimeError, Exception):
+                pass
+
     if scores:
         success_rate = (total_score / max_total * 100) if max_total > 0 else 0
         console.print(
@@ -466,7 +500,79 @@ def handle_quiz_generation(
 
 
 def handle_code_review(action: str, conn: Any = None) -> HandlerResult:
-    """Анализ кода через /code_review"""
-    console.print("[yellow]Отправьте код для анализа (в разработке)[/yellow]")
-    # TODO: Реализовать интерактивный ввод кода или чтение из файла
+    """Анализ кода через /code_review
+
+    Использование:
+      /code_review <file.py>     - проанализировать файл
+      /code_review               - интерактивный ввод (завершить Ctrl+Z / Ctrl+D)
+    """
+    from config import get_llm
+
+    parts = action.split(maxsplit=1)
+    code = ""
+    language = "python"
+
+    if len(parts) > 1:
+        # Файл указан - читаем его
+        filepath = parts[1].strip()
+        if not os.path.exists(filepath):
+            console.print(f"[red]Файл не найден: {filepath}[/red]")
+            return True, None, None, True
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                code = f.read()
+            if filepath.endswith(".js"):
+                language = "javascript"
+            elif filepath.endswith(".java"):
+                language = "java"
+            elif filepath.endswith(".cpp") or filepath.endswith(".cc"):
+                language = "cpp"
+            elif filepath.endswith(".go"):
+                language = "go"
+            elif filepath.endswith(".rs"):
+                language = "rust"
+        except Exception as e:
+            console.print(f"[red]Ошибка чтения файла: {e}[/red]")
+            return True, None, None, True
+    else:
+        # Интерактивный ввод
+        console.print(f"[cyan]Введите код для анализа ({language}). Завершить: Ctrl+Z (Win) / Ctrl+D (Unix)[/cyan]")
+        lines = []
+        try:
+            while True:
+                line = input()
+                lines.append(line)
+        except EOFError:
+            pass
+        code = "\n".join(lines)
+
+    if not code.strip():
+        console.print("[yellow]Код не передан[/yellow]")
+        return True, None, None, True
+
+    # Отправить в LLM
+    console.print(f"[cyan]🔍 Анализирую код ({language})...[/cyan]")
+    llm = get_llm()
+
+    prompt = f"""Проанализируй следующий код на языке {language}.
+
+Найди:
+1. Потенциальные баги и ошибки
+2. Проблемы безопасности (SQL injection, XSS, path traversal, hardcoded secrets)
+3. Нарушения best practices
+4. Предложения по улучшению (performance, readability, maintainability)
+
+Код:
+```{language}
+{code}
+```
+
+Ответь структурированно: найденные проблемы + рекомендации."""
+
+    try:
+        response = llm.invoke(prompt)
+        console.print(Panel(response.content, title="[CODE] Code Review", border_style="cyan"))
+    except Exception as e:
+        console.print(f"[red]Ошибка LLM: {e}[/red]")
+
     return True, None, None, True

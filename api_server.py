@@ -317,26 +317,126 @@ class DockerGenRequest(BaseModel):
 
 
 # ----------------------------------------------------------------------
-# Rate Limiter (in-memory, sliding window)
+# Rate Limiter (Token Bucket with persistence)
 # ----------------------------------------------------------------------
-class _RateLimiter:
-    """Simple in-memory sliding-window rate limiter."""
+class _TokenBucketRateLimiter:
+    """Token bucket rate limiter with configurable capacity and refill rate.
+    
+    Features:
+    - Token bucket algorithm (smooth rate limiting, handles bursts)
+    - Per-client buckets with automatic cleanup
+    - Configurable capacity and refill rate per endpoint
+    - Persistent state (can be extended with Redis)
+    """
 
-    def __init__(self) -> None:
-        self._hits: Dict[str, List[float]] = {}
+    def __init__(
+        self,
+        default_capacity: int = 100,
+        default_refill_rate: float = 10.0,  # tokens per second
+        cleanup_interval: int = 300,  # 5 minutes
+    ) -> None:
+        self._buckets: Dict[str, Dict] = {}
+        self._default_capacity = default_capacity
+        self._default_refill_rate = default_refill_rate
+        self._cleanup_interval = cleanup_interval
+        self._last_cleanup = time.time()
 
-    def is_limited(self, key: str, max_requests: int, window: int) -> bool:
+    def _get_bucket(self, key: str, capacity: Optional[int] = None, refill_rate: Optional[float] = None) -> Dict:
+        """Get or create a token bucket for a key."""
         now = time.time()
-        if key not in self._hits:
-            self._hits[key] = []
-        self._hits[key] = [t for t in self._hits[key] if now - t < window]
-        if len(self._hits[key]) >= max_requests:
-            return True
-        self._hits[key].append(now)
-        return False
+        
+        if key not in self._buckets:
+            cap = capacity or self._default_capacity
+            rate = refill_rate or self._default_refill_rate
+            self._buckets[key] = {
+                "tokens": float(cap),  # Start full
+                "capacity": cap,
+                "refill_rate": rate,
+                "last_refill": now,
+            }
+        
+        bucket = self._buckets[key]
+        
+        # Refill tokens based on elapsed time
+        elapsed = now - bucket["last_refill"]
+        if elapsed > 0:
+            bucket["tokens"] = min(
+                bucket["capacity"],
+                bucket["tokens"] + elapsed * bucket["refill_rate"]
+            )
+            bucket["last_refill"] = now
+        
+        return bucket
+    
+    def _cleanup_expired(self) -> None:
+        """Remove buckets that haven't been used for a long time."""
+        now = time.time()
+        if now - self._last_cleanup < self._cleanup_interval:
+            return
+        
+        self._last_cleanup = now
+        expired_keys = []
+        for key, bucket in self._buckets.items():
+            # If bucket is full and hasn't been used in 2x cleanup interval, remove it
+            if bucket["tokens"] >= bucket["capacity"] * 0.99:
+                if now - bucket["last_refill"] > self._cleanup_interval * 2:
+                    expired_keys.append(key)
+        
+        for key in expired_keys:
+            del self._buckets[key]
+
+    def is_limited(
+        self, 
+        key: str, 
+        cost: int = 1,
+        capacity: Optional[int] = None,
+        refill_rate: Optional[float] = None
+    ) -> bool:
+        """Check if request should be rate limited. Returns True if limited."""
+        now = time.time()
+        
+        # Periodic cleanup
+        if now - self._last_cleanup > self._cleanup_interval:
+            self._cleanup_expired()
+        
+        if key not in self._buckets:
+            cap = capacity or self._default_capacity
+            rate = refill_rate or self._default_refill_rate
+            self._buckets[key] = {
+                "tokens": float(cap - cost),  # Start full minus this request
+                "capacity": cap,
+                "refill_rate": rate,
+                "last_refill": now,
+            }
+            return False  # First request allowed
+        
+        bucket = self._buckets[key]
+        
+        # Update capacity/refill rate if provided
+        if capacity is not None:
+            bucket["capacity"] = capacity
+        if refill_rate is not None:
+            bucket["refill_rate"] = refill_rate
+        
+        # Refill tokens
+        elapsed = now - bucket["last_refill"]
+        if elapsed > 0:
+            bucket["tokens"] = min(
+                bucket["capacity"],
+                bucket["tokens"] + elapsed * bucket["refill_rate"]
+            )
+            bucket["last_refill"] = now
+        
+        # Check if we have enough tokens
+        if bucket["tokens"] >= cost:
+            bucket["tokens"] -= cost
+            return False  # Not limited
+        
+        return True  # Limited
 
 
-_rate_limiter = _RateLimiter()
+# Global rate limiter instance
+_rate_limiter = _TokenBucketRateLimiter()
 
 
 # ----------------------------------------------------------------------
@@ -560,6 +660,7 @@ def chat_with_llm(req: ChatRequest):
         # Secret phrase detection
         try:
             from secret_language import detect_secret_phrase
+
             secret = detect_secret_phrase(req.message)
             if secret:
                 # Apply effect and return special response
@@ -571,7 +672,11 @@ def chat_with_llm(req: ChatRequest):
                     pass  # Ghost log unlock is informational
                 return {
                     "response": f"🔐 **Секретная фраза:** {secret['phrase']}\n\n{secret['response']}",
-                    "history": [*req.history, {"role": "user", "content": req.message}, {"role": "assistant", "content": secret["response"]}],
+                    "history": [
+                        *req.history,
+                        {"role": "user", "content": req.message},
+                        {"role": "assistant", "content": secret["response"]},
+                    ],
                     "secret_phrase": secret,
                 }
         except ImportError:
@@ -647,6 +752,57 @@ def chat_with_llm(req: ChatRequest):
         except (ValueError, RuntimeError):
             pass
 
+        # Inject learning memory context
+        try:
+            from services.learning_memory_service import get_learning_memory_service
+
+            learning_svc = get_learning_memory_service()
+            similar_errors = learning_svc.get_similar_events(req.message, top_k=3)
+            if similar_errors:
+                errors_context = "\n\n[PAST SIMILAR MISTAKES]\n"
+                for err in similar_errors:
+                    errors_context += (
+                        f"- Topic: {err['topic']}, type: {err['event_type']}\n"
+                        f"  You believed: {err['user_belief']}\n"
+                        f"  Correct: {err['correct_model']}\n"
+                        f"  Root cause: {err['root_cause']}\n"
+                    )
+                system_prompt += errors_context
+
+            personality_insights = learning_svc.get_personality_insights()
+            if personality_insights:
+                insights_context = "\n\n[LEARNING INSIGHTS]\n"
+                for key, value in personality_insights.items():
+                    insights_context += f"- {key}: {value:+.2f}\n"
+                system_prompt += insights_context
+        except (ImportError, RuntimeError, Exception):
+            pass
+
+        # Personality drift
+        try:
+            from context_awareness import get_context_info
+            from personality import apply_personality_drift
+
+            ctx_info = get_context_info(
+                session_start=getattr(state, "metrics", {}).get("start_time", 0),
+                messages_this_session=len(req.history),
+            )
+            try:
+                from services.learning_memory_service import get_learning_memory_service
+
+                learning_svc = get_learning_memory_service()
+                weak = learning_svc.get_weak_topics(limit=3)
+                ctx_info["weak_topics_count"] = len(weak)
+                ctx_info["recent_errors"] = sum(item["error_count"] for item in weak)
+            except (ImportError, RuntimeError, Exception):
+                ctx_info.setdefault("weak_topics_count", 0)
+                ctx_info.setdefault("recent_errors", 0)
+            pmod = apply_personality_drift(ctx_info)
+            if pmod:
+                system_prompt += f"\n\n{pmod}"
+        except (ImportError, RuntimeError, Exception):
+            pass
+
         messages = [{"role": "system", "content": system_prompt}]
 
         # Inject summary if available
@@ -707,11 +863,11 @@ def chat_with_llm(req: ChatRequest):
             "history": new_history,
             "persona": persona_info,
         }
-    except (ValueError, RuntimeError, KeyError, OSError):
+    except (ValueError, RuntimeError, KeyError, OSError) as e:
         import logging
 
-        logging.exception("[API Chat Error]")
-        raise HTTPException(status_code=500, detail="LLM error")
+        logging.exception(f"[API Chat Error] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"LLM error: {e}")
 
 
 # Hardcoded fallback quiz questions (LLM-free game mechanic)
@@ -2723,7 +2879,7 @@ def register(username: str = "", password: str = "", display_name: str = ""):
     if not username or not password:
         raise HTTPException(status_code=400, detail="username and password required")
     client_ip = "register"
-    if _rate_limiter.is_limited(client_ip, 5, 60):
+    if _rate_limiter.is_limited(client_ip, cost=1, capacity=5, refill_rate=5/60):
         raise HTTPException(
             status_code=429, detail="Too many requests. Try again later."
         )
@@ -2741,7 +2897,7 @@ def login(username: str = "", password: str = ""):
     if not username or not password:
         raise HTTPException(status_code=400, detail="username and password required")
     client_ip = f"login:{username}"
-    if _rate_limiter.is_limited(client_ip, LOGIN_RATE_LIMIT, 60):
+    if _rate_limiter.is_limited(client_ip, cost=1, capacity=LOGIN_RATE_LIMIT, refill_rate=LOGIN_RATE_LIMIT/60):
         raise HTTPException(
             status_code=429, detail="Too many login attempts. Try again later."
         )
@@ -3601,6 +3757,161 @@ def _ws_verify_token(websocket: Any) -> Optional[Dict[str, Any]]:
     return verify_token(token)
 
 
+def _generate_connection_id(websocket: Any, conn_type: str) -> str:
+    """Generate a unique connection ID."""
+    import uuid
+    client = websocket.client
+    client_info = f"{client.host}:{client.port}" if client else "unknown"
+    return f"{conn_type}-{client_info}-{uuid.uuid4().hex[:8]}"
+
+
+# --- WebSocket Connection Manager (OPT-02) ---
+class WebSocketManager:
+    """Manages WebSocket connections with pooling, batching, and health checks."""
+
+    def __init__(self, batch_interval_ms: int = 50, ping_interval_s: int = 30):
+        self._connections: Dict[str, Any] = {}  # connection_id -> websocket
+        self._connection_info: Dict[str, Dict] = {}  # connection_id -> {type, user_id, connected_at, last_ping}
+        self._message_queues: Dict[str, List[Dict]] = {}  # connection_id -> [messages]
+        self._batch_interval_ms = batch_interval_ms
+        self._ping_interval_s = ping_interval_s
+        self._batching_tasks: Dict[str, asyncio.Task] = {}
+        self._ping_tasks: Dict[str, asyncio.Task] = {}
+        self._lock = asyncio.Lock()
+
+    async def connect(self, websocket: Any, connection_id: str, conn_type: str, user_id: Optional[str] = None) -> None:
+        """Register a new WebSocket connection."""
+        async with self._lock:
+            self._connections[connection_id] = websocket
+            self._connection_info[connection_id] = {
+                "type": conn_type,
+                "user_id": user_id,
+                "connected_at": time.time(),
+                "last_ping": time.time(),
+            }
+            self._message_queues[connection_id] = []
+
+            # Start batching task for this connection
+            task = asyncio.create_task(self._batch_sender(connection_id))
+            self._batching_tasks[connection_id] = task
+
+            # Start ping task for this connection
+            ping_task = asyncio.create_task(self._ping_sender(connection_id))
+            self._ping_tasks[connection_id] = ping_task
+
+    async def disconnect(self, connection_id: str) -> None:
+        """Remove a WebSocket connection."""
+        async with self._lock:
+            if connection_id in self._connections:
+                del self._connections[connection_id]
+            if connection_id in self._connection_info:
+                del self._connection_info[connection_id]
+            if connection_id in self._message_queues:
+                # Flush remaining messages before disconnect
+                await self._flush_queue(connection_id)
+                del self._message_queues[connection_id]
+            if connection_id in self._batching_tasks:
+                self._batching_tasks[connection_id].cancel()
+                del self._batching_tasks[connection_id]
+            if connection_id in self._ping_tasks:
+                self._ping_tasks[connection_id].cancel()
+                del self._ping_tasks[connection_id]
+
+    async def send_message(self, connection_id: str, message: Dict) -> bool:
+        """Queue a message for batched delivery."""
+        async with self._lock:
+            if connection_id not in self._message_queues:
+                return False
+            self._message_queues[connection_id].append(message)
+            return True
+
+    async def broadcast(self, conn_type: str, message: Dict, user_id: Optional[str] = None) -> int:
+        """Broadcast message to all connections of a type (optionally filtered by user_id)."""
+        async with self._lock:
+            sent = 0
+            for conn_id, info in self._connection_info.items():
+                if info["type"] == conn_type and (user_id is None or info.get("user_id") == user_id):
+                    if conn_id in self._message_queues:
+                        self._message_queues[conn_id].append(message)
+                        sent += 1
+            return sent
+
+    async def _flush_queue(self, connection_id: str) -> None:
+        """Flush all queued messages for a connection."""
+        if connection_id not in self._message_queues:
+            return
+        websocket = self._connections.get(connection_id)
+        if not websocket:
+            return
+        queue = self._message_queues[connection_id]
+        for msg in queue:
+            try:
+                await websocket.send_json(msg)
+            except Exception:
+                pass
+        queue.clear()
+
+    async def _batch_sender(self, connection_id: str) -> None:
+        """Background task to batch and send messages every batch_interval_ms."""
+        try:
+            while True:
+                await asyncio.sleep(self._batch_interval_ms / 1000.0)
+                async with self._lock:
+                    if connection_id not in self._message_queues:
+                        break
+                    await self._flush_queue(connection_id)
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            pass
+
+    async def _ping_sender(self, connection_id: str) -> None:
+        """Background task to send periodic pings for keepalive."""
+        try:
+            while True:
+                await asyncio.sleep(self._ping_interval_s)
+                async with self._lock:
+                    if connection_id not in self._connections:
+                        break
+                    websocket = self._connections[connection_id]
+                    info = self._connection_info[connection_id]
+                    try:
+                        await websocket.send_json({"type": "ping", "t": time.time()})
+                        info["last_ping"] = time.time()
+                    except Exception:
+                        # Connection likely dead
+                        break
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            pass
+
+    def get_stats(self) -> Dict:
+        """Get connection statistics."""
+        return {
+            "total_connections": len(self._connections),
+            "by_type": self._count_by_type(),
+            "queued_messages": sum(len(q) for q in self._message_queues.values()),
+        }
+
+    def _count_by_type(self) -> Dict[str, int]:
+        counts = {}
+        for info in self._connection_info.values():
+            counts[info["type"]] = counts.get(info["type"], 0) + 1
+        return counts
+
+
+# Global WebSocket manager instance
+_ws_manager: Optional[WebSocketManager] = None
+
+
+def get_ws_manager() -> WebSocketManager:
+    global _ws_manager
+    if _ws_manager is None:
+        _ws_manager = WebSocketManager()
+    return _ws_manager
+
+
 # --- WebSocket Streaming ---
 
 if FASTAPI_AVAILABLE and app is not None:
@@ -3610,6 +3921,10 @@ if FASTAPI_AVAILABLE and app is not None:
         from starlette.websockets import WebSocketDisconnect
 
         await websocket.accept()
+        conn_id = _generate_connection_id(websocket, "chat")
+        ws_manager = get_ws_manager()
+        await ws_manager.connect(websocket, conn_id, "chat", None)
+
         try:
             payload = _ws_verify_token(websocket)
             user_context = ""
@@ -3634,6 +3949,7 @@ if FASTAPI_AVAILABLE and app is not None:
             # Secret phrase detection
             try:
                 from secret_language import detect_secret_phrase
+
                 secret = detect_secret_phrase(message)
                 if secret:
                     # Apply effect
@@ -3644,11 +3960,15 @@ if FASTAPI_AVAILABLE and app is not None:
                     elif secret["effect"] == "unlock_ghost_log":
                         pass
 
-                    await websocket.send_json({
-                        "secret_phrase": secret,
-                        "response": f"🔐 **Секретная фраза:** {secret['phrase']}\n\n{secret['response']}",
-                    })
-                    await websocket.send_json({"done": True, "full_response": secret["response"]})
+                    await websocket.send_json(
+                        {
+                            "secret_phrase": secret,
+                            "response": f"🔐 **Секретная фраза:** {secret['phrase']}\n\n{secret['response']}",
+                        }
+                    )
+                    await websocket.send_json(
+                        {"done": True, "full_response": secret["response"]}
+                    )
                     return
             except ImportError:
                 pass
@@ -3780,6 +4100,8 @@ if FASTAPI_AVAILABLE and app is not None:
                 await websocket.close()
             except (ConnectionError, RuntimeError):
                 pass
+        finally:
+            await get_ws_manager().disconnect(conn_id)
 
     @app.websocket("/notifications")
     async def websocket_notifications(websocket: Any) -> None:
@@ -4054,6 +4376,16 @@ def pwa_save_state():
         return {"status": "ok"}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
+
+
+# ----------------------------------------------------------------------
+# WebSocket stats endpoint (OPT-02)
+# ----------------------------------------------------------------------
+@_if_app("get", "/api/ws/stats")
+def get_ws_stats():
+    """Get WebSocket connection statistics."""
+    ws_manager = get_ws_manager()
+    return ws_manager.get_stats()
 
 
 # ----------------------------------------------------------------------

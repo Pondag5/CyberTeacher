@@ -9,7 +9,7 @@ import unittest
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # Imports from our project
 from config import RERANK_TOP_K, RERANKER, LazyLoader

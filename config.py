@@ -464,7 +464,7 @@ class LazyLoader:
     def get_embeddings(cls) -> Optional[Any]:
         if cls._embeddings is None:
             try:
-                from langchain_huggingface import HuggingFaceEmbeddings
+                from langchain_community.embeddings import HuggingFaceEmbeddings
 
                 cls._embeddings = HuggingFaceEmbeddings(
                     model_name="intfloat/multilingual-e5-small",

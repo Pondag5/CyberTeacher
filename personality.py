@@ -51,6 +51,9 @@ class PersonalityState:
         session_duration_minutes: float = 0,
         success_rate: float = 0.5,
         consecutive_failures: int = 0,
+        weak_topics_count: int = 0,
+        recent_errors: int = 0,
+        recent_breakthroughs: int = 0,
     ) -> Dict[str, str]:
         """Apply personality drift based on context.
 
@@ -58,6 +61,24 @@ class PersonalityState:
         """
         self._drift_count += 1
         changes = {}
+
+        # Learning history adjustments
+        if weak_topics_count >= 3:
+            self.patience = min(1, self.patience + 0.05)
+            changes["weak_topics"] = "patience+"
+        if weak_topics_count >= 6:
+            self.patience = min(1, self.patience + 0.1)
+            self.sarcasm = max(-1, self.sarcasm - 0.05)
+            changes["many_weak_topics"] = "patience++, sarcasm-"
+
+        if recent_errors >= 5:
+            self.patience = min(1, self.patience + 0.05)
+            changes["recent_errors"] = "patience+"
+
+        if recent_breakthroughs >= 3:
+            self.enthusiasm = min(1, self.enthusiasm + 0.1)
+            self.sarcasm = max(-1, self.sarcasm - 0.05)
+            changes["breakthroughs"] = "enthusiasm++, sarcasm-"
 
         # Time of day adjustments
         if time_of_day in ("night", "late_night"):
@@ -172,11 +193,14 @@ def apply_personality_drift(context: Dict[str, Any]) -> str:
         time_of_day=context.get("time_of_day", "afternoon"),
         session_pattern=context.get("session_pattern", "normal"),
         session_duration_minutes=context.get("session_duration_minutes", 0),
-        success_rate=0.5,  # Will be enhanced when integrated with state
-        consecutive_failures=0,
+        success_rate=context.get("success_rate", 0.5),
+        consecutive_failures=context.get("consecutive_failures", 0),
+        weak_topics_count=context.get("weak_topics_count", 0),
+        recent_errors=context.get("recent_errors", 0),
+        recent_breakthroughs=context.get("recent_breakthroughs", 0),
     )
 
     if changes:
-        logger.debug(f"Personality drift: {changes}")
+        logger.debug("Personality drift: %s", changes)
 
     return state.get_system_prompt_modifiers()
