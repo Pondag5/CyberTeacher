@@ -1160,3 +1160,27 @@ def handle_faiss_watch(action: str) -> HandlerResult:
 
     console.print("[yellow]Usage: /faiss_watch [start|status][/yellow]")
     return True, None, None, True
+
+
+def handle_reindex_knowledge(action: str) -> HandlerResult:
+    """Обработчик /reindex_knowledge — принудительная переиндексация базы знаний."""
+    parts = action.strip().split()
+    category = parts[1].lower() if len(parts) > 1 else None
+
+    try:
+        from knowledge import load_knowledge_base, get_knowledge_status, _infer_category
+
+        console.print("[bold cyan]🔄 Переиндексация базы знаний...[/bold cyan]")
+        vectordb = load_knowledge_base()
+        if vectordb is None:
+            console.print("[red]Не удалось загрузить/построить индекс[/red]")
+            return True, None, None, True
+
+        status = get_knowledge_status()
+        console.print(f"[green]✅ Индекс готов: {status['files_on_disk']} файлов на диске[/green]")
+        if category:
+            inferred = _infer_category(category)
+            console.print(f"[dim]Категория для фильтра: {inferred}[/dim]")
+    except Exception as e:
+        console.print(f"[red]Ошибка переиндексации: {e}[/red]")
+    return True, None, None, True

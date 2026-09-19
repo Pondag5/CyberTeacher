@@ -104,8 +104,9 @@ def show_menu() -> None:
     [yellow]68[/yellow] - Эмоции учителя (/emotions)
     [yellow]69[/yellow] - Docker Compose (/dockergen)
     [yellow]70[/yellow] - CTF-флаги (/ctf)
-    [yellow]71[/yellow] - Профиль (/profile)
-    [yellow]72[/yellow] - Ежедневный челлендж (/daily)
+  [yellow]71[/yellow] - Профиль (/profile)
+  [yellow]72[/yellow] - Ежедневный челлендж (/daily)
+  [yellow]73[/yellow] - Переиндексация базы знаний (/reindex_knowledge)
 
   [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -194,6 +195,7 @@ def show_help() -> None:
   /set-api-key - Установить API ключ
   /risk        - Уровень риска (CTF/Story)
   /add_book    - Добавить PDF в базу знаний
+  /reindex_knowledge - Переиндексация базы знаний
   /cache stats - Статистика кэша
   /clearcache  - Очистить кэш
   /kb_status   - Статус базы знаний

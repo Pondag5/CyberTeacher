@@ -127,6 +127,8 @@ from .api_handler import handle_api
 from .pwa import handle_pwa
 from .versus import handle_versus
 from .assignment_templates import handle_assignment_templates
+from .phantom_messages import handle_phantom_message, scan_phantom_labs
+from .push_notifications import handle_push_subscribe
 from handlers.types import HandlerResult
 
 
@@ -628,6 +630,34 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> HandlerResult:
 
         return handle_phantom(action)
 
+    # ----- Phantom Messages (MF-02) -----
+    if action == "phantom_msg" or action.startswith("phantom_msg "):
+        return handle_phantom_message(action)
+
+    # ----- Final Exam Ritual (MF-04) -----
+    if action == "final" or action.startswith("final "):
+        from story_mode import (
+            complete_final_episode,
+            get_final_exam_status,
+            final_choice,
+        )
+
+        parts = action.split(maxsplit=1)
+        if len(parts) == 1:
+            console.print(get_final_exam_status())
+            return True, None, None, True
+        
+        sub = parts[1].lower()
+        if sub in ("memory", "merge", "rewrite"):
+            result = final_choice(sub)
+            console.print(result)
+            return True, None, None, True
+        
+        # Try to complete final episode
+        result = complete_final_episode(sub)
+        console.print(result)
+        return True, None, None, True
+
     # ----- Secret room -----
     if action == "secret" or action.startswith("secret "):
         from handlers.secret_room import handle_secret
@@ -702,6 +732,10 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> HandlerResult:
     if action == "scanv2" or action.startswith("scanv2 "):
         return handle_code_review_v2(action)
 
+    # ----- Code Review (TODO-1) -----
+    if action == "code_review" or action.startswith("code_review "):
+        return handle_code_review(action)
+
     # ----- Bug Bounty Simulation (M-31) -----
     if action == "bounty":
         return handle_bounty(action)
@@ -718,6 +752,10 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> HandlerResult:
     if action == "config" or action.startswith("config "):
         return handle_config(action)
 
+    # ----- Keys rotation (SEC-02) -----
+    if action == "keys" or action.startswith("keys "):
+        return handle_keys(action)
+
     # ----- Theme (M-29) -----
     if action == "theme" or action.startswith("theme "):
         return handle_theme(action)
@@ -729,6 +767,14 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> HandlerResult:
     # ----- Feature flags (M-32) -----
     if action == "features" or action.startswith("features "):
         return handle_features(action)
+
+    # ----- Push Notifications (MF-05) -----
+    if action == "push" or action.startswith("push "):
+        return handle_push_subscribe(action)
+
+    # ----- API Keys Rotation (SEC-02) -----
+    if action == "keys" or action.startswith("keys "):
+        return handle_keys(action)
 
     # ----- Chat summarization (M-22) -----
     if action == "summarize":
@@ -855,6 +901,10 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> HandlerResult:
     if action == "faiss_watch" or action.startswith("faiss_watch "):
         from handlers.misc import handle_faiss_watch
         return handle_faiss_watch(action)
+
+    if action == "reindex_knowledge" or action.startswith("reindex_knowledge "):
+        from handlers.misc import handle_reindex_knowledge
+        return handle_reindex_knowledge(action)
 
     # ----- Ghost Log (Chapter 1) -----
     if action == "ghost_log" or action.startswith("ghost_log "):
@@ -1019,5 +1069,154 @@ def handle_persona(action: str) -> tuple:
         "[yellow]Использование: /persona [list|status|auto|rick|doc|analyst|ghost][/yellow]"
     )
     return True, None, None, True
+
+
+def handle_keys(action: str) -> HandlerResult:
+    """Manage API keys rotation (SEC-02)."""
+    from settings import get_settings
+    import secrets
+    import base64
+
+    settings = get_settings()
+    parts = action.split(maxsplit=2)
+
+    if len(parts) == 1:
+        console.print(
+            Panel(
+                "[bold cyan]🔑 Управление API ключами[/bold cyan]\n\n"
+                "Доступные провайдеры: openrouter, huggingface, groq\n\n"
+                "Команды:\n"
+                "  /keys list                 — показать текущие ключи\n"
+                "  /keys rotate <provider>    — сгенерировать новый ключ для провайдера\n"
+                "  /keys rotate-all           — сгенерировать новые ключи для всех\n"
+                "  /keys status               — проверить валидность ключей",
+                title="API KEYS",
+                border_style="cyan",
+            )
+        )
+        return True, None, None, True
+
+    subcommand = parts[1].lower()
+
+    if subcommand == "list":
+        _list_keys(settings)
+        return True, None, None, True
+
+    if subcommand == "status":
+        _check_keys_status(settings)
+        return True, None, None, True
+
+    if subcommand in ("rotate", "rotate-all"):
+        if subcommand == "rotate":
+            if len(parts) < 3:
+                console.print(
+                    "[yellow]Укажите провайдера: /keys rotate <openrouter|huggingface|groq>[/yellow]"
+                )
+                return True, None, None, True
+            provider = parts[2].lower()
+            _rotate_key(settings, provider)
+        else:
+            _rotate_all_keys(settings)
+        return True, None, None, True
+
+    console.print("[yellow]Использование:[/yellow]")
+    console.print("  /keys list")
+    console.print("  /keys rotate <provider>")
+    console.print("  /keys rotate-all")
+    console.print("  /keys status")
+    return True, None, None, True
+
+
+def _list_keys(settings) -> None:
+    """Показать текущие ключи (маскированные)."""
+    from rich.table import Table
+
+    table = Table(title="API Ключи", show_header=True)
+    table.add_column("Провайдер", style="cyan")
+    table.add_column("Ключ (маскирован)", style="dim")
+    table.add_column("Статус", style="green")
+
+    providers = {
+        "openrouter": settings.openrouter_api_key,
+        "huggingface": settings.hf_token,
+        "groq": settings.groq_api_key if hasattr(settings, "groq_api_key") else "",
+    }
+
+    for provider, key in providers.items():
+        if key:
+            masked = key[:8] + "..." + key[-4:] if len(key) > 12 else "****"
+            status = "[green]OK[/green]"
+        else:
+            masked = "--"
+            status = "[red]NOT SET[/red]"
+        table.add_row(provider, masked, status)
+
+    console.print(table)
+    console.print(
+        "\n[dim]Используйте /keys rotate <provider> для ротации[/dim]"
+    )
+
+
+def _check_keys_status(settings) -> None:
+    """Проверить валидность ключей (базовая проверка длины)."""
+    from rich.table import Table
+
+    table = Table(title="Статус ключей", show_header=True)
+    table.add_column("Провайдер", style="cyan")
+    table.add_column("Валидность", style="yellow")
+    table.add_column("Примечание", style="dim")
+
+    providers = {
+        "openrouter": (settings.openrouter_api_key, "sk-or-"),
+        "huggingface": (settings.hf_token, "hf_"),
+        "groq": (
+            settings.groq_api_key if hasattr(settings, "groq_api_key") else "",
+            "gsk_",
+        ),
+    }
+
+    for provider, (key, prefix) in providers.items():
+        if not key:
+            table.add_row(provider, "[red]Нет ключа[/red]", "Добавьте в .env")
+        elif len(key) < 20:
+            table.add_row(provider, "[red]Слишком короткий[/red]", "Проверьте .env")
+        elif not key.startswith(prefix):
+            table.add_row(provider, "[yellow]Неверный префикс[/yellow]", f"Ожидается {prefix}...")
+        else:
+            table.add_row(provider, "[green]OK[/green]", "Формат корректен")
+
+    console.print(table)
+
+
+def _rotate_key(settings, provider: str) -> None:
+    """Сгенерировать новый ключ для провайдера."""
+    console.print(
+        f"[yellow]⚠️ Ручная ротация ключа для {provider}[/yellow]"
+    )
+    console.print(
+        "[dim]Для реальной ротации используйте веб-интерфейс провайдера:[/dim]"
+    )
+
+    urls = {
+        "openrouter": "https://openrouter.ai/://openrouter.ai/keys",
+        "huggingface": "https://huggingface.co/settings/tokens",
+        "groq": "https://console.groq.com/keys",
+    }
+
+    if provider in urls:
+        console.print(f"  {provider}: {urls[provider]}")
+
+    # Generate a secure random key as example
+    new_key = secrets.token_urlsafe(32)
+    console.print(f"\n[dim]Пример безопасного ключа: {new_key}[/dim]")
+    console.print(
+        "[cyan]Обновите соответствующую переменную в .env и перезапустите приложение[/cyan]"
+    )
+
+
+def _rotate_all_keys(settings) -> None:
+    """Ротация всех ключей."""
+    for provider in ("openrouter", "huggingface", "groq"):
+        _rotate_key(settings, provider)
 
 

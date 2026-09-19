@@ -2012,6 +2012,22 @@ def submit_daily_challenge(answer: str):
     }
 
 
+@_if_app("post", "/api/knowledge/reindex")
+def reindex_knowledge():
+    try:
+        from knowledge import load_knowledge_base, get_knowledge_status
+
+        vectordb = load_knowledge_base()
+        status = get_knowledge_status()
+        return {
+            "status": "ok",
+            "vectordb": vectordb is not None,
+            "files_on_disk": status.get("files_on_disk", 0),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # --- Skills API ---
 @_if_app("get", "/api/skills")
 def get_skills():
