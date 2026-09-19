@@ -199,6 +199,18 @@ def _submit_mission(mission_id: str) -> str:
             record_action(state, "mission_complete")
         except ImportError:
             pass
+        try:
+            from services.learning_memory_service import get_learning_memory_service
+
+            topic = data.get("category", "") or data.get("title", "") or mission_id
+            get_learning_memory_service().record_event(
+                topic=topic,
+                event_type="breakthrough",
+                resolution=f"Миссия '{mission_id}' завершена",
+                context_ref=f"mission:{mission_id}",
+            )
+        except (ImportError, RuntimeError, Exception):
+            pass
     xp = data.get("xp_reward", 0)
     state.points += xp
     # Auto-track skill from mission category

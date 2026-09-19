@@ -326,6 +326,21 @@ def handle_task_action() -> HandlerResult:
         "timestamp": time.time(),
     }
 
+    if score < 10:
+        try:
+            from services.learning_memory_service import get_learning_memory_service
+
+            get_learning_memory_service().record_event(
+                topic=task.category or "practice",
+                event_type="misconception" if score == 0 else "error",
+                user_belief=user_ans,
+                correct_model=task.answer,
+                root_cause=feedback,
+                context_ref=f"task:{task.category}",
+            )
+        except (ImportError, RuntimeError, Exception):
+            pass
+
     # Обновить weak_topics (два аргумента)
     state_obj.update_weak_topic(task.category, score)
     state_obj.schedule_review(task.category, score)

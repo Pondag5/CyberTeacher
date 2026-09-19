@@ -813,9 +813,21 @@ def handle_story_mode(action: str) -> HandlerResult:
         try:
             from story_mode import submit_flag
 
+            result_text = submit_flag(flag)
             console.print(
-                Panel(submit_flag(flag), title="🏆 Результат", border_style="yellow")
+                Panel(result_text, title="🏆 Результат", border_style="yellow")
             )
+            try:
+                from services.learning_memory_service import get_learning_memory_service
+
+                get_learning_memory_service().record_event(
+                    topic="story",
+                    event_type="breakthrough",
+                    resolution=result_text,
+                    context_ref=f"story:submit:{flag}",
+                )
+            except (ImportError, RuntimeError, Exception):
+                pass
         except Exception as e:
             console.print(f"[red]Ошибка: {e}[/red]")
         return True, None, None, True
