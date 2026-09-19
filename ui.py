@@ -107,6 +107,7 @@ def show_menu() -> None:
   [yellow]71[/yellow] - Профиль (/profile)
   [yellow]72[/yellow] - Ежедневный челлендж (/daily)
   [yellow]73[/yellow] - Переиндексация базы знаний (/reindex_knowledge)
+  [yellow]74[/yellow] - Поиск по базе знаний (/knowledge <запрос> [категория])
 
   [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -196,6 +197,7 @@ def show_help() -> None:
   /risk        - Уровень риска (CTF/Story)
   /add_book    - Добавить PDF в базу знаний
   /reindex_knowledge - Переиндексация базы знаний
+  /knowledge <query> [category] - Поиск по базе знаний
   /cache stats - Статистика кэша
   /clearcache  - Очистить кэш
   /kb_status   - Статус базы знаний

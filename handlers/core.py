@@ -906,6 +906,10 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> HandlerResult:
         from handlers.misc import handle_reindex_knowledge
         return handle_reindex_knowledge(action)
 
+    if action == "knowledge" or action.startswith("knowledge "):
+        from handlers.misc import handle_knowledge_search
+        return handle_knowledge_search(action)
+
     # ----- Ghost Log (Chapter 1) -----
     if action == "ghost_log" or action.startswith("ghost_log "):
         from handlers.misc import handle_ghost_log

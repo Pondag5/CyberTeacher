@@ -1196,3 +1196,39 @@ def handle_reindex_knowledge(action: str) -> HandlerResult:
     except Exception as e:
         console.print(f"[red]Ошибка переиндексации: {e}[/red]")
     return True, None, None, True
+
+
+def handle_knowledge_search(action: str) -> HandlerResult:
+    """Обработчик /knowledge <query> [category] — поиск по базе знаний."""
+    parts = action.strip().split(maxsplit=1)
+    if len(parts) < 2:
+        console.print("[yellow]Использование: /knowledge <запрос> [категория][/yellow]")
+        return True, None, None, True
+
+    query = parts[1].strip()
+    category = None
+    if " " in query:
+        query, category = query.rsplit(" ", 1)
+
+    try:
+        from knowledge import get_relevant_docs, get_current_vectordb
+
+        vectordb = get_current_vectordb()
+        if vectordb is None:
+            console.print("[yellow]База знаний не загружена. Используйте /reindex_knowledge[/yellow]")
+            return True, None, None, True
+
+        docs = get_relevant_docs(vectordb, query, top_k=5, category_filter=category)
+        if not docs:
+            console.print("[yellow]Ничего не найдено[/yellow]")
+            return True, None, None, True
+
+        console.print(f"[bold green]📖 Результаты по запросу:[/bold green] [cyan]{query}[/cyan]")
+        for i, doc in enumerate(docs, 1):
+            source = doc.metadata.get("source", "?")
+            cat = doc.metadata.get("category", "?")
+            console.print(f"\n[bold]{i}. [{cat}] {source}[/bold]")
+            console.print(f"   {doc.page_content[:500]}")
+    except Exception as e:
+        console.print(f"[red]Ошибка поиска: {e}[/red]")
+    return True, None, None, True
