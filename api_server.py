@@ -58,6 +58,17 @@ app: Optional[FastAPI] = (
     FastAPI(title="CyberTeacher API", version="1.0") if FASTAPI_AVAILABLE else None
 )
 
+if FASTAPI_AVAILABLE and app is not None:
+
+    @app.on_event("startup")
+    def _warm_up_models():
+        try:
+            from config import LazyLoader
+
+            LazyLoader.warm_up()
+        except Exception:
+            pass
+
 # CORS middleware для веб-фронта (raw ASGI — не блокирует WebSocket)
 if FASTAPI_AVAILABLE and app is not None:
     _cors_origins = os.getenv(

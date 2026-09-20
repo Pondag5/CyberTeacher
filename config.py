@@ -478,6 +478,22 @@ class LazyLoader:
         return cls._embeddings
 
     @classmethod
+    def warm_up(cls) -> None:
+        """Preload heavy models to reduce first-request latency."""
+        try:
+            cls.get_llm()
+        except Exception:
+            pass
+        try:
+            cls.get_embeddings()
+        except Exception:
+            pass
+        try:
+            cls.get_reranker()
+        except Exception:
+            pass
+
+    @classmethod
     def get_reranker(cls) -> Optional[Any]:
         if cls._reranker is None and RERANKER:
             try:

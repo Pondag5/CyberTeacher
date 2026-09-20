@@ -62,6 +62,17 @@ def handle_practice(action: str) -> HandlerResult:
                     console.print(
                         f"[bold magenta]🏆 Достижение: {name} ({icon}) +{points} XP[/bold magenta]"
                     )
+            try:
+                from services.learning_memory_service import get_learning_memory_service
+
+                get_learning_memory_service().record_event(
+                    topic=f"lab:{lab_name}",
+                    event_type="breakthrough",
+                    resolution=f"Лаборатория '{lab_name}' запущена",
+                    context_ref=f"lab:start:{lab_name}",
+                )
+            except (ImportError, RuntimeError, Exception):
+                pass
             return True, None, None, True
 
         elif parts[0] in ["lab", "practice"] and len(parts) >= 3 and parts[1] == "stop":
@@ -73,6 +84,17 @@ def handle_practice(action: str) -> HandlerResult:
             state = ctx.state
             state.trace_deadline = None
             state.trace_hint = None
+            try:
+                from services.learning_memory_service import get_learning_memory_service
+
+                get_learning_memory_service().record_event(
+                    topic=f"lab:{lab_name}",
+                    event_type="breakthrough",
+                    resolution=f"Лаборатория '{lab_name}' остановлена",
+                    context_ref=f"lab:stop:{lab_name}",
+                )
+            except (ImportError, RuntimeError, Exception):
+                pass
             return True, None, None, True
 
         elif (

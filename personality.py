@@ -204,3 +204,16 @@ def apply_personality_drift(context: Dict[str, Any]) -> str:
         logger.debug("Personality drift: %s", changes)
 
     return state.get_system_prompt_modifiers()
+
+
+def get_personality_prompt_modifiers() -> str:
+    """Get current personality prompt modifiers without applying drift.
+
+    Useful for handlers that want to inject personality into LLM prompts
+    without computing full context-aware drift.
+
+    Returns:
+        String to append to system prompt for personality adaptation.
+    """
+    return get_personality_state().get_system_prompt_modifiers()
+
