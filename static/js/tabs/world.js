@@ -5,6 +5,7 @@ window.Tab_world = {
     async render(el) {
         await this._loadData(el);
         this._connectWS(el);
+        this._riskInterval = setInterval(() => this._updateRiskIndicators(), 10000);
     },
 
     async _loadData(el) {
@@ -36,6 +37,8 @@ window.Tab_world = {
                 </div>
             </div>
 
+            <div id="risk-section" style="margin-top:16px;"></div>
+
             ${(world.incidents || []).length > 0 ? `
             <div class="card" id="incidentsList">
                 <h3>\u26A0\uFE0F \u0410\u043A\u0442\u0438\u0432\u043D\u044B\u0435 \u0438\u043D\u0446\u0438\u0434\u0435\u043D\u0442\u044B</h3>
@@ -46,7 +49,7 @@ window.Tab_world = {
                     </div>
                 `).join('')}
             </div>
-            ` : '<div class="card" style="color:var(--text-secondary)">\u0418\u043D\u0446\u0438\u0434\u0435\u043D\u0442\u043E\u0432 \u043D\u0435\u0442. \u041C\u0438\u0440 \u0441\u043F\u043E\u043A\u043E\u0439\u0435\u043D.</div>'}
+            ` : '<div class="card" style="color:var(--text-secondary)">\u0418\u043D\u0446\u0438\u0434\u0435\u043D\u0442\u043E\u0432 \u043D\u0435\u0442. \u041C\u0438\u0440 \u0441\u043F\u043E\u043A\u043E\u0435\u043D.</div>'}
 
             ${(world.discovered_factions || []).length > 0 ? `
             <div class="card">
@@ -73,6 +76,8 @@ window.Tab_world = {
                 <p style="margin-top:8px; color:var(--text-secondary);">\u0423\u0440\u043E\u0432\u0435\u043D\u044C: <span class="badge">${cp.level || 'normal'}</span></p>
             </div>
         `;
+
+        await this._updateRiskIndicators();
     },
 
     _connectWS(el) {
@@ -122,5 +127,51 @@ window.Tab_world = {
                 <div style="width:${Math.min(100, value)}%; height:100%; background:${color}; border-radius:3px;"></div>
             </div>
         `;
+    },
+
+    async _updateRiskIndicators() {
+        const container = document.getElementById('risk-section');
+        if (!container) return;
+        try {
+            const [noise, trace, debts] = await Promise.all([
+                apiCall('/api/noise'),
+                apiCall('/api/trace'),
+                apiCall('/api/debts'),
+            ]);
+            const noisePct = Math.min(noise.level || 0, 100);
+            const noiseColor = noisePct > 70 ? 'var(--error)' : noisePct > 40 ? 'var(--warning, orange)' : 'var(--success)';
+            const traceActive = trace.active && !trace.expired;
+            const tracePct = traceActive ? Math.min((trace.remaining_seconds || 0) / 180 * 100, 100) : 0;
+            container.innerHTML = `
+                <div class="card">
+                    <h3>📊 Risk Status</h3>
+                    <div style="margin-bottom:8px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>📶 Noise</span>
+                            <span>${noisePct}%</span>
+                        </div>
+                        <div style="height:8px; background:var(--bg-secondary); border-radius:4px; overflow:hidden;">
+                            <div style="width:${noisePct}%; height:100%; background:${noiseColor}; border-radius:4px; transition: width 0.5s;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:8px; display:${traceActive ? 'block' : 'none'};">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>🔍 Trace</span>
+                            <span>${Math.ceil((trace.remaining_seconds || 0) / 60)}m ${(trace.remaining_seconds || 0) % 60}s</span>
+                        </div>
+                        <div style="height:8px; background:var(--bg-secondary); border-radius:4px; overflow:hidden;">
+                            <div style="width:${tracePct}%; height:100%; background:var(--error); border-radius:4px; transition: width 1s;"></div>
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary);">Target: ${trace.target || '?'}</div>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>💰 Debts</span>
+                            <span style="color:${(debts.total || 0) >= 5 ? 'var(--error)' : (debts.total || 0) >= 3 ? 'orange' : 'inherit'};">${debts.total || 0}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (e) { /* silent */ }
     }
 };

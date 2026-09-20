@@ -3424,6 +3424,66 @@ def network_status():
         return {"labs": {}, "running": 0, "total": 0, "error": str(e)}
 
 
+# --- Risk API ---
+@_if_app("get", "/api/noise")
+def get_noise():
+    try:
+        from handlers.noise import get_noise_level
+
+        info = get_noise_level()
+        return {
+            "level": info.get("level", 0),
+            "status": info.get("status", ""),
+            "stealth": info.get("stealth", False),
+        }
+    except Exception as e:
+        return {"level": 0, "status": "error", "stealth": False, "error": str(e)}
+
+
+@_if_app("get", "/api/trace")
+def get_trace():
+    try:
+        from handlers.trace import get_trace_status
+
+        info = get_trace_status()
+        return {
+            "active": info.get("active", False),
+            "expired": info.get("expired", False),
+            "remaining_seconds": info.get("remaining_seconds", 0),
+            "target": info.get("target", ""),
+        }
+    except Exception as e:
+        return {"active": False, "expired": False, "remaining_seconds": 0, "target": "", "error": str(e)}
+
+
+@_if_app("get", "/api/debts")
+def get_debts():
+    try:
+        from handlers.debt import get_debts
+
+        info = get_debts()
+        return {
+            "total": info.get("total", 0),
+            "debts": info.get("debts", []),
+        }
+    except Exception as e:
+        return {"total": 0, "debts": [], "error": str(e)}
+
+
+@_if_app("post", "/api/stealth/toggle")
+def toggle_stealth():
+    try:
+        from handlers.noise import toggle_stealth
+
+        result = toggle_stealth()
+        return {
+            "active": result.get("active", False),
+            "message": result.get("message", ""),
+        }
+    except Exception as e:
+        return {"active": False, "message": str(e)}
+
+
 # --- Mood API ---
 @_if_app("get", "/api/mood")
 def get_mood():
