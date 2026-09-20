@@ -108,6 +108,7 @@ def show_menu() -> None:
   [yellow]72[/yellow] - Ежедневный челлендж (/daily)
   [yellow]73[/yellow] - Переиндексация базы знаний (/reindex_knowledge)
   [yellow]74[/yellow] - Поиск по базе знаний (/knowledge <запрос> [категория])
+  [yellow]75[/yellow] - Память учителя (/learning_memory [weak|events|breakthroughs])
 
   [bold red]🚪 ВЫХОД[/bold red]
   [red] 0[/red]   - Выход из приложения
@@ -198,6 +199,7 @@ def show_help() -> None:
   /add_book    - Добавить PDF в базу знаний
   /reindex_knowledge - Переиндексация базы знаний
   /knowledge <query> [category] - Поиск по базе знаний
+  /learning_memory [weak|events|breakthroughs] - Память учителя
   /cache stats - Статистика кэша
   /clearcache  - Очистить кэш
   /kb_status   - Статус базы знаний

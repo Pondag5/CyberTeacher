@@ -910,6 +910,10 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> HandlerResult:
         from handlers.misc import handle_knowledge_search
         return handle_knowledge_search(action)
 
+    if action == "learning_memory" or action.startswith("learning_memory "):
+        from handlers.misc import handle_learning_memory
+        return handle_learning_memory(action)
+
     # ----- Ghost Log (Chapter 1) -----
     if action == "ghost_log" or action.startswith("ghost_log "):
         from handlers.misc import handle_ghost_log

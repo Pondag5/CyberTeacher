@@ -1198,6 +1198,90 @@ def handle_reindex_knowledge(action: str) -> HandlerResult:
     return True, None, None, True
 
 
+def handle_learning_memory(action: str) -> HandlerResult:
+    """Обработчик /learning_memory [weak|events|breakthroughs]"""
+    parts = action.strip().split()
+    sub = parts[1].lower() if len(parts) > 1 else "weak"
+
+    try:
+        from services.learning_memory_service import get_learning_memory_service
+
+        learning_svc = get_learning_memory_service()
+
+        if sub == "weak":
+            weak = learning_svc.get_weak_topics(limit=10)
+            if not weak:
+                console.print("[green]Пока нет слабых тем[/green]")
+                return True, None, None, True
+            console.print("[bold cyan]📉 Слабые темы:[/bold cyan]")
+            for item in weak:
+                console.print(f"  • {item['topic']}: {item['error_count']} ошибок")
+
+        elif sub == "breakthroughs":
+            db = get_session()
+            try:
+                from db import LearningEvent
+                from sqlalchemy import func
+
+                rows = (
+                    db.query(LearningEvent)
+                    .filter(LearningEvent.event_type == "breakthrough")
+                    .order_by(LearningEvent.timestamp.desc())
+                    .limit(10)
+                    .all()
+                )
+                if not rows:
+                    console.print("[yellow]Пока нет breakthrough'ов[/yellow]")
+                else:
+                    console.print("[bold green]🌟 Последние breakthrough'ы:[/bold green]")
+                    for row in rows:
+                        console.print(
+                            f"  • [{row.timestamp.strftime('%Y-%m-%d %H:%M')}] {row.resolution}"
+                        )
+            finally:
+                db.close()
+
+        elif sub == "events":
+            limit = 10
+            try:
+                limit = int(parts[2])
+            except (IndexError, ValueError):
+                pass
+            db = get_session()
+            try:
+                from db import LearningEvent
+
+                rows = (
+                    db.query(LearningEvent)
+                    .order_by(LearningEvent.timestamp.desc())
+                    .limit(limit)
+                    .all()
+                )
+                if not rows:
+                    console.print("[yellow]Пока нет событий[/yellow]")
+                else:
+                    console.print("[bold cyan]📚 Последние события:[/bold cyan]")
+                    for row in rows:
+                        console.print(
+                            f"  • [{row.timestamp.strftime('%Y-%m-%d %H:%M')}] [{row.event_type}] {row.topic}"
+                        )
+                        if row.user_belief:
+                            console.print(f"    Вы подумали: {row.user_belief}")
+                        if row.correct_model:
+                            console.print(f"    Правильно: {row.correct_model}")
+                        if row.root_cause:
+                            console.print(f"    Причина: {row.root_cause}")
+            finally:
+                db.close()
+
+        else:
+            console.print("[yellow]Использование: /learning_memory [weak|events|breakthroughs][/yellow]")
+
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True
+
+
 def handle_knowledge_search(action: str) -> HandlerResult:
     """Обработчик /knowledge <query> [category] — поиск по базе знаний."""
     parts = action.strip().split(maxsplit=1)

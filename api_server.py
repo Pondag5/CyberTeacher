@@ -2028,6 +2028,62 @@ def reindex_knowledge():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@_if_app("get", "/api/learning/weak-topics")
+def get_learning_weak_topics():
+    try:
+        from services.learning_memory_service import get_learning_memory_service
+
+        return {"weak_topics": get_learning_memory_service().get_weak_topics(limit=20)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@_if_app("get", "/api/learning/similar-errors")
+def get_learning_similar_errors(query: str = ""):
+    try:
+        from services.learning_memory_service import get_learning_memory_service
+
+        q = query or ""
+        return {"errors": get_learning_memory_service().get_similar_events(q, top_k=5)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@_if_app("get", "/api/learning/events")
+def get_learning_events(limit: int = 20):
+    try:
+        from db import get_session, LearningEvent
+
+        db = get_session()
+        try:
+            rows = (
+                db.query(LearningEvent)
+                .order_by(LearningEvent.timestamp.desc())
+                .limit(limit)
+                .all()
+            )
+            return {
+                "events": [
+                    {
+                        "id": r.id,
+                        "timestamp": r.timestamp.isoformat(),
+                        "topic": r.topic,
+                        "event_type": r.event_type,
+                        "user_belief": r.user_belief,
+                        "correct_model": r.correct_model,
+                        "root_cause": r.root_cause,
+                        "resolution": r.resolution,
+                        "context_ref": r.context_ref,
+                    }
+                    for r in rows
+                ]
+            }
+        finally:
+            db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # --- Skills API ---
 @_if_app("get", "/api/skills")
 def get_skills():
