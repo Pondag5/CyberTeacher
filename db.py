@@ -301,6 +301,7 @@ class LearningEvent(Base):
     resolution = Column(Text, nullable=True)
     context_ref = Column(String(200), nullable=True)
     embedding = Column(JSON, nullable=True)
+    importance = Column(Float, default=0.5, nullable=False)
 
 
 class AppStateRecord(Base):

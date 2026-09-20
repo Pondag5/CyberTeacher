@@ -208,6 +208,7 @@ def _submit_mission(mission_id: str) -> str:
                 event_type="breakthrough",
                 resolution=f"Миссия '{mission_id}' завершена",
                 context_ref=f"mission:{mission_id}",
+                importance=0.8,
             )
         except (ImportError, RuntimeError, Exception):
             pass

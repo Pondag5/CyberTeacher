@@ -70,6 +70,7 @@ def handle_practice(action: str) -> HandlerResult:
                     event_type="breakthrough",
                     resolution=f"Лаборатория '{lab_name}' запущена",
                     context_ref=f"lab:start:{lab_name}",
+                    importance=0.4,
                 )
             except (ImportError, RuntimeError, Exception):
                 pass
@@ -92,6 +93,7 @@ def handle_practice(action: str) -> HandlerResult:
                     event_type="breakthrough",
                     resolution=f"Лаборатория '{lab_name}' остановлена",
                     context_ref=f"lab:stop:{lab_name}",
+                    importance=0.4,
                 )
             except (ImportError, RuntimeError, Exception):
                 pass

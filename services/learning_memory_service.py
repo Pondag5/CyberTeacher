@@ -67,6 +67,7 @@ class LearningMemoryService:
         resolution: str = "",
         context_ref: str = "",
         user_id: str = "default",
+        importance: float = 0.5,
     ) -> Optional[Dict[str, Any]]:
         db = get_session()
         try:
@@ -79,6 +80,7 @@ class LearningMemoryService:
                 root_cause=root_cause,
                 resolution=resolution,
                 context_ref=context_ref,
+                importance=importance,
             )
             embeddings_model = self._get_embeddings_model()
             if embeddings_model:
@@ -141,16 +143,16 @@ class LearningMemoryService:
         query_normalized = query_emb / query_norm
 
         scores = np.dot(normalized, query_normalized.T).flatten()
-        top_indices = np.argsort(scores)[::-1][:top_k]
+        candidate_indices = np.argsort(scores)[::-1][: top_k * 3]
 
         db = get_session()
         try:
-            results: List[Dict[str, Any]] = []
-            for idx in top_indices:
+            candidates: List[Dict[str, Any]] = []
+            for idx in candidate_indices:
                 event_id = self._ids[idx]
                 event = db.query(LearningEvent).filter_by(id=event_id, user_id=user_id).first()
                 if event:
-                    results.append(
+                    candidates.append(
                         {
                             "id": event.id,
                             "topic": event.topic,
@@ -161,10 +163,24 @@ class LearningMemoryService:
                             "resolution": event.resolution,
                             "context_ref": event.context_ref,
                             "timestamp": event.timestamp,
-                            "score": float(scores[idx]),
+                            "importance": float(event.importance or 0.5),
+                            "cosine_score": float(scores[idx]),
                         }
                     )
-            return results
+            if not candidates:
+                return []
+
+            now = _utc_now_naive()
+            for c in candidates:
+                age_days = max((now - c["timestamp"]).total_seconds() / 86400.0, 0.0)
+                recency_boost = max(0.0, 1.0 - age_days / 30.0)
+                c["final_score"] = c["cosine_score"] * c["importance"] * (0.7 + 0.3 * recency_boost)
+
+            candidates.sort(key=lambda x: x["final_score"], reverse=True)
+            ranked = candidates[:top_k]
+            for r in ranked:
+                r.pop("final_score", None)
+            return ranked
         finally:
             db.close()
 

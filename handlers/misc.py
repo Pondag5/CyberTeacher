@@ -825,6 +825,7 @@ def handle_story_mode(action: str) -> HandlerResult:
                     event_type="breakthrough",
                     resolution=result_text,
                     context_ref=f"story:submit:{flag}",
+                    importance=0.8,
                 )
             except (ImportError, RuntimeError, Exception):
                 pass

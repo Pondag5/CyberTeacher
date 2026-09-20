@@ -151,6 +151,7 @@ def handle_quiz_action() -> HandlerResult:
                     correct_model=correct if "options" in q else feedback,
                     root_cause=feedback,
                     context_ref=q.get("question", ""),
+                    importance=0.9 if score == 0 else 0.7,
                 )
             except (ImportError, RuntimeError, Exception):
                 pass
@@ -337,6 +338,7 @@ def handle_task_action() -> HandlerResult:
                 correct_model=task.answer,
                 root_cause=feedback,
                 context_ref=f"task:{task.category}",
+                importance=0.9 if score == 0 else 0.7,
             )
         except (ImportError, RuntimeError, Exception):
             pass
@@ -479,6 +481,7 @@ def handle_quiz_generation(
                     correct_model=correct if "options" in q else feedback,
                     root_cause=feedback,
                     context_ref=q.get("question", ""),
+                    importance=0.9 if score == 0 else 0.7,
                 )
             except (ImportError, RuntimeError, Exception):
                 pass
@@ -569,6 +572,13 @@ def handle_code_review(action: str, conn: Any = None) -> HandlerResult:
     console.print(f"[cyan]🔍 Анализирую код ({language})...[/cyan]")
     llm = get_llm()
 
+    try:
+        from personality import get_personality_prompt_modifiers
+
+        personality_modifiers = get_personality_prompt_modifiers()
+    except (ImportError, RuntimeError, Exception):
+        personality_modifiers = ""
+
     prompt = f"""Проанализируй следующий код на языке {language}.
 
 Найди:
@@ -582,7 +592,7 @@ def handle_code_review(action: str, conn: Any = None) -> HandlerResult:
 {code}
 ```
 
-Ответь структурированно: найденные проблемы + рекомендации."""
+Ответь структурированно: найденные проблемы + рекомендации.{personality_modifiers}"""
 
     try:
         response = llm.invoke(prompt)
