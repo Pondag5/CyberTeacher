@@ -5,66 +5,49 @@
 
 ---
 
-## P1 — Quick Wins (1-2 days each)
+## Goals
+
+1. Make teacher personality visible in every response, not only chat
+2. Make risk state visible across all relevant PWA tabs
+3. Prepare hardware target docs/setup for ASUS and Redmi
+4. Keep learning memory reliable, observable, and weighted by importance
+
+---
+
+## Tasks
 
 ### A1 — Personality drift in all LLM responses
 - Add `get_personality_prompt_modifiers()` to quiz feedback, hints, story narration
-- Files: `personality.py`, `handlers/quiz.py`, `handlers/hints.py`, `handlers/misc.py`
+- Files: `personality.py`, `handlers/quiz.py`, `handlers/hints.py`, `handlers/misc.py`, `handlers/story_mode.py`
 - Status: partial helper exists, needs wiring
 
-### A2 — PWA risk indicators
-- Complete `static/js/components/risk_indicators.js`
-- Show noise bar, trace progress, debt counter in PWA UI
-- Files: `static/js/components/risk_indicators.js`, `static/js/tabs/*.js`
+### A2 — Risk indicators across PWA tabs
+- Reuse `/api/noise`, `/api/trace`, `/api/debts`, `/api/stealth/toggle` in `labs.js`, `missions.js`, `progress.js`
+- Keep `world.js` as reference implementation
+- Files: `static/js/tabs/labs.js`, `static/js/tabs/missions.js`, `static/js/tabs/progress.js`
 
-### A3 — Memory importance scoring
-- Add `importance` field to `LearningEvent` (0.0-1.0)
-- Weight retrieval by importance + recency
-- Files: `services/learning_memory_service.py`, `db.py`
+### B1 — ASUS 1001PX target machine docs/setup
+- Document exact setup in `docs/IDEAS_FOR_NETBUK.md`
+- Base image, SSH, vulnerable services, fixed IP
+- No code changes required; docs + optional setup script
 
----
+### B2 — Redmi 9A portable target
+- Document lightweight service approach
+- Optional SSH + one-container workflow
+- Files: `docs/IDEAS_FOR_NETBUK.md`
 
-## P2 — Hardware Integration (1-3 days)
-
-### B1 — ASUS 1001PX as target machine
-- Install Debian 12 32-bit minimal + SSH
-- Configure vulnerable services: FTP, Telnet, Samba, old PHP
-- Static IP, isolated VLAN/guest network
-- Integration: CyberTeacher task references fixed target IP
-- Docs: update `IDEAS_FOR_NETBUK.md` with actual config
-
-### B2 — Redmi 9A portable target (optional)
-- Ubuntu Touch + OpenSSH
-- One lightweight service at a time
-- Use as "pocket target" for demos
-
----
-
-## P3 — Polish (ongoing)
-
-### C1 — Local LLM as primary (when GPU-ready)
-- Switch LM Studio/Ollama from fallback to primary
-- Keep cloud as fallback
-- Files: `config.py`, `resilient_llm.py`
-
-### C2 — Fake OS integration
-- Daemon messages, hidden logs as atmospheric elements
-- Files: `static/js/notifications_ws.js`, `handlers/ghost_log.py`
-
-### C3 — Memory layer separation
-- Split `memorable_events` into episodic/personality/story stores
-- Files: `handlers/memory.py`, `services/learning_memory_service.py`
+### B3 — Hardware API references (optional)
+- Optional API endpoints for target status if needed later
+- Files: `api_server.py`
 
 ---
 
 ## Order
 
 1. A1 — quick, improves all LLM responses
-2. A3 — quick, improves retrieval quality
-3. A2 — medium, visible to students
-4. B1 — hardware, weekend project
-5. B2 — optional, if B1 succeeds
-6. C1-C3 — long-term, when GPU/deps ready
+2. A2 — medium, visible to students
+3. B1/B2 — docs first, hardware later
+4. B3 — optional, only if needed
 
 ---
 
