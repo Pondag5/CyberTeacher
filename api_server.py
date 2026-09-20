@@ -3484,6 +3484,68 @@ def toggle_stealth():
         return {"active": False, "message": str(e)}
 
 
+# --- Target Machine API ---
+@_if_app("get", "/api/targets")
+def list_targets():
+    try:
+        targets = [
+            {
+                "id": "asus",
+                "name": "ASUS 1001PX",
+                "ip": "192.168.1.100",
+                "role": "fixed_target",
+                "status": "unknown",
+                "services": ["ssh", "ftp", "telnet", "samba"],
+            },
+            {
+                "id": "redmi",
+                "name": "Redmi 9A",
+                "ip": "192.168.1.101",
+                "role": "portable_target",
+                "status": "unknown",
+                "services": ["ssh"],
+            },
+        ]
+        return {"targets": targets}
+    except Exception as e:
+        return {"targets": [], "error": str(e)}
+
+
+@_if_app("get", "/api/targets/{target_id}/status")
+def get_target_status(target_id: str = "asus"):
+    try:
+        target_id = target_id.lower()
+        if target_id == "asus":
+            return {
+                "id": "asus",
+                "name": "ASUS 1001PX",
+                "ip": "192.168.1.100",
+                "reachable": False,
+                "status": "not_configured",
+                "services": [
+                    {"name": "ssh", "port": 22, "status": "unknown"},
+                    {"name": "ftp", "port": 21, "status": "unknown"},
+                    {"name": "telnet", "port": 23, "status": "unknown"},
+                    {"name": "samba", "port": 445, "status": "unknown"},
+                ],
+            }
+        elif target_id == "redmi":
+            return {
+                "id": "redmi",
+                "name": "Redmi 9A",
+                "ip": "192.168.1.101",
+                "reachable": False,
+                "status": "not_configured",
+                "services": [
+                    {"name": "ssh", "port": 22, "status": "unknown"},
+                ],
+            }
+        else:
+            return {"id": target_id, "status": "unknown_target"}
+    except Exception as e:
+        return {"id": target_id, "status": "error", "error": str(e)}
+
+
 # --- Mood API ---
 @_if_app("get", "/api/mood")
 def get_mood():
