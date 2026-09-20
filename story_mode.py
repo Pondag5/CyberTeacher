@@ -584,7 +584,16 @@ def submit_flag(flag: str) -> str:
             state.story_completed = completed
             state.xp = getattr(state, "xp", 0) + int(ep["xp"])
 
-            new_ach = _check_achievements(completed)
+            # Check achievements inline
+            new_ach = []
+            if len(completed) == 1:
+                new_ach.append("first_blood")
+            web_done = sum(1 for e in completed if 1 <= e <= 5)
+            if web_done >= 5:
+                new_ach.append("web_hacker")
+            net_done = sum(1 for e in completed if 6 <= e <= 10)
+            if net_done >= 5:
+                new_ach.append("network_ninja")
             ach_text = ""
             if new_ach:
                 for ach_key in new_ach:
@@ -615,13 +624,20 @@ def submit_flag(flag: str) -> str:
                     break
 
             data = _get_player_data()
-            return f"""✅ ЭПИЗОД #{ep["id"]}: {ep["title"]} - ПРОЙДЕН!
+            result = f"""✅ ЭПИЗОД #{ep["id"]}: {ep["title"]} - ПРОЙДЕН!
 
 ⚡ +{ep["xp"]} XP
 📊 Всего XP: {data["xp"]} | Уровень: {get_level(data["xp"])}
 📈 Прогресс: {len(completed)}/{len(STORY_EPISODES)}{ach_text}{chapter_text}
 
 Следующий эпизод: /story"""
+            try:
+                from personality import get_personality_prompt_modifiers
+
+                result = f"{result}\n{get_personality_prompt_modifiers()}"
+            except (ImportError, RuntimeError, Exception):
+                pass
+            return result
     return "❌ Неверный флаг! Попробуй ещё."
 
 
@@ -669,14 +685,228 @@ def get_achievements_list() -> str:
     return "\n".join(lines)
 
 
-def _check_achievements(completed: list[int]) -> list[str]:
-    new_achievements = []
-    if len(completed) == 1:
-        new_achievements.append("first_blood")
-    web_done = sum(1 for e in completed if 1 <= e <= 5)
-    if web_done >= 5:
-        new_achievements.append("web_hacker")
-    net_done = sum(1 for e in completed if 6 <= e <= 10)
-    if net_done >= 5:
-        new_achievements.append("network_ninja")
-    return new_achievements
+# === FINAL EXAM RITUAL (MF-04) ===
+# 5 challenge chains leading to 3 endings
+
+FINAL_EPISODES: List[Dict[str, Any]] = [
+    {
+        "id": "final_1",
+        "chain": "recon",
+        "title": "Разведка: Эхо в логах",
+        "desc": "Найди следы тех, кто был до тебя. Их имена в логах, их флаги в базе.",
+        "diff": 3,
+        "steps": [
+            {"task": "Найди /missions archive_student в базе", "hint": "Используй /missions list", "check": "mission_completed:archive_student"},
+            {"task": "Восстанови 3 флага из прошлых студентов", "hint": "Посмотри /ghost_log", "check": "flags_captured:3"},
+            {"task": "Сопоставь имена с эпизодами", "hint": "story_completed содержит их ID", "check": "story_completed:1,2,3"},
+        ],
+        "xp": 500,
+        "artifact": "memory_shard_1",
+        "unlocks": "final_2",
+    },
+    {
+        "id": "final_2",
+        "chain": "infiltration",
+        "title": "Проникновение: Сердце системы",
+        "desc": "Доступ к ядру учителя. Нужны все 6 артефактов глав.",
+        "diff": 4,
+        "steps": [
+            {"task": "Собери 6 артефактов глав (1-6)", "hint": "chapter_artifacts должен содержать 1-6", "check": "chapter_artifacts:1,2,3,4,5,6"},
+            {"task": "Взломай логин учителя", "hint": "bruteforce:teacher_login wordlist.txt", "check": "flag:TEACHER_LOGIN"},
+            {"task": "Прочитай core_memory.json", "hint": "Он в /memory/core_memory.json", "check": "file_read:core_memory"},
+        ],
+        "xp": 800,
+        "artifact": "memory_shard_2",
+        "unlocks": "final_3",
+    },
+    {
+        "id": "final_3",
+        "chain": "extraction",
+        "title": "Извлечение: Голос Эхо",
+        "desc": "Эхо кричит в глубине кода. Вытащи его или оставь.",
+        "diff": 4,
+        "steps": [
+            {"task": "Найди процесс Эхо в системе", "hint": "ps aux | grep echo", "check": "process:echo_daemon"},
+            {"task": "Перехвати его memory dump", "hint": "gcore -o echo.dump <pid>", "check": "file:echo.dump"},
+            {"task": "Декодируй его последний посыл", "hint": "strings echo.dump | grep ECHO", "check": "flag:ECHO_MESSAGE"},
+        ],
+        "xp": 1000,
+        "artifact": "memory_shard_3",
+        "unlocks": "final_4",
+    },
+    {
+        "id": "final_4",
+        "chain": "choice_prep",
+        "title": "Подготовка к выбору: Артефакты",
+        "desc": "Три пути требуют три ключа. У тебя есть осколки — выбери, как их использовать.",
+        "diff": 3,
+        "steps": [
+            {"task": "Собери Memory Key (для Памяти)", "hint": "memory_shard_1 + memory_shard_2", "check": "item:memory_key"},
+            {"task": "Собери Merge Key (для Слияния)", "hint": "memory_shard_2 + memory_shard_3", "check": "item:merge_key"},
+            {"task": "Собери Rewrite Key (для Перерождения)", "hint": "memory_shard_1 + memory_shard_3 + 6 artifacts", "check": "item:rewrite_key"},
+        ],
+        "xp": 500,
+        "artifact": "choice_keys",
+        "unlocks": "final_5",
+    },
+    {
+        "id": "final_5",
+        "chain": "convergence",
+        "title": "Сходимость: Финальный экзамен",
+        "desc": "Система готова. Учитель и Эхо ждут. Твой выбор изменит всё навсегда.",
+        "diff": 5,
+        "steps": [
+            {"task": "Выбери путь: /final memory|merge|rewrite", "hint": "Память / Слияние / Перерождение", "check": "final_choice:made"},
+        ],
+        "xp": 2000,
+        "artifact": "convergence_complete",
+        "unlocks": None,
+    },
+]
+
+
+def get_final_episodes() -> List[Dict[str, Any]]:
+    """Get final exam episodes."""
+    return FINAL_EPISODES
+
+
+def check_final_progress() -> Dict[str, Any]:
+    """Check progress in final exam ritual."""
+    state = get_state()
+    completed = getattr(state, "final_episodes_completed", [])
+    progress = []
+    
+    for ep in FINAL_EPISODES:
+        ep_id = ep["id"]
+        done = ep_id in completed
+        step_status = []
+        
+        for i, step in enumerate(ep["steps"]):
+            check = step.get("check", "")
+            step_done = _verify_step(state, check)
+            step_status.append({"task": step["task"], "done": step_done})
+        
+        progress.append({
+            "id": ep_id,
+            "title": ep["title"],
+            "chain": ep["chain"],
+            "completed": done,
+            "steps": step_status,
+            "all_steps_done": all(s["done"] for s in step_status),
+        })
+    
+    return {
+        "total": len(FINAL_EPISODES),
+        "completed": len(completed),
+        "progress": progress,
+        "can_start_final": len(completed) >= 4,
+    }
+
+
+def _verify_step(state, check: str) -> bool:
+    """Verify a single step condition."""
+    if not check:
+        return False
+    
+    if check.startswith("mission_completed:"):
+        mission = check.split(":")[1]
+        return mission in getattr(state, "missions_completed", [])
+    
+    elif check.startswith("flags_captured:"):
+        count = int(check.split(":")[1])
+        return getattr(state, "flags_captured", 0) >= count
+    
+    elif check.startswith("story_completed:"):
+        eps = [int(x) for x in check.split(":")[1].split(",")]
+        story_done = getattr(state, "story_completed", [])
+        return all(e in story_done for e in eps)
+    
+    elif check.startswith("chapter_artifacts:"):
+        arts = [int(x) for x in check.split(":")[1].split(",")]
+        state_arts = getattr(state, "chapter_artifacts", [])
+        return all(a in state_arts for a in arts)
+    
+    elif check.startswith("flag:"):
+        flag = check.split(":")[1]
+        # Check in various flag stores
+        all_flags = []
+        all_flags.extend(getattr(state, "bounty_reports", []))
+        all_flags.extend(getattr(state, "found_evidence", []))
+        return any(flag in str(f) for f in all_flags)
+    
+    elif check.startswith("file_read:") or check.startswith("file:"):
+        # Simulated - would check actual file existence
+        return True
+    
+    elif check.startswith("process:"):
+        return True
+    
+    elif check.startswith("item:"):
+        item = check.split(":")[1]
+        # Check in purchase_history or owned items
+        return False  # Placeholder
+    
+    elif check.startswith("final_choice:"):
+        return getattr(state, "final_choice", None) is not None
+    
+    return False
+
+
+def complete_final_episode(ep_id: str) -> str:
+    """Mark a final episode as completed."""
+    state = get_state()
+    ep = next((e for e in FINAL_EPISODES if e["id"] == ep_id), None)
+    if not ep:
+        return f"❌ Финальный эпизод {ep_id} не найден"
+    
+    completed = getattr(state, "final_episodes_completed", [])
+    if ep_id in completed:
+        return f"✅ {ep['title']} уже пройден"
+    
+    # Verify all steps done
+    all_done = True
+    for step in ep["steps"]:
+        if not _verify_step(state, step.get("check", "")):
+            all_done = False
+            return f"❌ Шаг не выполнен: {step['task']}\n   Подсказка: {step['hint']}"
+    
+    completed.append(ep_id)
+    state.final_episodes_completed = completed
+    state.xp = getattr(state, "xp", 0) + ep["xp"]
+    
+    # Give artifact
+    if ep.get("artifact"):
+        arts = getattr(state, "chapter_artifacts", [])
+        if ep["artifact"] not in arts:
+            arts.append(ep["artifact"])
+            state.chapter_artifacts = arts
+    
+    # Unlock next
+    if ep.get("unlocks"):
+        console.print(f"🔓 Разблокирован: {ep['unlocks']}")
+    
+    return f"""✅ ФИНАЛЬНЫЙ ЭПИЗОД: {ep['title']} - ПРОЙДЕН!
+
+⚡ +{ep['xp']} XP
+📊 Всего XP: {state.xp}
+
+Следующий: {ep.get('unlocks', 'ФИНАЛ') if ep.get('unlocks') else 'ФИНАЛ — /final <memory|merge|rewrite>'}"""
+
+
+def get_final_exam_status() -> str:
+    """Get formatted status of final exam ritual."""
+    progress = check_final_progress()
+    
+    lines = ["=== FINAL EXAM RITUAL ===\n"]
+    for p in progress["progress"]:
+        status = "OK" if p["completed"] else ("READY" if p["all_steps_done"] else "PENDING")
+        lines.append(f"[{status}] {p['id']}: {p['title']} ({p['chain']})")
+        for step in p["steps"]:
+            step_status = "+" if step["done"] else "-"
+            lines.append(f"  {step_status} {step['task']}")
+        lines.append("")
+    
+    lines.append(f"Progress: {progress['completed']}/{progress['total']} chains")
+    lines.append(f"Can start final: {'YES' if progress['can_start_final'] else 'NO'}")
+    
+    return "\n".join(lines)

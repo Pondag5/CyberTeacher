@@ -221,13 +221,20 @@ def handle_quiz_action() -> HandlerResult:
         except (ImportError, AttributeError):
             pass
 
-        # Дать рекомендации
+        # Дать рекомендации с учётом personality
+        try:
+            from personality import get_personality_prompt_modifiers
+
+            personality_modifiers = get_personality_prompt_modifiers()
+        except (ImportError, RuntimeError, Exception):
+            personality_modifiers = ""
+
         if success_rate < 50:
-            console.print("[red]Рекомендую повторить эту тему![/red]")
+            console.print(f"[red]Рекомендую повторить эту тему![/red]{personality_modifiers}")
         elif success_rate < 70:
-            console.print("[yellow]Есть пробелы - стоит потренировать[/yellow]")
+            console.print(f"[yellow]Есть пробелы - стоит потренировать[/yellow]{personality_modifiers}")
         else:
-            console.print("[green]Отлично! Тема усвоена[/green]")
+            console.print(f"[green]Отлично! Тема усвоена[/green]{personality_modifiers}")
 
         # Показать слабые темы если есть
         weak = state_obj.get_weak_topics(threshold=70.0)

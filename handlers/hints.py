@@ -202,16 +202,28 @@ def handle_hint(action: str) -> HandlerResult:
         context = state.get_learning_context()
         hint = None
 
-        # If there's an active mission, maybe provide a general hint for current step
+        # If there's an active mission, provide hint for current uncompleted step
         if state.active_mission:
             from handlers.missions import _load_mission
 
             mission = _load_mission(state.active_mission)
             if mission:
-                # Find current step (could store current_step in state, but for simplicity, first uncompleted)
-                pass  # TODO: improve
+                # Find current step (first uncompleted based on exploit_success history)
+                completed_steps = set()
+                for ex in getattr(state, "exploit_success", []):
+                    if ex.get("mission_id") == state.active_mission:
+                        completed_steps.add(ex.get("step_order"))
 
-        if not hint:
+                current_step = None
+                for step in mission.get("steps", []):
+                    if step.get("order") not in completed_steps:
+                        current_step = step
+                        break
+
+                if current_step:
+                    hint = current_step.get("hint")
+                    if hint:
+                        hint = f"[MISSION] Миссия: {mission.get('title', state.active_mission)}\n[PIN] Шаг {current_step['order']}: {current_step['objective']}\n[BULB] Подсказка: {hint}"
             hint = "💡 Попробуй систематически: разведка (nmap, gobuster) → поиск уязвимостей → эксплуатация"
 
         # Deduct credit
@@ -219,6 +231,14 @@ def handle_hint(action: str) -> HandlerResult:
         state.hints_used += 1
         state.last_hint_time = time.time()
         state.points = max(0, state.points * 0.95)  # 5% penalty for manual hint
+
+        try:
+            from personality import get_personality_prompt_modifiers
+
+            hint = f"{hint}\n{get_personality_prompt_modifiers()}"
+        except (ImportError, RuntimeError, Exception):
+            pass
+
         ctx.save_state()
 
         console.print(Panel(hint, title="Ручная подсказка", border_style="yellow"))
