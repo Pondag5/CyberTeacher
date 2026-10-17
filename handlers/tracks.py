@@ -1,5 +1,5 @@
 """
-🎯 Handlers for path-based learning tracks (M-29)
+Handlers for path-based learning tracks (M-29)
 """
 # isort: skip_file
 
@@ -7,16 +7,14 @@ import logging
 import time
 from typing import Any
 
-from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
 from di import get_context
 from track_engine import get_track_engine, Track
 from handlers.types import HandlerResult
+from ui import console
 
-
-console = Console()
 logger = logging.getLogger(__name__)
 
 
@@ -45,7 +43,7 @@ def handle_tracks(action: str, args: str = "") -> HandlerResult:
             return cmd_track_status()
         case _:
             help_text = """
-🎯 **Track Commands:**
+[TARGET] **Track Commands:**
 
 • `/tracks list` - показать все доступные треки
 • `/tracks recommend` - получить персональные рекомендации
@@ -71,10 +69,15 @@ def cmd_tracks_list() -> HandlerResult:
     completed_tracks = get_context().state.tracks_enrolled
 
     if not tracks:
-        return True, None, "❌ Треки не найдены. Проверьте директорию ./tracks", True
+        return (
+            True,
+            None,
+            "[ERROR] Треки не найдены. Проверьте директорию ./tracks",
+            True,
+        )
 
     table = Table(
-        title="📚 Доступные треки", show_header=True, header_style="bold cyan"
+        title="[BOOK] Доступные треки", show_header=True, header_style="bold cyan"
     )
     table.add_column("ID", style="cyan", no_wrap=True)
     table.add_column("Название", style="white")
@@ -84,22 +87,28 @@ def cmd_tracks_list() -> HandlerResult:
     table.add_column("Тем", justify="center")
     table.add_column("Статус", justify="center")
 
-    level_emoji = {"beginner": "🌱", "intermediate": "🌿", "advanced": "🌳"}
+    level_emoji = {
+        "beginner": "[SEED]",
+        "intermediate": "[SPROUT]",
+        "advanced": "[TREE]",
+    }
 
     for track in sorted(tracks, key=lambda t: t.level):
-        emoji = level_emoji.get(track.level, "📖")
-        status = "✅ Пройден" if track.id in completed_tracks else "⏳ Доступен"
+        emoji = level_emoji.get(track.level, "[BOOK]")
+        status = (
+            "[OK] Пройден" if track.id in completed_tracks else "[HOURGLASS] Доступен"
+        )
         table.add_row(
             track.id,
             f"{track.name}",
             f"{emoji} {track.level}",
             str(track.estimated_hours),
-            "🔄" if track.adaptive else "-",
+            "[CYCLE]" if track.adaptive else "-",
             str(len(track.topics)),
             status,
         )
 
-    output = f"[bold]📚 ДОСТУПНЫЕ ТРЕКИ:[/bold]\nВсего: {len(tracks)} | Пройдено: {len([t for t in tracks if t.id in completed_tracks])}\n"
+    output = f"[bold][BOOK] ДОСТУПНЫЕ ТРЕКИ:[/bold]\nВсего: {len(tracks)} | Пройдено: {len([t for t in tracks if t.id in completed_tracks])}\n"
     console.print(Panel(table, border_style="cyan"))
     return True, None, output, True
 
@@ -107,25 +116,47 @@ def cmd_tracks_list() -> HandlerResult:
 def cmd_track_start(track_id: str) -> HandlerResult:
     """Начать трек"""
     if not track_id:
-        return False, None, "❌ Укажи ID трека. Использование: `/tracks start <id>`", True
+        return (
+            False,
+            None,
+            "❌ Укажи ID трека. Использование: `/tracks start <id>`",
+            True,
+        )
 
     engine = get_track_engine()
     track = engine.get_track(track_id)
     if not track:
-        return False, None, f"❌ Трек '{track_id}' не найден. Используй `/tracks list` для списка.", True
+        return (
+            False,
+            None,
+            f"❌ Трек '{track_id}' не найден. Используй `/tracks list` для списка.",
+            True,
+        )
 
     state = get_context().state
 
     if track.prerequisites:
-        missing = [pid for pid in track.prerequisites if pid not in state.tracks_enrolled]
+        missing = [
+            pid for pid in track.prerequisites if pid not in state.tracks_enrolled
+        ]
         if missing:
             prereq_names = ", ".join(missing)
-            return False, None, f"❌ Не выполнены prereq: {prereq_names}. Пройди сначала: {prereq_names}", True
+            return (
+                False,
+                None,
+                f"❌ Не выполнены prereq: {prereq_names}. Пройди сначала: {prereq_names}",
+                True,
+            )
 
     if track_id in state.tracks_enrolled:
         prog = state.track_progress.get(track_id, {})
         curr_idx = prog.get("current_topic_idx", 0)
-        return True, None, f"⚠️ Трек '{track.name}' уже начат. Текущая тема: {curr_idx + 1}. Используй `/tracks progress`", True
+        return (
+            True,
+            None,
+            f"⚠️ Трек '{track.name}' уже начат. Текущая тема: {curr_idx + 1}. Используй `/tracks progress`",
+            True,
+        )
     state.tracks_enrolled.append(track_id)
     state.track_progress[track_id] = {
         "current_topic_idx": 0,
@@ -137,23 +168,23 @@ def cmd_track_start(track_id: str) -> HandlerResult:
 
     first_topic = track.get_next_topic([], 0)
     if not first_topic:
-        return True, None, f"✅ Трек '{track.name}' начат, но тем нет.", True
+        return True, None, f"[OK] Трек '{track.name}' начат, но тем нет.", True
     output = f"""
 ╔══════════════════════════════════════════════════════╗
-║  🎯 ТРЕК НАЧАТ: {track.name[:30]:<30} ║
+║  [TARGET] ТРЕК НАЧАТ: {track.name[:30]:<30} ║
 ╠══════════════════════════════════════════════════════╣
 ║  Уровень: {track.level}                                    ║
 ║  Тем: {len(track.topics)}                                     ║
-║  Адаптивный: {"✅" if track.adaptive else "❌"}                    ║
+║  Адаптивный: {"[OK]" if track.adaptive else "[ERROR]"}                    ║
 ╚══════════════════════════════════════════════════════╝
 
-📌 **ТЕМА 1: {first_topic.title}**
+[PIN] **ТЕМА 1: {first_topic.title}**
    {first_topic.description}
 
-🔧 **Лаборатория:** {first_topic.lab_id or "Не указана"}
-📝 **Квиз:** /quiz {first_topic.quiz_topic or "N/A"}
+[WRENCH] **Лаборатория:** {first_topic.lab_id or "Не указана"}
+[MEMO] **Квиз:** /quiz {first_topic.quiz_topic or "N/A"}
 
-💡 Следующие шаги:
+[BULB] Следующие шаги:
    • Запусти лабу: `/lab start {first_topic.lab_id or "N/A"}`
    • Когда будешь готов, напиши `/tracks next` для следующей темы
    • Отметь тему как пройденную: `/tracks complete {first_topic.topic_id}`
@@ -165,7 +196,12 @@ def cmd_track_progress(track_id: str = "") -> HandlerResult:
     """Показать прогресс по треку (или по всем трекам)"""
     state = get_context().state
     if not state.tracks_enrolled:
-        return False, None, "❌ Ты ещё не начал ни одного трека. Используй `/tracks list` и `/tracks start <id>`", True
+        return (
+            False,
+            None,
+            "❌ Ты ещё не начал ни одного трека. Используй `/tracks list` и `/tracks start <id>`",
+            True,
+        )
 
     if track_id:
         engine = get_track_engine()
@@ -183,7 +219,11 @@ def cmd_track_progress(track_id: str = "") -> HandlerResult:
                 prog = state.track_progress.get(tid, {})
                 completed, total = track.progress(prog.get("completed_topics", []))
                 pct = (completed / total * 100) if total > 0 else 0
-                status = "✅ Завершён" if track.is_completed(prog.get("completed_topics", [])) else f"{completed}/{total} ({pct:.0f}%)"
+                status = (
+                    "✅ Завершён"
+                    if track.is_completed(prog.get("completed_topics", []))
+                    else f"{completed}/{total} ({pct:.0f}%)"
+                )
                 output += f"• **{track.name}** [{track.level}]: {status}\n"
             else:
                 output += f"• Неизвестный трек: {tid}\n"
@@ -203,16 +243,18 @@ def _render_track_progress(track: Track, prog: dict) -> HandlerResult:
 
     status_lines = []
     if is_completed:
-        status_lines.append("✅ ТРЕК ЗАВЕРШЁН!")
+        status_lines.append("[OK] ТРЕК ЗАВЕРШЁН!")
     else:
-        status_lines.append(f"⏳ В прогрессе: {completed_count}/{total_required} тем")
+        status_lines.append(
+            f"[HOURGLASS] В прогрессе: {completed_count}/{total_required} тем"
+        )
 
     if started_at:
         start_dt = time.strftime("%Y-%m-%d %H:%M", time.localtime(started_at))
-        status_lines.append(f"📅 Начат: {start_dt}")
+        status_lines.append(f"[CALENDAR] Начат: {start_dt}")
     if completed_at:
         complete_dt = time.strftime("%Y-%m-%d %H:%M", time.localtime(completed_at))
-        status_lines.append(f"🎉 Завершён: {complete_dt}")
+        status_lines.append(f"[PARTY] Завершён: {complete_dt}")
 
     table = Table(show_header=True, header_style="bold yellow")
     table.add_column("#", justify="right", style="dim", width=3)
@@ -222,20 +264,33 @@ def _render_track_progress(track: Track, prog: dict) -> HandlerResult:
     table.add_column("Квиз", style="magenta", width=12)
 
     for i, topic in enumerate(track.topics, 1):
-        status = "✅" if topic.topic_id in completed_topics else "⏳"
-        if not is_completed and i == current_idx + 1 and topic.topic_id not in completed_topics:
-            status = "🟡"
+        status = "[OK]" if topic.topic_id in completed_topics else "[HOURGLASS]"
+        if (
+            not is_completed
+            and i == current_idx + 1
+            and topic.topic_id not in completed_topics
+        ):
+            status = "[YELLOW]"
         lab = topic.lab_id or "-"
         quiz = topic.quiz_topic or "-"
         table.add_row(str(i), topic.title, status, lab, quiz)
 
-    console.print(Panel(table, border_style="yellow", title=f"Темы ({total_required} всего)"))
+    console.print(
+        Panel(table, border_style="yellow", title=f"Темы ({total_required} всего)")
+    )
     return True, None, "\n".join(status_lines), True
+
+
 def cmd_track_next() -> HandlerResult:
     """Получить следующую тему текущего трека или указанного трека"""
     state = get_context().state
     if not state.tracks_enrolled:
-        return False, None, "❌ Нет активных треков. Начни с `/tracks list` и `/tracks start <id>`", True
+        return (
+            False,
+            None,
+            "[ERROR] Нет активных треков. Начни с `/tracks list` и `/tracks start <id>`",
+            True,
+        )
 
     current_track_id = state.learning_context.get("current_track")
     if not current_track_id or current_track_id not in state.tracks_enrolled:
@@ -244,7 +299,7 @@ def cmd_track_next() -> HandlerResult:
     engine = get_track_engine()
     track = engine.get_track(current_track_id)
     if not track:
-        return False, None, f"❌ Трек '{current_track_id}' не найден.", True
+        return False, None, f"[ERROR] Трек '{current_track_id}' не найден.", True
 
     prog = state.track_progress.get(current_track_id, {})
     current_idx = prog.get("current_topic_idx", 0)
@@ -257,25 +312,35 @@ def cmd_track_next() -> HandlerResult:
             prog["completed_at"] = time.time()
             state.track_progress[current_track_id] = prog
             state.save_to_file()
-            return True, None, f"🎉 Трек '{track.name}' завершён! Все обязательные темы пройдены.", True
+            return (
+                True,
+                None,
+                f"[PARTY] Трек '{track.name}' завершён! Все обязательные темы пройдены.",
+                True,
+            )
         else:
-            return True, None, f"⚠️ Все темы обработаны, но не все обязательные пройдены. Проверь прогресс: `/tracks progress {track.id}`", True
+            return (
+                True,
+                None,
+                f"[WARN] Все темы обработаны, но не все обязательные пройдены. Проверь прогресс: `/tracks progress {track.id}`",
+                True,
+            )
     prog["current_topic_idx"] = next_topic.order - 1
     state.track_progress[current_track_id] = prog
     state.save_to_file()
 
     output = f"""
 ╔══════════════════════════════════════════════════════╗
-║  📌 ТЕМА {next_topic.order}: {next_topic.title[:28]:<28} ║
+║  [PIN] ТЕМА {next_topic.order}: {next_topic.title[:28]:<28} ║
 ╚══════════════════════════════════════════════════════╝
 
 {next_topic.description}
 
-🔧 **Лаборатория:** {next_topic.lab_id or "Не указана"}
-📝 **Квиз для проверки:** {next_topic.quiz_topic or "N/A"}
-🎯 **Минимальный балл:** {next_topic.min_score}%
+[WRENCH] **Лаборатория:** {next_topic.lab_id or "Не указана"}
+[MEMO] **Квиз для проверки:** {next_topic.quiz_topic or "N/A"}
+[TARGET] **Минимальный балл:** {next_topic.min_score}%
 
-💡 **Что делать:**
+[BULB] **Что делать:**
 1. Запусти лабу: `/lab start {next_topic.lab_id or "N/A"}`
 2. Практикуйся, изучай материал
 3. Пройди квиз: `/quiz {next_topic.quiz_topic or "N/A"}`
@@ -288,26 +353,51 @@ def cmd_track_next() -> HandlerResult:
 def cmd_track_complete_topic(topic_id: str) -> HandlerResult:
     """Отметить тему как пройденную"""
     if not topic_id:
-        return False, None, "❌ Укажи ID темы. Использование: `/tracks complete <topic_id>`", True
+        return (
+            False,
+            None,
+            "[ERROR] Укажи ID темы. Использование: `/tracks complete <topic_id>`",
+            True,
+        )
 
     state = get_context().state
     if not state.tracks_enrolled:
-        return False, None, "❌ Нет активных треков.", True
+        return False, None, "[ERROR] Нет активных треков.", True
 
     engine = get_track_engine()
-    current_track_id = state.learning_context.get("current_track") or state.tracks_enrolled[-1]
+    current_track_id = (
+        state.learning_context.get("current_track") or state.tracks_enrolled[-1]
+    )
     track = engine.get_track(current_track_id)
     if not track:
-        return False, None, f"❌ Трек '{current_track_id}' не найден.", True
+        return False, None, f"[ERROR] Трек '{current_track_id}' не найден.", True
 
     topic = track.get_topic_by_id(topic_id)
     if not topic:
-        return False, None, f"❌ Тема '{topic_id}' не найдена в треке '{track.name}'.", True
+        return (
+            False,
+            None,
+            f"[ERROR] Тема '{topic_id}' не найдена в треке '{track.name}'.",
+            True,
+        )
 
-    prog = state.track_progress.get(current_track_id, {"current_topic_idx": 0, "completed_topics": [], "started_at": time.time(), "completed_at": None})
+    prog = state.track_progress.get(
+        current_track_id,
+        {
+            "current_topic_idx": 0,
+            "completed_topics": [],
+            "started_at": time.time(),
+            "completed_at": None,
+        },
+    )
 
     if topic_id in prog["completed_topics"]:
-        return True, None, f"✅ Тема '{topic.title}' уже отмечена как пройденная.", True
+        return (
+            True,
+            None,
+            f"[OK] Тема '{topic.title}' уже отмечена как пройденная.",
+            True,
+        )
     prog["completed_topics"].append(topic_id)
 
     if track.is_completed(prog["completed_topics"]):
@@ -316,9 +406,9 @@ def cmd_track_complete_topic(topic_id: str) -> HandlerResult:
             state.tracks_enrolled.append(current_track_id)
         bonus = 50 * track.estimated_hours
         state.points += bonus
-        msg = f"🎉 Трек '{track.name}' завершён! +{bonus} очков."
+        msg = f"[PARTY] Трек '{track.name}' завершён! +{bonus} очков."
     else:
-        msg = f"✅ Тема '{topic.title}' отмечена как пройденная."
+        msg = f"[OK] Тема '{topic.title}' отмечена как пройденная."
 
     state.track_progress[current_track_id] = prog
     state.save_to_file()
@@ -336,20 +426,27 @@ def cmd_track_recommend() -> HandlerResult:
     recommendations = engine.recommend_tracks(weak_topics, completed_tracks)
 
     if not recommendations:
-        return False, None, "❌ Нет доступных треков для рекомендаций. Возможно, все пройдены или prerequisites не выполнены.", True
+        return (
+            False,
+            None,
+            "[ERROR] Нет доступных треков для рекомендаций. Возможно, все пройдены или prerequisites не выполнены.",
+            True,
+        )
 
-    output = "🎯 **РЕКОМЕНДАЦИИ НА ОСНОВЕ ТВОИХ СЛАБЫХ ТЕМ:**\n\n"
+    output = "[TARGET] **РЕКОМЕНДАЦИИ НА ОСНОВЕ ТВОИХ СЛАБЫХ ТЕМ:**\n\n"
     if weak_topics:
-        output += "🔴 Слабые темы:\n"
+        output += "[RED] Слабые темы:\n"
         for wt in weak_topics[:5]:
             output += f"  • {wt['topic']} (успешность: {wt['success_rate']:.0f}%)\n"
         output += "\n"
 
-    output += "📚 **Рекомендуемые треки:**\n\n"
+    output += "[BOOK] **Рекомендуемые треки:**\n\n"
     for i, (track, score) in enumerate(recommendations[:5], 1):
-        marker = "🔥" if i == 1 else f"{i}."
-        output += f"{marker} **{track.name}** [{track.level}] - {track.description[:60]}...\n"
-        adapt = "✅" if track.adaptive else "❌"
+        marker = "[FIRE]" if i == 1 else f"{i}."
+        output += (
+            f"{marker} **{track.name}** [{track.level}] - {track.description[:60]}...\n"
+        )
+        adapt = "[OK]" if track.adaptive else "[ERROR]"
         output += f"   Тем: {len(track.topics)} | Адаптивность: {adapt}\n"
         output += f"   Начать: `/tracks start {track.id}`\n\n"
 
@@ -360,19 +457,26 @@ def cmd_track_reset(track_id: str = "") -> HandlerResult:
     """Сбросить прогресс трека (или всех треков)"""
     state = get_context().state
     if not track_id:
-        return False, None, "⚠️ Сбросить ВСЕ треки? Это удалит весь прогресс. Используй `/tracks reset <id>` для конкретного трека.", True
+        return (
+            False,
+            None,
+            "[WARN] Сбросить ВСЕ треки? Это удалит весь прогресс. Используй `/tracks reset <id>` для конкретного трека.",
+            True,
+        )
 
     engine = get_track_engine()
     track = engine.get_track(track_id)
     if not track:
-        return False, None, f"❌ Трек '{track_id}' не найден.", True
+        return False, None, f"[ERROR] Трек '{track_id}' не найден.", True
 
     if track_id in state.tracks_enrolled:
         state.tracks_enrolled.remove(track_id)
     if track_id in state.track_progress:
         del state.track_progress[track_id]
     state.save_to_file()
-    return True, None, f"✅ Прогресс трека '{track.name}' сброшен.", True
+    return True, None, f"[OK] Прогресс трека '{track.name}' сброшен.", True
+
+
 def cmd_track_status() -> HandlerResult:
     """Показать текущий активный трек"""
     state = get_context().state
@@ -382,24 +486,29 @@ def cmd_track_status() -> HandlerResult:
         current = state.tracks_enrolled[-1]
 
     if not current:
-        return False, None, "❌ Нет активного трека. Начни с `/tracks start <id>`", True
+        return (
+            False,
+            None,
+            "[ERROR] Нет активного трека. Начни с `/tracks start <id>`",
+            True,
+        )
 
     engine = get_track_engine()
     track = engine.get_track(current)
     if not track:
-        return False, None, f"❌ Трек '{current}' не найден.", True
+        return False, None, f"[ERROR] Трек '{current}' не найден.", True
 
     prog = state.track_progress.get(current, {})
     completed, total = track.progress(prog.get("completed_topics", []))
     pct = (completed / total * 100) if total > 0 else 0
 
     output = f"""
-🎯 **АКТИВНЫЙ ТРЕК:** {track.name}
-📊 Прогресс: {completed}/{total} ({pct:.0f}%)
+[TARGET] **АКТИВНЫЙ ТРЕК:** {track.name}
+[CHART] Прогресс: {completed}/{total} ({pct:.0f}%)
 Уровень: {track.level}
-Адаптивный: {"✅" if track.adaptive else "❌"}
+Адаптивный: {"[OK]" if track.adaptive else "[ERROR]"}
 
-💡 Команды:
+[BULB] Команды:
    /tracks next - следующая тема
    /tracks progress - подробный прогресс
    /tracks complete <topic_id> - отметить тему

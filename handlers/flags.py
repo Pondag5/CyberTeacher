@@ -4,13 +4,9 @@ import os
 import re
 from typing import Any, Optional, Tuple
 
-from rich.console import Console
-
+from ui import console
 from di import get_context
 from handlers.types import HandlerResult
-
-
-console = Console()
 
 
 def handle_flag_check(
@@ -22,7 +18,7 @@ def handle_flag_check(
         return True, None, None, True
     pattern = r"FLAG\{[^}]+\}"
     if not re.fullmatch(pattern, flag.strip()):
-        console.print(f"[bold red]❌ Флаг '{flag}' неверного формата.[/bold red]")
+        console.print(f"[bold red][ERROR] Флаг '{flag}' неверного формата.[/bold red]")
         return True, None, None, True
     try:
         ctx = get_context()
@@ -31,7 +27,7 @@ def handle_flag_check(
             success, points = state.collect_flag(flag)
             if success:
                 console.print(
-                    f"[bold green]✅ Флаг найден в активном задании! +{points} очков[/bold green]"
+                    f"[bold green][OK] Флаг найден в активном задании! +{points} очков[/bold green]"
                 )
                 from memory import init_db, update_stats
 
@@ -52,15 +48,15 @@ def handle_flag_check(
                         )
                 if state.is_assignment_complete():
                     console.print(
-                        "[bold cyan]🎉 Задание завершено! Все флаги собраны.[/bold cyan]"
+                        "[bold cyan][PARTY] Задание завершено! Все флаги собраны.[/bold cyan]"
                     )
                     state.complete_assignment()
-                    newly_earned = state.check_achievements()
-                    if newly_earned:
-                        for ach in newly_earned:
-                            console.print(
-                                f"[bold magenta]🏆 Достижение: {ach} [/bold magenta]"
-                            )
+                newly_earned = state.check_achievements()
+                if newly_earned:
+                    for ach in newly_earned:
+                        console.print(
+                            f"[bold magenta][TROPHY] Достижение: {ach} [/bold magenta]"
+                        )
                 return True, None, None, True
 
         flags_file = "data/flags.json"
@@ -80,7 +76,9 @@ def handle_flag_check(
         for fdata in data.get("flags", []):
             if fdata["flag"] == flag:
                 pts = fdata.get("points", 10)
-                console.print(f"[bold green]✅ Флаг верный! +{pts} очков[/bold green]")
+                console.print(
+                    f"[bold green][OK] Флаг верный! +{pts} очков[/bold green]"
+                )
                 from memory import init_db, update_stats
 
                 conn2 = init_db()
@@ -98,7 +96,7 @@ def handle_flag_check(
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 return True, None, None, True
 
-        console.print(f"[bold red]❌ Флаг '{flag}' неверный.[/bold red]")
+        console.print(f"[bold red][ERROR] Флаг '{flag}' неверный.[/bold red]")
     except Exception as e:
         console.print(f"[red]Ошибка: {e}[/red]")
     return True, None, None, True

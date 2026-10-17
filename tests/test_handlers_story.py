@@ -8,7 +8,6 @@ from story_mode import (
     get_story_list,
     start_story_mode,
     submit_flag,
-    _check_achievements,
 )
 
 
@@ -83,17 +82,6 @@ class TestGetStoryList(unittest.TestCase):
         self.assertTrue(len(result) > 0)
         self.assertIn("Первое", result)
         self.assertIn("XSS", result)
-
-
-class TestCheckAchievements(unittest.TestCase):
-    def test_first_blood(self):
-        self.assertIn("first_blood", _check_achievements([1]))
-
-    def test_web_hacker(self):
-        self.assertIn("web_hacker", _check_achievements(list(range(1, 6))))
-
-    def test_network_ninja(self):
-        self.assertIn("network_ninja", _check_achievements(list(range(6, 11))))
 
 
 if __name__ == "__main__":

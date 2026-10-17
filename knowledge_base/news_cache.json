@@ -1,0 +1,35 @@
+{
+  "news": [
+    {
+      "title": "TigerByte Cyber Emerges From Stealth With $3 Million in Funding",
+      "link": "https://www.securityweek.com/tigerbyte-cyber-emerges-from-stealth-with-3-million-in-funding/",
+      "desc": "<p>The company has secured over $7 million in contracts with US government agencies, including the US Space Force, the US Navy, and DARPA.</p>\n<p>The post <a href=\"https://www.securityweek.com/tigerby",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "In Other News: Ransomware Developer Sentenced, Plugin4Shell AI Attack, Critical SAP Flaw",
+      "link": "https://www.securityweek.com/in-other-news-ransomware-developer-sentenced-plugin4shell-ai-attack-critical-sap-flaw/",
+      "desc": "<p>Noteworthy stories that might have slipped under the radar: Mandiant's 2026 AI risk report, PhantomRaven malware used by bug bounty hunter, WordPress plugin bug exploited.</p>\n<p>The post <a href=\"",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "AI-Built Exploit and Sign-In Flaw Opened Path to Internal OpenAI Code",
+      "link": "https://www.securityweek.com/ai-built-exploit-and-sign-in-flaw-opened-path-to-internal-openai-code/",
+      "desc": "<p>Hacktron researchers earned a bug bounty after demonstrating access to OpenAI employee accounts. </p>\n<p>The post <a href=\"https://www.securityweek.com/ai-built-exploit-and-sign-in-flaw-opened-path",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "23 Million User Records Compromised in Gyazo Data Breach ",
+      "link": "https://www.securityweek.com/23-million-user-records-compromised-in-gyazo-data-breach/",
+      "desc": "<p>Gyazo maker Helpfeel said the attacker exploited a vulnerability in its image upload server to gain unauthorized access.</p>\n<p>The post <a href=\"https://www.securityweek.com/23-million-user-record",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "Microsoft Patches 18 Vulnerabilities in AI, Cloud Products",
+      "link": "https://www.securityweek.com/microsoft-patches-18-vulnerabilities-in-ai-cloud-products/",
+      "desc": "<p>Microsoft fixed vulnerabilities across Azure and AI-branded products, with privilege escalation flaws accounting for the majority.</p>\n<p>The post <a href=\"https://www.securityweek.com/microsoft-pa",
+      "source": "SecurityWeek"
+    }
+  ],
+  "last": "2026-09-20T10:39:12.903218+00:00"
+}

@@ -62,14 +62,16 @@ def handle_achievements(*args: Any, **kwargs: Any) -> HandlerResult:
             xp = ach.get("points", 0)
             if xp > 0:
                 state.points += xp
-            console.print(f"[bold green]✅ Достижение получено![/bold green]")
-            console.print(f"{ach.get('icon', '🏆')} **{ach.get('name')}** (+{xp} XP)")
+            console.print(f"[bold green][OK] Достижение получено![/bold green]")
+            console.print(
+                f"{ach.get('icon', '[TROPHY]')} **{ach.get('name')}** (+{xp} XP)"
+            )
             console.print(f"[dim]{ach.get('description', '')}[/dim]")
             return True, None, None, True
 
         # Подкоманда: help
         elif subcmd == "help":
-            console.print("[bold cyan]🏆 Достижения — помощь[/bold cyan]\n")
+            console.print("[bold cyan][TROPHY] Достижения — помощь[/bold cyan]\n")
             console.print("Команды:")
             console.print("  /achievements - показать список всех достижений")
             console.print(
@@ -79,13 +81,13 @@ def handle_achievements(*args: Any, **kwargs: Any) -> HandlerResult:
             return True, None, None, True
 
         # По умолчанию: list
-        console.print("[bold cyan]🏆 Все достижения[/bold cyan]\n")
+        console.print("[bold cyan][TROPHY] Все достижения[/bold cyan]\n")
         for ach_id, ach in achievements.items():
             name = ach.get("name", "Без названия")
             description = ach.get("description", "")
-            icon = ach.get("icon", "🏆")
+            icon = ach.get("icon", "[TROPHY]")
             xp = ach.get("xp", 0)
-            status = "(✅)" if ach_id in earned_ids else "(⬜)"
+            status = "([OK])" if ach_id in earned_ids else "( )"
 
             console.print(f"{status} {icon} **{name}** (+{xp} XP)")
             if description:

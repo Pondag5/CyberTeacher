@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Narrative Event Schema",
+  "type": "object",
+  "required": ["id", "title", "trigger", "effects"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z_]+$" },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "chapter": { "type": "integer", "minimum": 1, "maximum": 6 },
+    "trigger": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["threshold", "and", "or", "not", "time_window"] },
+        "conditions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/condition" }
+        },
+        "field": { "type": "string" },
+        "operator": { "enum": [">=", "<=", ">", "<", "==", "!="] },
+        "value": {},
+        "start_hour": { "type": "integer", "minimum": 0, "maximum": 23 },
+        "end_hour": { "type": "integer", "minimum": 0, "maximum": 23 }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" },
+        "unlock": { "type": "string" },
+        "xp_bonus": { "type": "integer", "minimum": 0 },
+        "cp_change": { "type": "integer" },
+        "noise_change": { "type": "integer" },
+        "debt_change": { "type": "integer" },
+        "unlock_hidden_lab": { "type": "string" },
+        "unlock_knowledge": { "type": "string" },
+        "trigger_event": { "type": "string" },
+        "persona_change": { "type": "string" },
+        "world_stability_change": { "type": "integer" }
+      }
+    },
+    "once_per_user": { "type": "boolean", "default": true },
+    "cooldown_hours": { "type": "integer", "default": 24 },
+    "priority": { "type": "integer", "default": 0 }
+  },
+  "definitions": {
+    "condition": {
+      "type": "object",
+      "required": ["field", "operator", "value"],
+      "properties": {
+        "field": { "type": "string" },
+        "operator": { "enum": [">=", "<=", ">", "<", "==", "!="] },
+        "value": {}
+      }
+    }
+  }
+}

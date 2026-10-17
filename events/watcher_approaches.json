@@ -1,0 +1,28 @@
+{
+  "id": "watcher_approaches",
+  "title": "Watcher Approaches",
+  "title_ru": "Наблюдатель приближается",
+  "description": "The Watchers have noticed your activity. They're getting closer.",
+  "description_ru": "Наблюдатели заметили вашу активность. Они приближаются.",
+  "chapter": 3,
+  "trigger": {
+    "type": "and",
+    "conditions": [
+      { "field": "noise_level", "operator": ">=", "value": 60 },
+      { "field": "watchers_alerted", "operator": "==", "value": false }
+    ]
+  },
+  "effects": {
+    "message_ru": "[WATCHER ALERT] Наблюдатель обнаружен в секторе 4.\n\n\"Мы видим тебя. Мы всегда видим.\"\n\nУровень шума: {noise_level}/100\nСтелс-режим: {stealth_mode}\n\n[WARNING] Следующее повышение шума вызовет контрмеру.",
+    "message": "[WATCHER ALERT] Watcher detected in sector 4.\n\n\"We see you. We always see.\"\n\nNoise Level: {noise_level}/100\nStealth Mode: {stealth_mode}\n\n[WARNING] Further noise increase will trigger countermeasure.",
+    "effects": {
+      "noise_change": 15,
+      "cp_change": 5
+    },
+    "unlock": "watcher_warning",
+    "cp_change": 5
+  },
+  "once_per_user": false,
+  "cooldown_hours": 24,
+  "priority": 7
+}

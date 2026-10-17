@@ -489,3 +489,438 @@ class TestRiskManagement(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStateMigration(unittest.TestCase):
+    """Тесты миграции состояния"""
+
+    def test_upgrade_state_v0_to_v1(self):
+        """Тест миграции v0 -> v1 (добавление schema_version и context_budget)"""
+        from state import AppState
+
+        # Создаем "старое" состояние без schema_version
+        old_data = {
+            "points": 100,
+            "current_course": "web",
+            # нет schema_version
+        }
+
+        state = AppState()
+        upgraded = state._upgrade_state(old_data)
+
+        self.assertEqual(upgraded.get("schema_version"), 1)
+        self.assertIn("context_budget", upgraded)
+        self.assertEqual(upgraded["points"], 100)
+
+    def test_upgrade_state_preserves_existing_v1(self):
+        """Тест что v1 состояние не ломается"""
+        from state import AppState
+
+        old_data = {
+            "points": 100,
+            "schema_version": 1,
+            "context_budget": {"tokens": 500},
+        }
+
+        state = AppState()
+        upgraded = state._upgrade_state(old_data)
+
+        self.assertEqual(upgraded["schema_version"], 1)
+        self.assertEqual(upgraded["context_budget"]["tokens"], 500)
+
+
+class TestLoadFromFile(unittest.TestCase):
+    """Тесты загрузки состояния из файла"""
+
+    def test_load_from_file_json_decode_error(self):
+        """Тест обработки поврежденного JSON"""
+        import tempfile
+        import os
+        from state import AppState
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            f.write("not valid json {")
+            tmp_path = f.name
+
+        try:
+            state = AppState()
+            state.load_from_file(tmp_path)
+            # Состояние осталось дефолтным, не упало
+            self.assertEqual(state.points, 0.0)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_load_from_file_generic_exception(self):
+        """Тест обработки общей ошибки при чтении"""
+        import tempfile
+        import os
+        from state import AppState
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            f.write('{"points": 100}')
+            tmp_path = f.name
+
+        # Делаем файл недоступным для чтения (только для Unix, на Windows может не сработать)
+        try:
+            state = AppState()
+            state.load_from_file(tmp_path)
+            self.assertEqual(state.points, 100)
+        finally:
+            os.unlink(tmp_path)
+
+
+class TestSaveToFile(unittest.TestCase):
+    """Тесты сохранения состояния в файл"""
+
+    def test_save_to_file_creates_dir(self):
+        """Тест создания директории при сохранении"""
+        import tempfile
+        import os
+        from state import AppState
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "subdir", "state.json")
+            state = AppState()
+            state.points = 42
+            state.save_to_file(path, force=True)
+
+            self.assertTrue(os.path.exists(path))
+            # Проверяем содержимое
+            import json
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual(data["points"], 42)
+
+    def test_save_to_file_debounce(self):
+        """Тест debounce сохранения (не сохраняет если прошло мало времени)"""
+        import tempfile
+        import os
+        import time
+        from state import AppState
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "state.json")
+            state = AppState()
+            state.points = 10
+            state.save_to_file(path, force=True)
+
+            # Меняем состояние и сохраняем без force - должно проигнорироваться (debounce)
+            state.points = 20
+            state.save_to_file(path)  # без force
+
+            # Проверяем что файл не обновился
+            import json
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # Должен остаться 10, так как debounce сработал
+            self.assertEqual(data["points"], 10)
+
+            # С force=True должен обновиться
+            state.points = 30
+            state.save_to_file(path, force=True)
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual(data["points"], 30)
+
+    def test_save_to_file_skips_empty_collections(self):
+        """Тест что пустые коллекции не сохраняются"""
+        import tempfile
+        import os
+        import json
+        from state import AppState
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "state.json")
+            state = AppState()
+            state.points = 10
+            # Пустые списки/словари не должны попасть в сохранение
+            state.weak_topics = []
+            state.missions_completed = {}
+            state.save_to_file(path, force=True)
+
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            self.assertNotIn("weak_topics", data)
+            self.assertNotIn("missions_completed", data)
+            self.assertEqual(data["points"], 10)
+
+
+class TestTrimUnboundedLists(unittest.TestCase):
+    """Тесты обрезки неограниченных списков"""
+
+    def test_trim_unbounded_lists_caps_lists(self):
+        """Тест обрезки списков до максимальных размеров"""
+        from state import AppState
+
+        state = AppState()
+        # Заполняем списки больше лимитов
+        state.exploit_success = list(range(250))  # лимит 200
+        state.bounty_reports = list(range(150))   # лимит 100
+        state.writeup_history = list(range(150))  # лимит 100
+
+        state._trim_unbounded_lists()
+
+        self.assertEqual(len(state.exploit_success), 200)
+        self.assertEqual(len(state.bounty_reports), 100)
+        self.assertEqual(len(state.writeup_history), 100)
+        # Проверяем что остались последние элементы
+        self.assertEqual(state.exploit_success[-1], 249)
+
+    def test_trim_unbounded_lists_caps_command_usage(self):
+        """Тест обрезки command_usage до 50 самых частых"""
+        from state import AppState
+
+        state = AppState()
+        state.command_usage = {f"cmd{i}": i for i in range(100)}
+
+        state._trim_unbounded_lists()
+
+        self.assertEqual(len(state.command_usage), 50)
+        # Должны остаться самые частые (cmd99, cmd98, ...)
+        self.assertIn("cmd99", state.command_usage)
+        self.assertIn("cmd50", state.command_usage)
+        self.assertNotIn("cmd49", state.command_usage)
+
+    def test_trim_unbounded_lists_caps_skills(self):
+        """Тест обрезки skills до 50 с наибольшим XP"""
+        from state import AppState
+
+        state = AppState()
+        state.skills = {f"skill{i}": {"xp": i} for i in range(100)}
+
+        state._trim_unbounded_lists()
+
+        self.assertEqual(len(state.skills), 50)
+        self.assertIn("skill99", state.skills)
+        self.assertIn("skill50", state.skills)
+        self.assertNotIn("skill49", state.skills)
+
+    def test_trim_unbounded_lists_ignores_non_lists(self):
+        """Тест что не-списки игнорируются"""
+        from state import AppState
+
+        state = AppState()
+        state.exploit_success = "not a list"
+        state.bounty_reports = 123
+
+        # Не должно упасть
+        state._trim_unbounded_lists()
+
+
+class TestMaybeAutoBackup(unittest.TestCase):
+    """Тесты автоматического бэкапа"""
+
+    def test_maybe_auto_backup_creates_backup(self):
+        """Тест создания бэкапа"""
+        import tempfile
+        import os
+        import time
+        import shutil
+        from state import AppState
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Создаем структуру как в приложении
+            memory_dir = os.path.join(tmpdir, "memory")
+            backup_dir = os.path.join(tmpdir, "backups")
+            os.makedirs(memory_dir, exist_ok=True)
+            os.makedirs(backup_dir, exist_ok=True)
+
+            state_path = os.path.join(memory_dir, "app_state.json")
+
+            state = AppState()
+            state.points = 100
+            state.save_to_file(state_path, force=True)
+
+            # Ждем немного чтобы timestamp отличался
+            time.sleep(0.01)
+
+            # Вызываем бэкап с кастомными путями
+            state.maybe_auto_backup(backup_dir=backup_dir, max_backups=5, max_age_hours=24)
+
+            backups = os.listdir(backup_dir)
+            self.assertEqual(len(backups), 1)
+            self.assertTrue(backups[0].startswith("app_state_"))
+            self.assertTrue(backups[0].endswith(".json"))
+
+    def test_maybe_auto_backup_rotation_by_count(self):
+        """Тест ротации бэкапов по количеству"""
+        import tempfile
+        import os
+        import time
+        import shutil
+        from state import AppState
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            memory_dir = os.path.join(tmpdir, "memory")
+            backup_dir = os.path.join(tmpdir, "backups")
+            os.makedirs(memory_dir, exist_ok=True)
+            os.makedirs(backup_dir, exist_ok=True)
+
+            state_path = os.path.join(memory_dir, "app_state.json")
+
+            state = AppState()
+            state.points = 100
+            state.save_to_file(state_path, force=True)
+
+            # Создаем 7 бэкапов (лимит 5) - ждем дольше между итерациями
+            for i in range(7):
+                time.sleep(1.1)  # ждем >1 сек чтобы timestamp отличался
+                state.points += 1
+                state.save_to_file(state_path, force=True)
+                state.maybe_auto_backup(backup_dir=backup_dir, max_backups=5, max_age_hours=24)
+
+            backups = os.listdir(backup_dir)
+            # Должно остаться только 5 последних
+            self.assertEqual(len(backups), 5)
+
+    def test_maybe_auto_backup_rotation_by_age(self):
+        """Тест ротации бэкапов по возрасту"""
+        import tempfile
+        import os
+        import time
+        import shutil
+        from state import AppState
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            memory_dir = os.path.join(tmpdir, "memory")
+            backup_dir = os.path.join(tmpdir, "backups")
+            os.makedirs(memory_dir, exist_ok=True)
+            os.makedirs(backup_dir, exist_ok=True)
+
+            state_path = os.path.join(memory_dir, "app_state.json")
+
+            state = AppState()
+            state.points = 100
+            state.save_to_file(state_path, force=True)
+
+            # Создаем бэкап
+            state.maybe_auto_backup(backup_dir=backup_dir, max_backups=10, max_age_hours=0)
+
+            # Меняем время модификации файла на "старый"
+            old_backup = os.path.join(backup_dir, os.listdir(backup_dir)[0])
+            old_time = time.time() - 3600  # 1 час назад
+            os.utime(old_backup, (old_time, old_time))
+
+            # Создаем новый бэкап
+            state.points = 200
+            state.save_to_file(state_path, force=True)
+            state.maybe_auto_backup(backup_dir=backup_dir, max_backups=10, max_age_hours=0)
+
+            # Старый бэкап должен быть удален (max_age_hours=0 означает удалить все)
+            backups = os.listdir(backup_dir)
+            self.assertEqual(len(backups), 1)  # только новый
+
+
+class TestWeakTopicsMethods(unittest.TestCase):
+    """Тесты методов работы со слабыми темами"""
+
+    def test_get_weak_topics_returns_empty_when_none(self):
+        from state import AppState
+
+        state = AppState()
+        state.weak_topics = []
+        weak = state.get_weak_topics(threshold=70.0)
+        self.assertEqual(weak, [])
+
+    def test_get_due_reviews_empty(self):
+        from state import AppState
+
+        state = AppState()
+        due = state.get_due_reviews()
+        self.assertEqual(due, [])
+
+    def test_update_weak_topic_via_service(self):
+        from state import AppState
+
+        state = AppState()
+        state.update_weak_topic("SQLi", 30.0)
+        weak = state.get_weak_topics(threshold=70.0)
+        self.assertEqual(len(weak), 1)
+        self.assertEqual(weak[0]["topic"], "SQLi")
+
+    def test_schedule_review_via_service(self):
+        from state import AppState
+
+        state = AppState()
+        state.schedule_review("XSS", 8.0)
+        due = state.get_due_reviews()
+        self.assertEqual(len(due), 0)  # еще не пришло время
+
+    def test_get_next_weak_topic(self):
+        from state import AppState
+
+        state = AppState()
+        state.weak_topics = [
+            {"topic": "A", "success_rate": 30.0},
+            {"topic": "B", "success_rate": 60.0},
+            {"topic": "C", "success_rate": 90.0},
+        ]
+        next_topic = state.get_next_weak_topic(threshold=70.0)
+        self.assertEqual(next_topic, "A")  # самая слабая
+
+    def test_get_next_weak_topic_none_when_all_good(self):
+        from state import AppState
+
+        state = AppState()
+        state.weak_topics = [
+            {"topic": "A", "success_rate": 80.0},
+        ]
+        next_topic = state.get_next_weak_topic(threshold=70.0)
+        self.assertIsNone(next_topic)
+
+
+class TestOtherMethods(unittest.TestCase):
+    """Тесты остальных методов"""
+
+    def test_track_command_usage(self):
+        from state import AppState
+
+        state = AppState()
+        state.track_command_usage("quiz")
+        state.track_command_usage("quiz")
+        state.track_command_usage("flag")
+
+        self.assertEqual(state.command_usage["quiz"], 2)
+        self.assertEqual(state.command_usage["flag"], 1)
+
+    def test_can_make_request_within_limit(self):
+        from state import AppState
+        import time
+
+        state = AppState()
+        state.request_timestamps = [time.time()] * 5
+
+        self.assertTrue(state.can_make_request(window_seconds=60, max_requests=10))
+        self.assertFalse(state.can_make_request(window_seconds=60, max_requests=3))
+
+    def test_record_request(self):
+        from state import AppState
+
+        state = AppState()
+        state.request_timestamps = []
+        state.record_request()
+
+        self.assertEqual(len(state.request_timestamps), 1)
+
+    def test_record_request_caps_at_100(self):
+        from state import AppState
+
+        state = AppState()
+        state.request_timestamps = list(range(150))
+        state.record_request()
+
+        self.assertEqual(len(state.request_timestamps), 100)
+
+    def test_get_risk_status_with_emoji(self):
+        from state import AppState
+
+        state = AppState()
+        state.risk_level = 10
+        self.assertEqual(state.get_risk_status(), "🟢 Низкий")
+        state.risk_level = 30
+        self.assertEqual(state.get_risk_status(), "🟡 Умеренный")
+        state.risk_level = 60
+        self.assertEqual(state.get_risk_status(), "🟠 Высокий")
+        state.risk_level = 90
+        self.assertEqual(state.get_risk_status(), "🔴 Критический")

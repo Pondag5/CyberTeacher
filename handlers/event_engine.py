@@ -1,211 +1,352 @@
-"""Narrative event engine — evaluates trigger conditions and fires story events."""
-
+"""
+Event Engine — narrative event system with trigger conditions and effects.
+Module-level functions that delegate to EventEngine singleton.
+"""
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from state import get_state
+# Module-level singleton
+_event_engine = None
 
-EVENTS_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), "events", "narrative_events.json"
-)
-
-
-def _resolve_metric(name: str) -> Any:
-    state = get_state()
-    metric_map = {
-        "xp": lambda: state.xp,
-        "level": lambda: state.level,
-        "stealth_ops": lambda: state.stealth_ops,
-        "digital_debts": lambda: state.digital_debts,
-        "dirty_logs": lambda: len(getattr(state, "dirty_logs", [])),
-        "flags_captured": lambda: getattr(state, "flags_captured", 0),
-        "current_chapter": lambda: state.current_chapter,
-        "noise_level": lambda: state.noise_level,
-        "achievements_count": lambda: len(getattr(state, "earned_achievements", [])),
-        "night_sessions": lambda: getattr(state, "night_sessions", 0),
-        "trace": lambda: getattr(state, "trace_count", 0),
-        "cp_level": lambda: _get_cp_level(),
-    }
-    getter = metric_map.get(name)
-    if getter is None:
-        return 0
-    try:
-        return getter()
-    except (ValueError, KeyError, TypeError, RuntimeError):
-        return 0
+# Default events path (patched in tests)
+EVENTS_PATH = "./events"
 
 
-def _get_cp_level() -> float:
-    try:
-        from cyberpsychosis import CyberpsychosisState
-
-        st = CyberpsychosisState()
-        return round((st.stress + st.obsession + st.recklessness) / 3, 1)
-    except (ImportError, RuntimeError):
-        return 0.0
+def get_event_engine() -> "EventEngine":
+    """Get the singleton EventEngine instance."""
+    global _event_engine
+    if _event_engine is None:
+        _event_engine = EventEngine()
+    return _event_engine
 
 
-def load_events() -> List[Dict[str, Any]]:
-    try:
-        if not os.path.exists(EVENTS_PATH):
-            return []
-        with open(EVENTS_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, list) else []
-    except (OSError, IOError, json.JSONDecodeError):
-        return []
+# --- Module-level functions (primary API) ---
+
+def load_events(path: Optional[str] = None) -> List[Dict]:
+    """Load events from EVENTS_PATH (or given path)."""
+    return get_event_engine().load_events(path or EVENTS_PATH)
+
+
+def load_events_from_file(path: str) -> List[Dict]:
+    """Load events from a specific JSON file."""
+    return get_event_engine().load_events_from_file(path)
 
 
 def get_fired_events() -> List[str]:
-    state = get_state()
-    return list(getattr(state, "fired_events", []))
+    """Get list of fired event IDs."""
+    return get_event_engine().get_fired_events()
 
 
 def mark_event_fired(event_id: str) -> None:
+    """Mark an event as fired."""
+    get_event_engine().mark_event_fired(event_id)
+
+
+def check_events(state=None) -> List[Dict]:
+    """Check for events that should fire given current state."""
+    return get_event_engine().check_events(state)
+
+
+def check_events_in_main_loop():
+    """Check and fire events in main loop - for integration with main.py."""
+    from state import get_state
     state = get_state()
-    fired = getattr(state, "fired_events", None)
-    if fired is None:
-        fired = []
-        state.fired_events = fired
-    if event_id not in fired:
-        fired.append(event_id)
+    engine = get_event_engine()
+    fired = engine.check_events(state)
+    for event in fired:
+        engine.fire_event(event)
 
 
-def _check_conditions(
-    condition: Dict[str, Any], fired: List[str], current_hour: int
-) -> bool:
-    if not condition:
+# --- Expose internal methods on module for testing ---
+
+def _resolve_metric(metric: str, state=None):
+    from state import get_state
+    if state is None:
+        state = get_state()
+    return get_event_engine()._resolve_metric(metric, state)
+
+
+def _check_trigger(trigger: Dict, state=None):
+    from state import get_state
+    if state is None:
+        state = get_state()
+    return get_event_engine()._check_trigger(trigger, state)
+
+
+def _check_conditions(conditions: Dict, fired_events: List[str], current_hour: int) -> bool:
+    return get_event_engine()._check_conditions(conditions, fired_events, current_hour)
+
+
+def _apply_effects(effects: Dict, state=None):
+    from state import get_state
+    if state is None:
+        state = get_state()
+    return get_event_engine()._apply_effects(effects, state)
+
+
+class EventEngine:
+    """Narrative event engine: loads events, evaluates triggers/conditions, applies effects."""
+
+    def __init__(self):
+        self._events_cache: List[Dict] = []
+        self._events_path: str = EVENTS_PATH
+        self._last_load_time: float = 0
+        self._lock = __import__("threading").Lock()
+
+    # --- Loading ---
+
+    def load_events(self, path: Optional[str] = None) -> List[Dict]:
+        """Load events from JSON file or directory."""
+        if path is not None:
+            self._events_path = path
+        # If path is a file, load from file; otherwise load from directory
+        if os.path.isfile(self._events_path):
+            events = self._load_from_file(self._events_path)
+        else:
+            events = self._load_from_dir(self._events_path)
+
+        self._events_cache = events
+        self._last_load_time = time.time()
+        return events
+
+    def load_events_from_file(self, path: str) -> List[Dict]:
+        """Load events from a single JSON file."""
+        return self._load_from_file(path)
+
+    def _load_from_dir(self, path: str) -> List[Dict]:
+        events = []
+        if not os.path.isdir(path):
+            return events
+        for fname in sorted(os.listdir(path)):
+            if fname.endswith(".json"):
+                fpath = os.path.join(path, fname)
+                events.extend(self._load_from_file(fpath))
+        self._events_cache = events
+        self._last_load_time = time.time()
+        return events
+
+    def _load_from_file(self, path: str) -> List[Dict]:
+        if not os.path.isfile(path):
+            return []
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict) and "events" in data:
+                return data["events"]
+            return []
+        except (json.JSONDecodeError, OSError):
+            return []
+
+    # --- Fired events tracking ---
+
+    def get_fired_events(self) -> List[str]:
+        from state import get_state
+        state = get_state()
+        return list(getattr(state, "fired_events", []))
+
+    def mark_event_fired(self, event_id: str) -> None:
+        from state import get_state
+        state = get_state()
+        if not hasattr(state, "fired_events"):
+            state.fired_events = []
+        if event_id not in state.fired_events:
+            state.fired_events.append(event_id)
+
+    # --- Metric resolution ---
+
+    def _resolve_metric(self, metric: str, state) -> float:
+        """Resolve a metric name to a numeric value from state."""
+        if metric == "xp":
+            return getattr(state, "xp", 0)
+        if metric == "stealth_ops":
+            return getattr(state, "stealth_ops", 0)
+        if metric == "digital_debts":
+            return getattr(state, "digital_debts", 0)
+        if metric == "dirty_logs":
+            dirty_logs = getattr(state, "dirty_logs", [])
+            return len(dirty_logs) if isinstance(dirty_logs, list) else 0
+        if metric == "flags_captured":
+            return getattr(state, "flags_captured", 0)
+        if metric == "current_chapter":
+            return getattr(state, "current_chapter", 1)
+        if metric == "noise_level":
+            return getattr(state, "noise_level", 0)
+        if metric == "achievements_count":
+            achievements = getattr(state, "earned_achievements", [])
+            return len(achievements) if isinstance(achievements, list) else 0
+        if metric == "night_sessions":
+            return getattr(state, "night_sessions", 0)
+        if metric == "trace":
+            return getattr(state, "trace_count", getattr(state, "trace", 0))
+        return 0
+
+    # --- Trigger evaluation ---
+
+    def _check_trigger(self, trigger: Dict, state) -> bool:
+        """Evaluate a trigger condition against state."""
+        if not trigger or not isinstance(trigger, dict):
+            return False
+
+        ttype = trigger.get("type")
+
+        if ttype == "threshold":
+            metric = trigger.get("metric")
+            op = trigger.get("op", ">=")
+            value = trigger.get("value", 0)
+            current = self._resolve_metric(metric, state)
+            if op == ">=":
+                return current >= value
+            if op == "<=":
+                return current <= value
+            if op == ">":
+                return current > value
+            if op == "<":
+                return current < value
+            if op == "==":
+                return current == value
+            if op == "!=":
+                return current != value
+            return False
+
+        if ttype == "and":
+            triggers = trigger.get("triggers", [])
+            return all(self._check_trigger(t, state) for t in triggers)
+
+        if ttype == "or":
+            triggers = trigger.get("triggers", [])
+            return any(self._check_trigger(t, state) for t in triggers)
+
+        return False
+
+    # --- Condition evaluation ---
+
+    def _check_conditions(self, conditions: Dict, fired_events: List[str], current_hour: int) -> bool:
+        """Evaluate event conditions."""
+        if not conditions:
+            return True
+
+        # not_fired: event must NOT have fired before
+        if "not_fired" in conditions:
+            for ev in conditions["not_fired"]:
+                if ev in fired_events:
+                    return False
+
+        # fired_before: event MUST have fired before
+        if "fired_before" in conditions:
+            for ev in conditions["fired_before"]:
+                if ev not in fired_events:
+                    return False
+
+        # min_hour / max_hour: time window
+        if "min_hour" in conditions:
+            if current_hour < conditions["min_hour"]:
+                return False
+        if "max_hour" in conditions:
+            if current_hour > conditions["max_hour"]:
+                return False
+
         return True
 
-    for eid in condition.get("not_fired", []):
-        if eid in fired:
-            return False
+    # --- Effect application ---
 
-    for eid in condition.get("fired_before", []):
-        if eid not in fired:
-            return False
+    def _apply_effects(self, effects: Dict, state) -> List[str]:
+        """Apply effects to state, return list of message strings."""
+        messages = []
+        if not effects:
+            return messages
 
-    min_h = condition.get("min_hour")
-    if min_h is not None and current_hour < min_h:
-        return False
-    max_h = condition.get("max_hour")
-    if max_h is not None and current_hour > max_h:
-        return False
+        if "xp" in effects:
+            delta = effects["xp"]
+            state.xp = getattr(state, "xp", 0) + delta
+            if delta >= 0:
+                messages.append(f"+{delta} XP")
+            else:
+                messages.append(f"{delta} XP")
 
-    return True
+        if "noise" in effects:
+            delta = effects["noise"]
+            state.noise_level = getattr(state, "noise_level", 0) + delta
+            if delta >= 0:
+                messages.append(f"+{delta} Noise")
+            else:
+                messages.append(f"{delta} Noise")
 
+        if "trace" in effects:
+            delta = effects["trace"]
+            state.trace_count = getattr(state, "trace_count", 0) + delta
+            if delta >= 0:
+                messages.append(f"+{delta} Trace")
+            else:
+                messages.append(f"{delta} Trace")
 
-def _check_trigger(trigger: Dict[str, Any]) -> bool:
-    ttype = trigger.get("type", "threshold")
+        if "hint_block" in effects and effects["hint_block"]:
+            state.hint_enabled = False
+            messages.append("Hints disabled")
 
-    if ttype == "threshold":
-        metric = _resolve_metric(trigger["metric"])
-        op = trigger.get("op", ">=")
-        value = trigger["value"]
-        if op == ">=":
-            return metric >= value
-        elif op == "<=":
-            return metric <= value
-        elif op == ">":
-            return metric > value
-        elif op == "<":
-            return metric < value
-        elif op == "==":
-            return metric == value
-        return False
-
-    elif ttype == "and":
-        return all(_check_trigger(t) for t in trigger.get("triggers", []))
-
-    elif ttype == "or":
-        return any(_check_trigger(t) for t in trigger.get("triggers", []))
-
-    return False
-
-
-def _apply_effects(effects: Dict[str, Any]) -> List[str]:
-    messages = []
-    state = get_state()
-    if not effects:
         return messages
 
-    if "xp" in effects:
-        val = effects["xp"]
-        state.xp = max(0, state.xp + val)
-        messages.append(f"{'+' if val >= 0 else ''}{val} XP")
+    # --- Event checking ---
 
-    if "noise" in effects:
-        val = effects["noise"]
-        state.noise_level = max(0, state.noise_level + val)
-        messages.append(f"{'+' if val >= 0 else ''}{val} шума")
+    def check_events(self, state=None) -> List[Dict]:
+        """Check all events against state, return list of events that should fire."""
+        from state import get_state
 
-    if "trace" in effects:
-        val = effects["trace"]
-        current = getattr(state, "trace_count", 0)
-        state.trace_count = max(0, current + val)
-        messages.append(f"{'+' if val >= 0 else ''}{val} trace")
+        if state is None:
+            state = get_state()
 
-    if "hint_block" in effects and effects["hint_block"]:
-        state.hint_enabled = False
-        messages.append("подсказки отключены")
+        # Auto-load events if not already loaded
+        if not self._events_cache:
+            self.load_events()
 
-    if "cp" in effects:
-        val = effects["cp"]
-        try:
-            from cyberpsychosis import get_cyberpsychosis
+        fired_events = self.get_fired_events()
+        current_hour = datetime.now().hour
+        results = []
 
-            cp = get_cyberpsychosis()
-            cp.on_risky_action(val)
-            messages.append(f"{'+' if val >= 0 else ''}{val} CP")
-        except (ImportError, RuntimeError):
-            pass
+        for event in self._events_cache:
+            if not isinstance(event, dict):
+                continue
+            event_id = event.get("id")
+            if not event_id:
+                continue
+            if event_id in fired_events:
+                continue
 
-    return messages
+            trigger = event.get("trigger")
+            if not trigger or not self._check_trigger(trigger, state):
+                continue
 
+            conditions = event.get("condition", {})
+            if not self._check_conditions(conditions, fired_events, current_hour):
+                continue
 
-def check_events() -> List[Dict[str, Any]]:
-    """Evaluate all narrative events and fire those whose triggers pass."""
-    events = load_events()
-    if not events:
-        return []
+            # Event fires!
+            effects = event.get("effects", {})
+            msgs = self._apply_effects(effects, state)
 
-    fired_ids = get_fired_events()
-    now = time.localtime()
-    current_hour = now.tm_hour
-
-    results = []
-    for event in events:
-        eid = event.get("id", "")
-        if not eid:
-            continue
-        if event.get("once") and eid in fired_ids:
-            continue
-
-        condition = event.get("condition", {})
-        if not _check_conditions(condition, fired_ids, current_hour):
-            continue
-
-        trigger = event.get("trigger", {})
-        if not trigger:
-            continue
-        if not _check_trigger(trigger):
-            continue
-
-        mark_event_fired(eid)
-        fired_ids.append(eid)
-        action = event.get("action", {})
-        effects = event.get("effects", {})
-        effect_msgs = _apply_effects(effects)
-
-        results.append(
-            {
-                "id": eid,
-                "title": event.get("title", ""),
-                "message": action.get("message", ""),
-                "effects": effect_msgs,
+            result = {
+                "id": event_id,
+                "title": event.get("title", event_id),
+                "message": event.get("action", {}).get("message", ""),
+                "effects": msgs,
             }
-        )
+            if event.get("once", True):
+                self.mark_event_fired(event_id)
 
-    return results
+            results.append(result)
+
+        return results
+
+    def fire_event(self, event: Dict) -> None:
+        """Manually fire an event (apply effects, mark fired)."""
+        from state import get_state
+        state = get_state()
+        event_id = event.get("id")
+        if event_id:
+            self.mark_event_fired(event_id)
+        effects = event.get("effects", {})
+        self._apply_effects(effects, state)

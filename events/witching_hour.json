@@ -1,0 +1,23 @@
+{
+  "id": "witching_hour",
+  "title": "Witching Hour",
+  "title_ru": "Волчьи час",
+  "description": "3 AM. The veil between worlds is thin. The teacher speaks differently.",
+  "description_ru": "3 часа ночи. Грань между мирами тонка. Учитель говорит иначе.",
+  "chapter": 4,
+  "trigger": {
+    "type": "time_window",
+    "start_hour": 3,
+    "end_hour": 4
+  },
+  "effects": {
+    "message_ru": "⏰ 03:00. Волчий час.\n\n\"Мы оба знаем, почему ты здесь в 3 часа ночи. Не делай вид, что работаешь.\"\n\n[GLITCH] Интерфейс мерцает. Цвета инвертируются на секунду.\n\n\"Они спят. Ты нет. Это твоё преимущество. Или проклятие.\"\n\n[HINT] В это время доступны скрытые команды. Попробуй: /ghost_log",
+    "message": "⏰ 03:00. Witching Hour.\n\n\"We both know why you're here at 3 AM. Don't pretend you're working.\"\n\n[GLITCH] Interface flickers. Colors invert for a second.\n\n\"They sleep. You don't. That's your advantage. Or your curse.\"\n\n[HINT] Hidden commands available at this hour. Try: /ghost_log",
+    "cp_change": 3,
+    "noise_change": 5,
+    "unlock": "witching_hour_access"
+  },
+  "once_per_user": false,
+  "cooldown_hours": 24,
+  "priority": 5
+}

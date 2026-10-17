@@ -1,0 +1,20 @@
+{
+  "id": "ghost_signal",
+  "name": "Ghost Signal",
+  "description": "Unauthorized memory fragment detected in teacher's memory banks.",
+  "trigger": {
+    "type": "and",
+    "conditions": [
+      { "type": "night_sessions", "operator": ">=", "value": 3 },
+      { "type": "xp", "operator": ">=", "value": 500 },
+      { "type": "uncompleted_labs", "operator": "contains", "value": "dvwa" }
+    ]
+  },
+  "effects": {
+    "message": "[UNAUTHORIZED MEMORY FRAGMENT DETECTED] ... Ignore this.",
+    "xp_bonus": 50,
+    "unlock": "hidden_command: ghost_signal_log"
+  },
+  "cooldown_hours": 24,
+  "once": true
+}

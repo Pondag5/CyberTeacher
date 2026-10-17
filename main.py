@@ -351,6 +351,10 @@ def main():
     show_help()
     show_menu()
 
+    current_mode = Mode.TEACHER
+    show_help()
+    show_menu()
+
     stats = get_stats(conn)
     weak_count = len(state.get_weak_topics(threshold=70.0))
     due_count = len(state.get_due_reviews())
@@ -362,6 +366,26 @@ def main():
         f"[bold]Слабые темы:[/bold] {weak_count} | "
         f"[bold]Повторения:[/bold] {due_count} готовы"
     )
+
+    # Initialize Event Engine
+    try:
+        from handlers.event_engine import get_event_engine, start_event_engine
+        event_engine = get_event_engine()
+        event_engine.load_events()
+        start_event_engine(interval_seconds=60)
+        console.print("[dim]📜 Event Engine started[/dim]")
+    except ImportError:
+        pass
+
+    # Initialize Push Notifications Scheduler (MF-05)
+    try:
+        from handlers.push_notifications import start_push_scheduler
+        start_push_scheduler()
+        console.print("[dim]🔔 Push Notifications scheduler started[/dim]")
+    except ImportError:
+        pass
+
+    stats = get_stats(conn)
 
     while True:
         try:
@@ -411,6 +435,23 @@ def main():
                 console.print(f"[yellow]💡 Подсказка: {state.trace_hint}[/yellow]")
             state.trace_deadline = None
             state.trace_hint = None
+
+        # Check narrative events
+        try:
+            from handlers.event_engine import check_events_in_main_loop
+            check_events_in_main_loop()
+        except ImportError:
+            pass
+
+        # Phantom Messages scanner (MF-02) — runs every 2 hours real time
+        try:
+            from handlers.phantom_messages import scan_phantom_labs
+            phantom = scan_phantom_labs()
+            if phantom:
+                console.print(f"\n[bold magenta]👻 Phantom:[/bold magenta] {phantom['text']}")
+                console.print(f"[red]CP +{phantom['cp_delta']}[/red] | [dim]Trigger: {phantom['trigger']}[/dim]\n")
+        except ImportError:
+            pass
 
         # Автоматическая подсказка (без LLM)
         if (
@@ -779,6 +820,14 @@ def main():
             msg_count = getattr(state, "_msg_count_since_summary", 0)
             if msg_count > 0 and msg_count % 50 == 0:
                 cleanup_old_messages(conn, keep_last=500)
+
+            # Phantom Messages check (every 50 messages ~ 2 hours of active use)
+            if msg_count > 0 and msg_count % 50 == 0:
+                try:
+                    from handlers.phantom_messages import check_and_send_phantom_messages
+                    check_and_send_phantom_messages()
+                except ImportError:
+                    pass
     # Save context budget on exit
     try:
         setattr(get_state(), "context_budget", budget_manager.to_dict())

@@ -1,0 +1,332 @@
+﻿2026-06-15T16:10:06.1808515Z Current runner version: '2.335.1'
+2026-06-15T16:10:06.1834760Z ##[group]Runner Image Provisioner
+2026-06-15T16:10:06.1835904Z Hosted Compute Agent
+2026-06-15T16:10:06.1836525Z Version: 20260527.539
+2026-06-15T16:10:06.1837233Z Commit: a891dd388383b896fa6ac04a82c0b75cec981078
+2026-06-15T16:10:06.1837953Z Build Date: 2026-05-27T21:39:57Z
+2026-06-15T16:10:06.1838620Z Worker ID: {fdc39a87-45a9-49bd-8242-81d2c1b773ff}
+2026-06-15T16:10:06.1839389Z Azure Region: westus3
+2026-06-15T16:10:06.1840586Z ##[endgroup]
+2026-06-15T16:10:06.1842206Z ##[group]Operating System
+2026-06-15T16:10:06.1842868Z Ubuntu
+2026-06-15T16:10:06.1843382Z 24.04.4
+2026-06-15T16:10:06.1843935Z LTS
+2026-06-15T16:10:06.1844475Z ##[endgroup]
+2026-06-15T16:10:06.1845000Z ##[group]Runner Image
+2026-06-15T16:10:06.1845657Z Image: ubuntu-24.04
+2026-06-15T16:10:06.1846271Z Version: 20260607.184.1
+2026-06-15T16:10:06.1847613Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260607.184/images/ubuntu/Ubuntu2404-Readme.md
+2026-06-15T16:10:06.1849239Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260607.184
+2026-06-15T16:10:06.1850839Z ##[endgroup]
+2026-06-15T16:10:06.1852034Z ##[group]GITHUB_TOKEN Permissions
+2026-06-15T16:10:06.1854299Z Contents: read
+2026-06-15T16:10:06.1854907Z Metadata: read
+2026-06-15T16:10:06.1855545Z Packages: read
+2026-06-15T16:10:06.1856123Z ##[endgroup]
+2026-06-15T16:10:06.1858238Z Secret source: Actions
+2026-06-15T16:10:06.1859890Z Prepare workflow directory
+2026-06-15T16:10:06.2216310Z Prepare all required actions
+2026-06-15T16:10:06.2256000Z Getting action download info
+2026-06-15T16:10:06.6433348Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-06-15T16:10:06.7236592Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-06-15T16:10:06.9026182Z Complete job name: lint
+2026-06-15T16:10:06.9777238Z ##[group]Run actions/checkout@v4
+2026-06-15T16:10:06.9778132Z with:
+2026-06-15T16:10:06.9778600Z   repository: Pondag5/CyberTeacher
+2026-06-15T16:10:06.9783141Z   token: ***
+2026-06-15T16:10:06.9783576Z   ssh-strict: true
+2026-06-15T16:10:06.9784019Z   ssh-user: git
+2026-06-15T16:10:06.9784463Z   persist-credentials: true
+2026-06-15T16:10:06.9784956Z   clean: true
+2026-06-15T16:10:06.9785405Z   sparse-checkout-cone-mode: true
+2026-06-15T16:10:06.9785927Z   fetch-depth: 1
+2026-06-15T16:10:06.9786361Z   fetch-tags: false
+2026-06-15T16:10:06.9786801Z   show-progress: true
+2026-06-15T16:10:06.9787248Z   lfs: false
+2026-06-15T16:10:06.9787657Z   submodules: false
+2026-06-15T16:10:06.9788096Z   set-safe-directory: true
+2026-06-15T16:10:06.9788847Z ##[endgroup]
+2026-06-15T16:10:07.0902859Z Syncing repository: Pondag5/CyberTeacher
+2026-06-15T16:10:07.0904853Z ##[group]Getting Git version info
+2026-06-15T16:10:07.0905648Z Working directory is '/home/runner/work/CyberTeacher/CyberTeacher'
+2026-06-15T16:10:07.0906780Z [command]/usr/bin/git version
+2026-06-15T16:10:07.0996854Z git version 2.54.0
+2026-06-15T16:10:07.1024789Z ##[endgroup]
+2026-06-15T16:10:07.1049788Z Temporarily overriding HOME='/home/runner/work/_temp/c2cb1f08-d134-4672-a5da-b1f2340112d8' before making global git config changes
+2026-06-15T16:10:07.1052316Z Adding repository directory to the temporary git global config as a safe directory
+2026-06-15T16:10:07.1056542Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/CyberTeacher/CyberTeacher
+2026-06-15T16:10:07.1106771Z Deleting the contents of '/home/runner/work/CyberTeacher/CyberTeacher'
+2026-06-15T16:10:07.1112703Z ##[group]Initializing the repository
+2026-06-15T16:10:07.1117879Z [command]/usr/bin/git init /home/runner/work/CyberTeacher/CyberTeacher
+2026-06-15T16:10:07.1219413Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-06-15T16:10:07.1221191Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-06-15T16:10:07.1222167Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-06-15T16:10:07.1223647Z hint: call:
+2026-06-15T16:10:07.1224478Z hint:
+2026-06-15T16:10:07.1225402Z hint: 	git config --global init.defaultBranch <name>
+2026-06-15T16:10:07.1226549Z hint:
+2026-06-15T16:10:07.1227669Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-06-15T16:10:07.1229410Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-06-15T16:10:07.1231173Z hint:
+2026-06-15T16:10:07.1231965Z hint: 	git branch -m <name>
+2026-06-15T16:10:07.1232836Z hint:
+2026-06-15T16:10:07.1233923Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-06-15T16:10:07.1235748Z Initialized empty Git repository in /home/runner/work/CyberTeacher/CyberTeacher/.git/
+2026-06-15T16:10:07.1239063Z [command]/usr/bin/git remote add origin https://github.com/Pondag5/CyberTeacher
+2026-06-15T16:10:07.1313154Z ##[endgroup]
+2026-06-15T16:10:07.1314514Z ##[group]Disabling automatic garbage collection
+2026-06-15T16:10:07.1318512Z [command]/usr/bin/git config --local gc.auto 0
+2026-06-15T16:10:07.1347960Z ##[endgroup]
+2026-06-15T16:10:07.1348728Z ##[group]Setting up auth
+2026-06-15T16:10:07.1355219Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-06-15T16:10:07.1388177Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-06-15T16:10:07.1736925Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-06-15T16:10:07.1766423Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-06-15T16:10:07.1982316Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-06-15T16:10:07.2013664Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-06-15T16:10:07.2238081Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-06-15T16:10:07.2274001Z ##[endgroup]
+2026-06-15T16:10:07.2274812Z ##[group]Fetching the repository
+2026-06-15T16:10:07.2282875Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ab44d72bea15b4c98f0f7b68d08c5534787a1a53:refs/remotes/origin/main
+2026-06-15T16:10:16.3492303Z From https://github.com/Pondag5/CyberTeacher
+2026-06-15T16:10:16.3493762Z  * [new ref]         ab44d72bea15b4c98f0f7b68d08c5534787a1a53 -> origin/main
+2026-06-15T16:10:16.3515531Z ##[endgroup]
+2026-06-15T16:10:16.3516975Z ##[group]Determining the checkout info
+2026-06-15T16:10:16.3518656Z ##[endgroup]
+2026-06-15T16:10:16.3523683Z [command]/usr/bin/git sparse-checkout disable
+2026-06-15T16:10:16.3568781Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-06-15T16:10:16.3595420Z ##[group]Checking out the ref
+2026-06-15T16:10:16.3599070Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-06-15T16:10:17.4208484Z Updating files:  37% (214/578)
+2026-06-15T16:10:17.7024238Z Updating files:  38% (220/578)
+2026-06-15T16:10:17.7758233Z Updating files:  39% (226/578)
+2026-06-15T16:10:17.8101711Z Updating files:  40% (232/578)
+2026-06-15T16:10:17.8220938Z Updating files:  41% (237/578)
+2026-06-15T16:10:17.9163525Z Updating files:  42% (243/578)
+2026-06-15T16:10:17.9165011Z Updating files:  43% (249/578)
+2026-06-15T16:10:17.9190860Z Updating files:  44% (255/578)
+2026-06-15T16:10:17.9209563Z Updating files:  45% (261/578)
+2026-06-15T16:10:17.9240759Z Updating files:  46% (266/578)
+2026-06-15T16:10:17.9241260Z Updating files:  47% (272/578)
+2026-06-15T16:10:17.9241609Z Updating files:  48% (278/578)
+2026-06-15T16:10:17.9242051Z Updating files:  49% (284/578)
+2026-06-15T16:10:17.9242952Z Updating files:  50% (289/578)
+2026-06-15T16:10:17.9244635Z Updating files:  51% (295/578)
+2026-06-15T16:10:17.9245058Z Updating files:  52% (301/578)
+2026-06-15T16:10:17.9245401Z Updating files:  53% (307/578)
+2026-06-15T16:10:17.9245733Z Updating files:  54% (313/578)
+2026-06-15T16:10:17.9246055Z Updating files:  55% (318/578)
+2026-06-15T16:10:17.9246373Z Updating files:  56% (324/578)
+2026-06-15T16:10:17.9246894Z Updating files:  57% (330/578)
+2026-06-15T16:10:17.9247547Z Updating files:  58% (336/578)
+2026-06-15T16:10:17.9248087Z Updating files:  59% (342/578)
+2026-06-15T16:10:17.9248424Z Updating files:  60% (347/578)
+2026-06-15T16:10:17.9249168Z Updating files:  61% (353/578)
+2026-06-15T16:10:17.9254801Z Updating files:  62% (359/578)
+2026-06-15T16:10:17.9257123Z Updating files:  63% (365/578)
+2026-06-15T16:10:17.9261789Z Updating files:  64% (370/578)
+2026-06-15T16:10:17.9266178Z Updating files:  65% (376/578)
+2026-06-15T16:10:17.9271949Z Updating files:  66% (382/578)
+2026-06-15T16:10:17.9277130Z Updating files:  67% (388/578)
+2026-06-15T16:10:17.9281171Z Updating files:  68% (394/578)
+2026-06-15T16:10:17.9285386Z Updating files:  69% (399/578)
+2026-06-15T16:10:17.9290529Z Updating files:  70% (405/578)
+2026-06-15T16:10:17.9303535Z Updating files:  71% (411/578)
+2026-06-15T16:10:17.9309753Z Updating files:  72% (417/578)
+2026-06-15T16:10:17.9321296Z Updating files:  73% (422/578)
+2026-06-15T16:10:17.9322570Z Updating files:  74% (428/578)
+2026-06-15T16:10:17.9327525Z Updating files:  75% (434/578)
+2026-06-15T16:10:17.9333732Z Updating files:  76% (440/578)
+2026-06-15T16:10:17.9337919Z Updating files:  77% (446/578)
+2026-06-15T16:10:17.9343121Z Updating files:  78% (451/578)
+2026-06-15T16:10:17.9347099Z Updating files:  79% (457/578)
+2026-06-15T16:10:17.9353776Z Updating files:  80% (463/578)
+2026-06-15T16:10:17.9358654Z Updating files:  81% (469/578)
+2026-06-15T16:10:17.9364227Z Updating files:  82% (474/578)
+2026-06-15T16:10:17.9369166Z Updating files:  83% (480/578)
+2026-06-15T16:10:17.9373266Z Updating files:  84% (486/578)
+2026-06-15T16:10:17.9377718Z Updating files:  85% (492/578)
+2026-06-15T16:10:17.9380733Z Updating files:  86% (498/578)
+2026-06-15T16:10:17.9385595Z Updating files:  87% (503/578)
+2026-06-15T16:10:17.9391145Z Updating files:  88% (509/578)
+2026-06-15T16:10:17.9396103Z Updating files:  89% (515/578)
+2026-06-15T16:10:17.9400449Z Updating files:  90% (521/578)
+2026-06-15T16:10:17.9405914Z Updating files:  91% (526/578)
+2026-06-15T16:10:17.9410272Z Updating files:  92% (532/578)
+2026-06-15T16:10:17.9414057Z Updating files:  93% (538/578)
+2026-06-15T16:10:17.9417750Z Updating files:  94% (544/578)
+2026-06-15T16:10:17.9420677Z Updating files:  95% (550/578)
+2026-06-15T16:10:17.9424602Z Updating files:  96% (555/578)
+2026-06-15T16:10:17.9429279Z Updating files:  97% (561/578)
+2026-06-15T16:10:17.9435673Z Updating files:  98% (567/578)
+2026-06-15T16:10:17.9442291Z Updating files:  99% (573/578)
+2026-06-15T16:10:17.9442984Z Updating files: 100% (578/578)
+2026-06-15T16:10:17.9443452Z Updating files: 100% (578/578), done.
+2026-06-15T16:10:17.9469556Z Switched to a new branch 'main'
+2026-06-15T16:10:17.9473942Z branch 'main' set up to track 'origin/main'.
+2026-06-15T16:10:17.9621515Z ##[endgroup]
+2026-06-15T16:10:17.9673186Z [command]/usr/bin/git log -1 --format=%H
+2026-06-15T16:10:17.9704127Z ab44d72bea15b4c98f0f7b68d08c5534787a1a53
+2026-06-15T16:10:17.9946869Z ##[group]Run actions/setup-python@v5
+2026-06-15T16:10:17.9947187Z with:
+2026-06-15T16:10:17.9947389Z   python-version: 3.12
+2026-06-15T16:10:17.9947624Z   check-latest: false
+2026-06-15T16:10:17.9950741Z   token: ***
+2026-06-15T16:10:17.9950981Z   update-environment: true
+2026-06-15T16:10:17.9951236Z   allow-prereleases: false
+2026-06-15T16:10:17.9951481Z   freethreaded: false
+2026-06-15T16:10:17.9951701Z ##[endgroup]
+2026-06-15T16:10:18.1690599Z ##[group]Installed versions
+2026-06-15T16:10:18.1894424Z Successfully set up CPython (3.12.13)
+2026-06-15T16:10:18.1901563Z ##[endgroup]
+2026-06-15T16:10:18.1978719Z ##[group]Run python -m pip install --upgrade pip
+2026-06-15T16:10:18.1979388Z [36;1mpython -m pip install --upgrade pip[0m
+2026-06-15T16:10:18.1980084Z [36;1mpip install ruff mypy[0m
+2026-06-15T16:10:18.2161536Z shell: /usr/bin/bash -e {0}
+2026-06-15T16:10:18.2161879Z env:
+2026-06-15T16:10:18.2162185Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-06-15T16:10:18.2162678Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+2026-06-15T16:10:18.2163144Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-06-15T16:10:18.2163566Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-06-15T16:10:18.2163977Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-06-15T16:10:18.2164395Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+2026-06-15T16:10:18.2164759Z ##[endgroup]
+2026-06-15T16:10:18.9177130Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/site-packages (26.1.2)
+2026-06-15T16:10:20.0095083Z Collecting ruff
+2026-06-15T16:10:20.0932782Z   Downloading ruff-0.15.17-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (26 kB)
+2026-06-15T16:10:20.2193862Z Collecting mypy
+2026-06-15T16:10:20.2303188Z   Downloading mypy-2.1.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.3 kB)
+2026-06-15T16:10:20.2542648Z Collecting typing_extensions>=4.6.0 (from mypy)
+2026-06-15T16:10:20.2647986Z   Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+2026-06-15T16:10:20.2818545Z Collecting mypy_extensions>=1.0.0 (from mypy)
+2026-06-15T16:10:20.2922002Z   Downloading mypy_extensions-1.1.0-py3-none-any.whl.metadata (1.1 kB)
+2026-06-15T16:10:20.3118136Z Collecting pathspec>=1.0.0 (from mypy)
+2026-06-15T16:10:20.3218691Z   Downloading pathspec-1.1.1-py3-none-any.whl.metadata (14 kB)
+2026-06-15T16:10:20.4398278Z Collecting librt>=0.11.0 (from mypy)
+2026-06-15T16:10:20.4505990Z   Downloading librt-0.11.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (1.3 kB)
+2026-06-15T16:10:20.4830882Z Collecting ast-serialize<1.0.0,>=0.3.0 (from mypy)
+2026-06-15T16:10:20.4941537Z   Downloading ast_serialize-0.5.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (1.3 kB)
+2026-06-15T16:10:20.5094130Z Downloading ruff-0.15.17-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (11.6 MB)
+2026-06-15T16:10:20.6421395Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.6/11.6 MB 107.3 MB/s  0:00:00
+2026-06-15T16:10:20.6527532Z Downloading mypy-2.1.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (15.1 MB)
+2026-06-15T16:10:20.6993218Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.1/15.1 MB 338.6 MB/s  0:00:00
+2026-06-15T16:10:20.7102430Z Downloading ast_serialize-0.5.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.3 MB)
+2026-06-15T16:10:20.7176045Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 201.9 MB/s  0:00:00
+2026-06-15T16:10:20.7282487Z Downloading librt-0.11.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (513 kB)
+2026-06-15T16:10:20.7422117Z Downloading mypy_extensions-1.1.0-py3-none-any.whl (5.0 kB)
+2026-06-15T16:10:20.7548316Z Downloading pathspec-1.1.1-py3-none-any.whl (57 kB)
+2026-06-15T16:10:20.7713264Z Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+2026-06-15T16:10:20.8316489Z Installing collected packages: typing_extensions, ruff, pathspec, mypy_extensions, librt, ast-serialize, mypy
+2026-06-15T16:10:22.6595879Z 
+2026-06-15T16:10:22.6612722Z Successfully installed ast-serialize-0.5.0 librt-0.11.0 mypy-2.1.0 mypy_extensions-1.1.0 pathspec-1.1.1 ruff-0.15.17 typing_extensions-4.15.0
+2026-06-15T16:10:22.7384897Z ##[group]Run ruff check .
+2026-06-15T16:10:22.7385209Z [36;1mruff check .[0m
+2026-06-15T16:10:22.7418895Z shell: /usr/bin/bash -e {0}
+2026-06-15T16:10:22.7419161Z env:
+2026-06-15T16:10:22.7419437Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-06-15T16:10:22.7420060Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib/pkgconfig
+2026-06-15T16:10:22.7420747Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-06-15T16:10:22.7421149Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-06-15T16:10:22.7421546Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.13/x64
+2026-06-15T16:10:22.7421957Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.13/x64/lib
+2026-06-15T16:10:22.7422295Z ##[endgroup]
+2026-06-15T16:10:22.8028553Z RUF100 [*] Unused `noqa` directive (non-enabled: `PLR0913`)
+2026-06-15T16:10:22.8028968Z   --> generators.py:37:20
+2026-06-15T16:10:22.8029235Z    |
+2026-06-15T16:10:22.8029426Z 36 | class Task:
+2026-06-15T16:10:22.8030166Z 37 |     def __init__(  # noqa: PLR0913
+2026-06-15T16:10:22.8030656Z    |                    ^^^^^^^^^^^^^^^
+2026-06-15T16:10:22.8031083Z 38 |         self,
+2026-06-15T16:10:22.8031419Z 39 |         task_id: int,
+2026-06-15T16:10:22.8031770Z    |
+2026-06-15T16:10:22.8032089Z help: Remove unused `noqa` directive
+2026-06-15T16:10:22.8032393Z 
+2026-06-15T16:10:22.8032565Z W291 Trailing whitespace
+2026-06-15T16:10:22.8032994Z    --> handlers/misc.py:962:12
+2026-06-15T16:10:22.8033406Z     |
+2026-06-15T16:10:22.8033985Z 961 | ## Информация
+2026-06-15T16:10:22.8034451Z 962 | - **Дата:** 
+2026-06-15T16:10:22.8034785Z     |            ^
+2026-06-15T16:10:22.8035172Z 963 | - **Категория:** 
+2026-06-15T16:10:22.8035587Z 964 | - **Сложность:** 
+2026-06-15T16:10:22.8035934Z     |
+2026-06-15T16:10:22.8036274Z help: Remove trailing whitespace
+2026-06-15T16:10:22.8036566Z 
+2026-06-15T16:10:22.8036723Z W291 Trailing whitespace
+2026-06-15T16:10:22.8037126Z    --> handlers/misc.py:963:17
+2026-06-15T16:10:22.8037515Z     |
+2026-06-15T16:10:22.8037864Z 961 | ## Информация
+2026-06-15T16:10:22.8038093Z 962 | - **Дата:** 
+2026-06-15T16:10:22.8038326Z 963 | - **Категория:** 
+2026-06-15T16:10:22.8038534Z     |                 ^
+2026-06-15T16:10:22.8038764Z 964 | - **Сложность:** 
+2026-06-15T16:10:22.8038959Z     |
+2026-06-15T16:10:22.8039152Z help: Remove trailing whitespace
+2026-06-15T16:10:22.8039331Z 
+2026-06-15T16:10:22.8039425Z W291 Trailing whitespace
+2026-06-15T16:10:22.8039955Z    --> handlers/misc.py:964:17
+2026-06-15T16:10:22.8040196Z     |
+2026-06-15T16:10:22.8040412Z 962 | - **Дата:** 
+2026-06-15T16:10:22.8040638Z 963 | - **Категория:** 
+2026-06-15T16:10:22.8040957Z 964 | - **Сложность:** 
+2026-06-15T16:10:22.8041531Z     |                 ^
+2026-06-15T16:10:22.8041903Z 965 |
+2026-06-15T16:10:22.8042269Z 966 | ## Описание
+2026-06-15T16:10:22.8042586Z     |
+2026-06-15T16:10:22.8042912Z help: Remove trailing whitespace
+2026-06-15T16:10:22.8043129Z 
+2026-06-15T16:10:22.8043307Z RUF100 [*] Unused `noqa` directive (non-enabled: `PLR0913`)
+2026-06-15T16:10:22.8043665Z    --> tests/test_handlers_quiz.py:256:46
+2026-06-15T16:10:22.8043933Z     |
+2026-06-15T16:10:22.8044145Z 254 |     @patch("builtins.input")
+2026-06-15T16:10:22.8044444Z 255 |     @patch("handlers.quiz.console.print")
+2026-06-15T16:10:22.8044818Z 256 |     def test_handle_quiz_action_open_ended(  # noqa: PLR0913
+2026-06-15T16:10:22.8045196Z     |                                              ^^^^^^^^^^^^^^^
+2026-06-15T16:10:22.8045483Z 257 |         self,
+2026-06-15T16:10:22.8045693Z 258 |         mock_print,
+2026-06-15T16:10:22.8045907Z     |
+2026-06-15T16:10:22.8046106Z help: Remove unused `noqa` directive
+2026-06-15T16:10:22.8046288Z 
+2026-06-15T16:10:22.8046438Z RUF100 [*] Unused `noqa` directive (non-enabled: `PLR0913`)
+2026-06-15T16:10:22.8046810Z   --> tests/test_handlers_writeup_auto.py:65:49
+2026-06-15T16:10:22.8047097Z    |
+2026-06-15T16:10:22.8047333Z 63 |     @patch("handlers.writeup_auto.LazyLoader")
+2026-06-15T16:10:22.8047910Z 64 |     @patch("builtins.input", return_value="n")
+2026-06-15T16:10:22.8048293Z 65 |     def test_handle_auto_writeup_quiz_success(  # noqa: PLR0913
+2026-06-15T16:10:22.8048660Z    |                                                 ^^^^^^^^^^^^^^^
+2026-06-15T16:10:22.8048943Z 66 |         self,
+2026-06-15T16:10:22.8049328Z 67 |         mock_input,
+2026-06-15T16:10:22.8049968Z    |
+2026-06-15T16:10:22.8050176Z help: Remove unused `noqa` directive
+2026-06-15T16:10:22.8050375Z 
+2026-06-15T16:10:22.8050530Z RUF100 [*] Unused `noqa` directive (non-enabled: `PLR0913`)
+2026-06-15T16:10:22.8050910Z    --> tests/test_handlers_writeup_auto.py:125:50
+2026-06-15T16:10:22.8051201Z     |
+2026-06-15T16:10:22.8051429Z 123 |     @patch("builtins.input", return_value="y")
+2026-06-15T16:10:22.8051793Z 124 |     @patch("builtins.open", new_callable=mock_open)
+2026-06-15T16:10:22.8052188Z 125 |     def test_handle_auto_writeup_saves_to_file(  # noqa: PLR0913
+2026-06-15T16:10:22.8052570Z     |                                                  ^^^^^^^^^^^^^^^
+2026-06-15T16:10:22.8052856Z 126 |         self,
+2026-06-15T16:10:22.8053068Z 127 |         mock_file_open,
+2026-06-15T16:10:22.8053290Z     |
+2026-06-15T16:10:22.8053489Z help: Remove unused `noqa` directive
+2026-06-15T16:10:22.8053671Z 
+2026-06-15T16:10:22.8053749Z Found 7 errors.
+2026-06-15T16:10:22.8054160Z [*] 4 fixable with the `--fix` option (3 hidden fixes can be enabled with the `--unsafe-fixes` option).
+2026-06-15T16:10:22.8065092Z ##[error]Process completed with exit code 1.
+2026-06-15T16:10:22.8217400Z Post job cleanup.
+2026-06-15T16:10:22.9232741Z [command]/usr/bin/git version
+2026-06-15T16:10:22.9271751Z git version 2.54.0
+2026-06-15T16:10:22.9320045Z Temporarily overriding HOME='/home/runner/work/_temp/059ec899-f7fa-42a5-a93e-d702c85ebe6e' before making global git config changes
+2026-06-15T16:10:22.9321241Z Adding repository directory to the temporary git global config as a safe directory
+2026-06-15T16:10:22.9334445Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/CyberTeacher/CyberTeacher
+2026-06-15T16:10:22.9374377Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-06-15T16:10:22.9409347Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-06-15T16:10:22.9647783Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-06-15T16:10:22.9685162Z http.https://github.com/.extraheader
+2026-06-15T16:10:22.9698920Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-06-15T16:10:22.9732121Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-06-15T16:10:22.9963074Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-06-15T16:10:22.9995915Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-06-15T16:10:23.0340143Z Cleaning up orphan processes
+2026-06-15T16:10:23.0625025Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-python@v5. Actions will be forced to run with Node.js 24 by default starting June 16th, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

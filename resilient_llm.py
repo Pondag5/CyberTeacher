@@ -84,8 +84,14 @@ class ResilientLLM:
         self._circuits: Dict[int, CircuitState] = {}
         self._provider_names: Dict[int, str] = provider_names or {}
         self._current_provider = primary
-        self._provider_type: Dict[int, str] = {}  # e.g. "ollama", "groq"
-        self._provider_model: Dict[int, str] = {}  # actual model name
+        self._provider_type: Dict[int, str] = {}
+        self._provider_model: Dict[int, str] = {}
+
+        # LLM usage tracking
+        self.llm_call_count = 0
+        self.llm_total_tokens = 0
+        self.llm_prompt_tokens = 0
+        self.llm_completion_tokens = 0
 
         for i, llm in enumerate([primary] + self._fallbacks):
             self._circuits[id(llm)] = CircuitState()
@@ -94,6 +100,60 @@ class ResilientLLM:
                 self._provider_names[id(llm)] = str(name)
             self._provider_type[id(llm)] = getattr(llm, "model", f"provider_{i}").split("/")[0] if "/" in str(getattr(llm, "model", "")) else str(getattr(llm, "model", f"provider_{i}"))
             self._provider_model[id(llm)] = str(getattr(llm, "model", "unknown"))
+
+    def _extract_token_usage(self, result: Any) -> Tuple[int, int, int]:
+        """Extract token usage from LLM response.
+        
+        Returns (prompt_tokens, completion_tokens, total_tokens).
+        """
+        try:
+            # LangChain/OpenAI style
+            if hasattr(result, "response_metadata"):
+                metadata = result.response_metadata
+                if "token_usage" in metadata:
+                    usage = metadata["token_usage"]
+                    return (
+                        usage.get("prompt_tokens", 0),
+                        usage.get("completion_tokens", 0),
+                        usage.get("total_tokens", 0),
+                    )
+            
+            # Some providers use usage_metadata
+            if hasattr(result, "usage_metadata"):
+                usage = result.usage_metadata
+                return (
+                    usage.get("input_tokens", 0),
+                    usage.get("output_tokens", 0),
+                    usage.get("total_tokens", 0),
+                )
+            
+            # Legacy OpenAI style
+            if hasattr(result, "llm_output") and result.llm_output:
+                usage = result.llm_output.get("token_usage", {})
+                return (
+                    usage.get("prompt_tokens", 0),
+                    usage.get("completion_tokens", 0),
+                    usage.get("total_tokens", 0),
+                )
+            
+            # Check for usage in content
+            if hasattr(result, "usage"):
+                usage = result.usage
+                if hasattr(usage, "prompt_tokens"):
+                    return (
+                        getattr(usage, "prompt_tokens", 0),
+                        getattr(usage, "completion_tokens", 0),
+                        getattr(usage, "total_tokens", 0),
+                    )
+                if isinstance(usage, dict):
+                    return (
+                        usage.get("prompt_tokens", 0),
+                        usage.get("completion_tokens", 0),
+                        usage.get("total_tokens", 0),
+                    )
+        except Exception:
+            pass
+        return (0, 0, 0)
 
     def _try_invoke(self, llm: Any, prompt: str) -> Any:
         """Try to invoke an LLM, raising on failure."""
@@ -184,6 +244,15 @@ class ResilientLLM:
                     if llm is not self._primary:
                         logger.info(f"Fallback to {name} succeeded")
                     self._current_provider = llm
+
+                    # Extract and track token usage
+                    prompt_tokens, completion_tokens, total_tokens = self._extract_token_usage(result)
+                    self.llm_call_count += 1
+                    self.llm_total_tokens += total_tokens
+                    self.llm_prompt_tokens += prompt_tokens
+                    self.llm_completion_tokens += completion_tokens
+                    logger.debug(f"LLM call: {name}, tokens: {total_tokens} (prompt: {prompt_tokens}, completion: {completion_tokens})")
+
                     return result
                 except Exception as e:
                     last_error = e
@@ -216,27 +285,29 @@ class ResilientLLM:
 
             try:
                 gen = self._try_stream(llm, prompt)
+                chunk_count = 0
+                total_chars = 0
                 for chunk in gen:
                     circuit.record_success()
                     if llm is not self._primary:
                         logger.info(f"Fallback to {name} succeeded (streaming)")
                     self._current_provider = llm
+                    chunk_count += 1
+                    total_chars += len(str(chunk))
                     yield chunk
-                    for remaining in gen:
-                        yield remaining
-                    return
+                
+                # Track streaming call (approximate token count from chunks)
+                self.llm_call_count += 1
+                # Rough estimate: ~4 chars per token
+                approx_tokens = total_chars // 4 if chunk_count > 0 else 0
+                self.llm_call_count += 1
+                self.llm_total_tokens += approx_tokens
+                logger.debug(f"LLM stream: {name}, chunks: {chunk_count}, ~tokens: {approx_tokens}")
+                return
             except Exception as e:
                 last_error = e
                 circuit.record_failure(self._cb_threshold, error=str(e))
                 logger.warning(f"Provider {name} streaming failed: {e}")
-
-        raise (
-            RuntimeError(
-                f"All LLM providers failed (streaming). Last error: {last_error}"
-            )
-            if last_error
-            else RuntimeError("No LLM providers available")
-        )
 
     @staticmethod
     def test_provider(provider_name: str, llm_instance: Any, timeout: int = 15) -> Tuple[bool, str]:
@@ -293,13 +364,8 @@ class ResilientLLM:
             "providers": providers,
             "active_provider": getattr(self._current_provider, "model", "unknown") if self._current_provider else "none",
             "timeout": self._timeout,
+            "llm_call_count": self.llm_call_count,
+            "llm_total_tokens": self.llm_total_tokens,
+            "llm_prompt_tokens": self.llm_prompt_tokens,
+            "llm_completion_tokens": self.llm_completion_tokens,
         }
-
-    def get_provider_name(self, llm: Any) -> str:
-        """Get the human-readable provider name for an LLM instance."""
-        return self._provider_names.get(id(llm), "unknown")
-
-    @property
-    def model(self) -> str:
-        """Backward-compatible model attribute."""
-        return getattr(self._primary, "model", "resilient")

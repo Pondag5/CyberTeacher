@@ -99,20 +99,21 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Static assets: network first, cache fallback (always fresh)
+    // Static assets: stale-while-revalidate for faster loads
     event.respondWith(
         (async () => {
-            try {
-                const response = await fetch(event.request);
+            const cached = await caches.match(event.request);
+            const networkFetch = fetch(event.request).then((response) => {
                 if (response.ok && event.request.method === 'GET') {
-                    const cache = await caches.open(CACHE_STATIC);
-                    cache.put(event.request, response.clone());
+                    const cache = caches.open(CACHE_STATIC);
+                    cache.then((c) => {
+                        c.put(event.request, response.clone());
+                        trimCache(CACHE_STATIC, 50);
+                    });
                 }
                 return response;
-            } catch (e) {
-                const cached = await caches.match(event.request);
-                return cached || new Response('', { status: 408 });
-            }
+            }).catch(() => cached);
+            return cached || networkFetch;
         })()
     );
 });

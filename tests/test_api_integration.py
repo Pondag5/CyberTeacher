@@ -58,6 +58,10 @@ class TestAPIIntegration(unittest.TestCase):
         """Очистка после всех тестов."""
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
+        if hasattr(cls, "temp_dir"):
+            shutil.rmtree(cls.temp_dir, ignore_errors=True)
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -179,6 +183,8 @@ class TestAPIVersusE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -253,6 +259,8 @@ class TestAPILearningCycleE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -306,6 +314,8 @@ class TestAPIChatE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -344,6 +354,8 @@ class TestAPIFeatureFlagsE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -428,6 +440,8 @@ class TestAPIQuizFallbackE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -495,6 +509,8 @@ class TestAPIContextBudgetE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 

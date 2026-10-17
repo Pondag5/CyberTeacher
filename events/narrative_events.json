@@ -1,0 +1,235 @@
+[
+  {
+    "id": "first_night_session",
+    "title": "Ночная смена",
+    "trigger": {
+      "type": "threshold",
+      "metric": "night_sessions",
+      "op": ">=",
+      "value": 1
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "Ты заметил? В терминале что-то мигнуло. Наверное, старый модуль."
+    },
+    "effects": { "cp": 5 },
+    "once": true
+  },
+  {
+    "id": "frequent_night_visitor",
+    "title": "Полуночник",
+    "trigger": {
+      "type": "threshold",
+      "metric": "night_sessions",
+      "op": ">=",
+      "value": 5
+    },
+    "condition": { "min_hour": 23, "max_hour": 5 },
+    "action": {
+      "type": "teacher_message",
+      "message": "Здесь ночью тихо. Слишком тихо. Иногда я слышу, как старые байты перешёптываются."
+    },
+    "effects": { "xp": 15, "cp": 10, "noise": 3 },
+    "once": true
+  },
+  {
+    "id": "debt_mounting",
+    "title": "Груз долгов",
+    "trigger": {
+      "type": "threshold",
+      "metric": "digital_debts",
+      "op": ">=",
+      "value": 3
+    },
+    "condition": { "not_fired": ["debt_mounting"] },
+    "action": {
+      "type": "teacher_message",
+      "message": "У тебя накопились долги, студент. Система не прощает халатности. Закрывай их, пока не поздно."
+    },
+    "effects": { "hint_block": true },
+    "once": true
+  },
+  {
+    "id": "watchers_first_sign",
+    "title": "Шёпот Watchers",
+    "trigger": {
+      "type": "threshold",
+      "metric": "dirty_logs",
+      "op": ">=",
+      "value": 1
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "Кто-то смотрит. Ты чувствуешь это? Watchers не дремлют."
+    },
+    "effects": { "xp": 10 },
+    "once": true
+  },
+  {
+    "id": "cyberpsychosis_rising",
+    "title": "Киберпсихоз",
+    "trigger": {
+      "type": "threshold",
+      "metric": "cp_level",
+      "op": ">=",
+      "value": 30
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "Помутнение нарастает. Код дрожит. Ты начинаешь слышать голоса в пакетах."
+    },
+    "effects": { "xp": 25, "noise": 5 },
+    "once": true
+  },
+  {
+    "id": "xp_milestone_100",
+    "title": "Первые сто",
+    "trigger": {
+      "type": "threshold",
+      "metric": "xp",
+      "op": ">=",
+      "value": 100
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "100 XP. Ты прогрессируешь. Но чем глубже ты копаешь, тем темнее становится в системе."
+    },
+    "effects": { "xp": 30 },
+    "once": true
+  },
+  {
+    "id": "xp_milestone_500",
+    "title": "Полпути",
+    "trigger": {
+      "type": "threshold",
+      "metric": "xp",
+      "op": ">=",
+      "value": 500
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "500 XP. В архиве открывается новый раздел. Там то, что система пыталась скрыть."
+    },
+    "effects": { "xp": 50, "cp": 15 },
+    "once": true
+  },
+  {
+    "id": "all_achievements_hunter",
+    "title": "Охотник за ачивками",
+    "trigger": {
+      "type": "threshold",
+      "metric": "achievements_count",
+      "op": ">=",
+      "value": 5
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "Пять достижений. Ты собираешь их, как трофеи. Система замечает твою одержимость."
+    },
+    "effects": { "xp": 40 },
+    "once": true
+  },
+  {
+    "id": "chapter_3_midnight",
+    "title": "Призрак в архитектуре",
+    "trigger": {
+      "type": "and",
+      "triggers": [
+        { "type": "threshold", "metric": "current_chapter", "op": ">=", "value": 3 },
+        { "type": "threshold", "metric": "night_sessions", "op": ">=", "value": 2 }
+      ]
+    },
+    "condition": { "fired_before": ["frequent_night_visitor"] },
+    "action": {
+      "type": "teacher_message",
+      "message": "Архитектура системы меняется. Ghost Layer активен. Учитель молчит. Ты слышишь два голоса вместо одного."
+    },
+    "effects": { "xp": 35, "cp": 20, "noise": 10 },
+    "once": true
+  },
+  {
+    "id": "trace_high",
+    "title": "Следящие системы",
+    "trigger": {
+      "type": "threshold",
+      "metric": "trace",
+      "op": ">=",
+      "value": 5
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "Твой след становится видимым. Watchers активируют протокол отслеживания. Будь осторожен."
+    },
+    "effects": { "noise": 10 },
+    "once": true
+  },
+  {
+    "id": "debts_resolved",
+    "title": "Чистый лист",
+    "trigger": {
+      "type": "threshold",
+      "metric": "digital_debts",
+      "op": "<=",
+      "value": 0
+    },
+    "condition": { "fired_before": ["debt_mounting"] },
+    "action": {
+      "type": "teacher_message",
+      "message": "Ты закрыл все долги. Учитель одобрительно кивает. Напряжение спадает."
+    },
+    "effects": { "xp": 20, "noise": -5 },
+    "once": true
+  },
+  {
+    "id": "stealth_ops_master",
+    "title": "Невидимка",
+    "trigger": {
+      "type": "threshold",
+      "metric": "stealth_ops",
+      "op": ">=",
+      "value": 10
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "10 скрытых операций. Ты становишься призраком в сети. Даже Watchers теряют твой след."
+    },
+    "effects": { "xp": 50, "trace": -3 },
+    "once": true
+  },
+  {
+    "id": "flag_hunter",
+    "title": "Охотник за флагами",
+    "trigger": {
+      "type": "threshold",
+      "metric": "flags_captured",
+      "op": ">=",
+      "value": 10
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "10 флагов. Ты методично собираешь их, как ключи к правде. Каждый флаг — часть головоломки."
+    },
+    "effects": { "xp": 30, "cp": 5 },
+    "once": true
+  },
+  {
+    "id": "quieter_echo",
+    "title": "Эхо",
+    "trigger": {
+      "type": "threshold",
+      "metric": "night_sessions",
+      "op": ">=",
+      "value": 10
+    },
+    "condition": {
+      "not_fired": ["quieter_echo"],
+      "fired_before": ["frequent_night_visitor"]
+    },
+    "action": {
+      "type": "teacher_message",
+      "message": "Эхо прошлых студентов становится громче. Ты слышишь их в логах, в ошибках, в тишине между пакетами."
+    },
+    "effects": { "xp": 60, "cp": 25 },
+    "once": true
+  }
+]

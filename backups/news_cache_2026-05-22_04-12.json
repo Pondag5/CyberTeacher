@@ -1,0 +1,35 @@
+{
+  "news": [
+    {
+      "title": "Millions Impacted Across Several US Healthcare Data Breaches",
+      "link": "",
+      "desc": "<p>Several healthcare data breaches impacting hundreds of thousands and even millions were added to the HHS tracker.</p>\n<p>The post <a href=\"https://www.securityweek.com/millions-impacted-across-seve",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "‘Claw Chain’ OpenClaw Flaws Allow Sandbox Escape, Backdoor Delivery",
+      "link": "",
+      "desc": "<p>Four vulnerabilities in OpenClaw can be chained together to steal credentials, escape the sandbox, and plant persistent backdoors.</p>\n<p>The post <a href=\"https://www.securityweek.com/claw-chain-o",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "7-Eleven Data Breach Confirmed After ShinyHunters Ransom Demand",
+      "link": "",
+      "desc": "<p>The hackers claimed to have stolen more than 600,000 Salesforce records, including personal information and corporate data. </p>\n<p>The post <a href=\"https://www.securityweek.com/7-eleven-data-brea",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "Researcher Drops MiniPlasma Windows Exploit for Unpatched 2020 CVE",
+      "link": "",
+      "desc": "<p>The researcher dropped the MiniPlasma exploit that uses the original proof-of-concept (PoC) code targeting the bug.</p>\n<p>The post <a href=\"https://www.securityweek.com/researcher-drops-miniplasma",
+      "source": "SecurityWeek"
+    },
+    {
+      "title": "First Shai-Hulud Worm Clones Emerge",
+      "link": "",
+      "desc": "<p>At least one threat actor has adopted the recently released malware source code in attacks against NPM developers.</p>\n<p>The post <a href=\"https://www.securityweek.com/first-shai-hulud-worm-clones",
+      "source": "SecurityWeek"
+    }
+  ],
+  "last": "2026-05-18T20:43:13.911371+00:00"
+}

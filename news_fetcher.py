@@ -5,10 +5,13 @@
 import json
 import logging
 import os
+import warnings
 from datetime import UTC, datetime
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +32,9 @@ def _get_parser():
     try:
         import lxml
 
-        return "lxml"
+        return "lxml-xml"
     except ImportError:
-        return "html.parser"
+        return "xml"  # Use built-in XML parser instead of html.parser
 
 
 def fetch_news(force=False):

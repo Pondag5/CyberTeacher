@@ -16,6 +16,14 @@ from handlers.hints import (
 class TestHintsHandler(unittest.TestCase):
     """Tests for /hint command handler."""
 
+    def _mock_context(self):
+        """Create a mock context with no debts blocking hints."""
+        mock_state = MagicMock()
+        mock_state.get_debts.return_value = {"total": 0}
+        mock_ctx = MagicMock()
+        mock_ctx.state = mock_state
+        return mock_ctx
+
     def test_default_patterns_not_empty(self):
         self.assertGreater(len(DEFAULT_PATTERNS), 0)
 
@@ -30,23 +38,43 @@ class TestHintsHandler(unittest.TestCase):
         self.assertEqual(patterns, DEFAULT_PATTERNS)
 
     def test_generate_contextual_hint_sqli(self):
-        hint = generate_contextual_hint("curl http://example.com?id=1", {})
-        self.assertIsNotNone(hint)
-        self.assertIn("SQLi", hint)
+        mock_ctx = self._mock_context()
+        with (
+            patch("handlers.hints.get_context", return_value=mock_ctx),
+            patch("handlers.hints._debts_block_hints", return_value=False),
+        ):
+            hint = generate_contextual_hint("curl http://example.com?id=1", {})
+            self.assertIsNotNone(hint)
+            self.assertIn("SQLi", hint)
 
     def test_generate_contextual_hint_xss(self):
-        hint = generate_contextual_hint("<script>alert(1)</script>", {})
-        self.assertIsNotNone(hint)
-        self.assertIn("XSS", hint)
+        mock_ctx = self._mock_context()
+        with (
+            patch("handlers.hints.get_context", return_value=mock_ctx),
+            patch("handlers.hints._debts_block_hints", return_value=False),
+        ):
+            hint = generate_contextual_hint("<script>alert(1)</script>", {})
+            self.assertIsNotNone(hint)
+            self.assertIn("XSS", hint)
 
     def test_generate_contextual_hint_nmap(self):
-        hint = generate_contextual_hint("nmap -p- 192.168.1.1", {})
-        self.assertIsNotNone(hint)
-        self.assertIn("сканирование", hint.lower())
+        mock_ctx = self._mock_context()
+        with (
+            patch("handlers.hints.get_context", return_value=mock_ctx),
+            patch("handlers.hints._debts_block_hints", return_value=False),
+        ):
+            hint = generate_contextual_hint("nmap -p- 192.168.1.1", {})
+            self.assertIsNotNone(hint)
+            self.assertIn("сканирование", hint.lower())
 
     def test_generate_contextual_hint_no_match(self):
-        hint = generate_contextual_hint("hello world", {})
-        self.assertIsNone(hint)
+        mock_ctx = self._mock_context()
+        with (
+            patch("handlers.hints.get_context", return_value=mock_ctx),
+            patch("handlers.hints._debts_block_hints", return_value=False),
+        ):
+            hint = generate_contextual_hint("hello world", {})
+            self.assertIsNone(hint)
 
     @patch("handlers.hints.get_context")
     @patch("handlers.hints.console")
@@ -110,6 +138,7 @@ class TestHintsHandler(unittest.TestCase):
     @patch("handlers.hints.console")
     def test_hint_get_cooldown(self, mock_console, mock_get_context):
         import time
+
         mock_state = MagicMock()
         mock_state.hint_credits = 2
         mock_state.last_hint_time = time.time() - 5

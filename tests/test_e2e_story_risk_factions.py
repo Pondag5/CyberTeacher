@@ -38,6 +38,8 @@ class TestStoryChaptersE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -108,6 +110,8 @@ class TestRiskMechanicsE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -209,6 +213,8 @@ class TestFactionsE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -289,6 +295,8 @@ class TestStoryFlowE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -351,6 +359,8 @@ class TestFinalChoiceE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 
@@ -662,6 +672,8 @@ class TestRewindE2E(unittest.TestCase):
     def tearDownClass(cls):
         if hasattr(cls, "conn") and cls.conn:
             cls.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(cls, "temp_dir"):
             shutil.rmtree(cls.temp_dir, ignore_errors=True)
 

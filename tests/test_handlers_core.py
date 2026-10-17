@@ -1,6 +1,9 @@
 """Тесты для диспетчера команд в handlers/core.py"""
 
+import os
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import ANY, MagicMock, patch
 
 from handlers.core import handle_extended_commands
@@ -320,6 +323,22 @@ class TestHandlersCore(unittest.TestCase):
         self.assertTrue(result[0])
         mock_set.assert_called_once_with("set-api-key openrouter key123")
 
+    @patch("handlers.core.handle_keys")
+    def test_command_keys_rotate(self, mock_keys, mock_print):
+        result = handle_extended_commands(
+            "keys rotate openrouter", self.mock_llm, self.mock_conn
+        )
+        self.assertTrue(result[0])
+        mock_keys.assert_called_once_with("keys rotate openrouter")
+
+    @patch("handlers.core.handle_keys")
+    def test_command_keys_rotate_all(self, mock_keys, mock_print):
+        result = handle_extended_commands(
+            "keys rotate-all", self.mock_llm, self.mock_conn
+        )
+        self.assertTrue(result[0])
+        mock_keys.assert_called_once_with("keys rotate-all")
+
     @patch("handlers.core.handle_quiz_generation")
     def test_command_smart_test(self, mock_gen, mock_print):
         result = handle_extended_commands("smart_test", self.mock_llm, self.mock_conn)
@@ -405,3 +424,38 @@ class TestHandlersCore(unittest.TestCase):
     def test_unknown_command(self, mock_print):
         result = handle_extended_commands("unknown123", self.mock_llm, self.mock_conn)
         self.assertTrue(result[0])  # returns True but prints unknown message
+
+    # --- Key rotation logic ---
+    def test_rotate_key_updates_env_and_config(self, mock_print):
+        from handlers.core import _rotate_key
+        import config as _cfg
+
+        provider = "openrouter"
+        old_key = os.environ.get("OPENROUTER_API_KEY", "")
+        setattr(_cfg, "OPENROUTER_API_KEY", old_key)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_path = Path(tmpdir) / ".env"
+            env_path.write_text("OPENROUTER_API_KEY=old_key\n", encoding="utf-8")
+
+            with patch("pathlib.Path") as MockPath:
+                MockPath.return_value = env_path
+                MockPath.__truediv__ = lambda self, other: env_path
+                _rotate_key(None, provider)
+
+            new_key = os.environ.get("OPENROUTER_API_KEY", "")
+            self.assertTrue(new_key)
+            self.assertNotEqual(new_key, old_key)
+            self.assertEqual(getattr(_cfg, "OPENROUTER_API_KEY"), new_key)
+
+    def test_rotate_key_unsupported_provider(self, mock_print):
+        from handlers.core import _rotate_key
+        with patch("handlers.core.console.print") as mp:
+            _rotate_key(None, "unsupported")
+            mp.assert_called()
+
+    def test_rotate_all_keys(self, mock_print):
+        from handlers.core import _rotate_all_keys
+        with patch("handlers.core._rotate_key") as mock_rotate:
+            _rotate_all_keys(None)
+            self.assertEqual(mock_rotate.call_count, 3)

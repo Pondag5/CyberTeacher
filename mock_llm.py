@@ -6,7 +6,7 @@ explaining how to set up a real LLM.
 """
 
 import logging
-from typing import Any, Iterator
+from typing import Any, Iterator, Union
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,18 @@ MOCK_RESPONSES = {
 }
 
 
+def _extract_prompt(prompt: Union[str, list]) -> str:
+    """Extract text prompt from string or list of messages."""
+    if isinstance(prompt, str):
+        return prompt
+    if isinstance(prompt, list):
+        for msg in reversed(prompt):
+            if isinstance(msg, dict) and msg.get("role") == "user":
+                return str(msg.get("content", ""))
+        return str(prompt[-1]) if prompt else ""
+    return str(prompt)
+
+
 class MockLLM:
     """LLM stub that returns helpful offline messages.
 
@@ -39,15 +51,16 @@ class MockLLM:
     model = "mock-llm"
     provider = "mock"
 
-    def invoke(self, prompt: str) -> Any:
+    def invoke(self, prompt: Union[str, list]) -> Any:
         """Return a mock response. Never fails."""
 
         class MockResponse:
             def __init__(self, content: str):
                 self.content = content
 
-        # Detect intent from prompt keywords
-        lower = prompt.lower()
+        # Extract text from string or message list
+        text_prompt = _extract_prompt(prompt)
+        lower = text_prompt.lower()
         if any(w in lower for w in ["квиз", "quiz", "вопрос", "question"]):
             text = MOCK_RESPONSES["quiz"]
         elif any(w in lower for w in ["подсказк", "hint", "помоги"]):
@@ -60,7 +73,7 @@ class MockLLM:
         logger.debug("MockLLM invoked — returning offline message")
         return MockResponse(text)
 
-    def stream(self, prompt: str) -> Iterator[str]:
+    def stream(self, prompt: Union[str, list]) -> Iterator[str]:
         """Yield a mock response chunk. Never fails."""
         response = self.invoke(prompt)
         yield response.content

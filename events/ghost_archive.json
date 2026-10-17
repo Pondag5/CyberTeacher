@@ -1,0 +1,19 @@
+{
+  "id": "ghost_archive",
+  "name": "Ghost Archive",
+  "description": "Access to the Ghost Archive unlocked. Files from deleted students... they're still here.",
+  "trigger": {
+    "type": "and",
+    "conditions": [
+      { "type": "faction_reputation", "faction": "ghost", "operator": ">=", "value": 50 },
+      { "type": "cp_level", "operator": ">=", "value": 30 }
+    ]
+  },
+  "effects": {
+    "message": "[GHOST ARCHIVE UNLOCKED] Welcome to the shadow library. Deleted students left traces here. Read carefully — Watchers monitor access.",
+    "xp_bonus": 100,
+    "unlock": "hidden_knowledge: ghost_archive"
+  },
+  "cooldown_hours": 168,
+  "once": true
+}

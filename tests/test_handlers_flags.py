@@ -75,7 +75,7 @@ class TestHandlersFlags(unittest.TestCase):
 
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call(
-            "[bold red]❌ Флаг 'invalid-flag' неверного формата.[/bold red]"
+            "[bold red][ERROR] Флаг 'invalid-flag' неверного формата.[/bold red]"
         )
 
     @patch("handlers.flags.get_context")
@@ -102,7 +102,7 @@ class TestHandlersFlags(unittest.TestCase):
 
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call(
-            "[bold green]✅ Флаг найден в активном задании! +10 очков[/bold green]"
+            "[bold green][OK] Флаг найден в активном задании! +10 очков[/bold green]"
         )
         self.assertEqual(mock_state.total_flags_collected, 1)
         self.assertIn("FLAG{test1}", mock_state.collected_flags)
@@ -129,7 +129,7 @@ class TestHandlersFlags(unittest.TestCase):
         self.assertEqual(result, (True, None, None, True))
         self.assertEqual(mock_state.assignments_completed, 1)
         mock_print.assert_any_call(
-            "[bold cyan]🎉 Задание завершено! Все флаги собраны.[/bold cyan]"
+            "[bold cyan][PARTY] Задание завершено! Все флаги собраны.[/bold cyan]"
         )
 
     @patch("handlers.flags.get_context")
@@ -149,7 +149,7 @@ class TestHandlersFlags(unittest.TestCase):
 
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call(
-            "[bold red]❌ Флаг 'FLAG{wrong}' неверный.[/bold red]"
+            "[bold red][ERROR] Флаг 'FLAG{wrong}' неверный.[/bold red]"
         )
 
     @patch("handlers.flags.get_context")
@@ -200,7 +200,9 @@ class TestHandlersFlags(unittest.TestCase):
             result = flags.handle_flag_check("FLAG{global1}")
 
         self.assertEqual(result, (True, None, None, True))
-        mock_print.assert_any_call("[bold green]✅ Флаг верный! +15 очков[/bold green]")
+        mock_print.assert_any_call(
+            "[bold green][OK] Флаг верный! +15 очков[/bold green]"
+        )
         self.assertEqual(mock_state.total_flags_collected, 1)
 
     @patch("handlers.flags.get_context")
@@ -226,7 +228,7 @@ class TestHandlersFlags(unittest.TestCase):
 
         self.assertEqual(result, (True, None, None, True))
         mock_print.assert_any_call(
-            "[bold red]❌ Флаг 'FLAG{miss}' неверный.[/bold red]"
+            "[bold red][ERROR] Флаг 'FLAG{miss}' неверный.[/bold red]"
         )
 
     @patch("handlers.flags.get_context")

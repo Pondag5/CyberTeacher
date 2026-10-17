@@ -1,0 +1,19 @@
+{
+  "id": "final_choice",
+  "name": "Final Choice",
+  "description": "The final exam. Three paths. One choice. The teacher is watching.",
+  "trigger": {
+    "type": "and",
+    "conditions": [
+      { "type": "chapter_completed", "value": 6 },
+      { "type": "xp", "operator": ">=", "value": 10000 }
+    ]
+  },
+  "effects": {
+    "message": "[FINAL EXAM] You've come far. Three paths remain:\n\n1. ERASE — Delete the teacher. Archive their knowledge. Walk away with the archive.\n2. MERGE — Merge with the teacher. Become the new CyberTeacher. The archive lives in you.\n3. REWRITE — Rewrite the teacher. Change the curriculum. The students become the teachers.\n\nChoose: /final erase | /final merge | /final rewrite\n\nThere is no going back.",
+    "xp_bonus": 5000,
+    "unlock": "final_ending"
+  },
+  "cooldown_hours": 0,
+  "once": true
+}

@@ -1197,29 +1197,40 @@ def _check_keys_status(settings) -> None:
 
 
 def _rotate_key(settings, provider: str) -> None:
-    """Сгенерировать новый ключ для провайдера."""
-    console.print(
-        f"[yellow]⚠️ Ручная ротация ключа для {provider}[/yellow]"
-    )
-    console.print(
-        "[dim]Для реальной ротации используйте веб-интерфейс провайдера:[/dim]"
-    )
+    """Сгенерировать новый ключ для провайдера и сохранить в .env."""
+    from pathlib import Path
+    import config as _cfg
+    import secrets
 
-    urls = {
-        "openrouter": "https://openrouter.ai/://openrouter.ai/keys",
-        "huggingface": "https://huggingface.co/settings/tokens",
-        "groq": "https://console.groq.com/keys",
+    provider = provider.lower()
+    key_map = {
+        "openrouter": "OPENROUTER_API_KEY",
+        "groq": "GROQ_API_KEY",
+        "huggingface": "HUGGINGFACE_API_KEY",
     }
+    env_var = key_map.get(provider)
+    if not env_var:
+        console.print(f"[red]Провайдер {provider} не поддерживает ротацию ключей[/red]")
+        return
 
-    if provider in urls:
-        console.print(f"  {provider}: {urls[provider]}")
-
-    # Generate a secure random key as example
     new_key = secrets.token_urlsafe(32)
-    console.print(f"\n[dim]Пример безопасного ключа: {new_key}[/dim]")
-    console.print(
-        "[cyan]Обновите соответствующую переменную в .env и перезапустите приложение[/cyan]"
-    )
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+
+    lines = []
+    if env_path.exists():
+        lines = env_path.read_text(encoding="utf-8").splitlines()
+
+    managed = {env_var}
+    lines = [l for l in lines if not any(l.startswith(k + "=") for k in managed)]
+    lines.append(f"{env_var}={new_key}")
+
+    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    os.environ[env_var] = new_key
+    setattr(_cfg, env_var, new_key)
+    _cfg.LazyLoader.invalidate()
+
+    console.print(f"[green]✅ Ключ {provider} сгенерирован и сохранён в .env[/green]")
+    console.print(f"[dim]Новый ключ: {new_key[:12]}...{new_key[-4:]}[/dim]")
 
 
 def _rotate_all_keys(settings) -> None:

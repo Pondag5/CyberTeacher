@@ -61,7 +61,7 @@ class TestDailyChallenge(unittest.TestCase):
         """Правильный ответ засчитывается."""
         generate_daily_challenge(difficulty="easy")
         # Получаем ответ из сохранённого файла
-        with open(self._temp_file, "r") as f:
+        with open(self._temp_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         today = list(data["history"].keys())[0]
         answer = data["history"][today]["answer"]

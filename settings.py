@@ -1,11 +1,11 @@
 """
 Типизированная конфигурация с валидацией через Pydantic Settings.
 """
-
+import secrets
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Dict, Any
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,76 @@ class Settings(BaseSettings):
     response_cache_file: Path = Field(default=Path("./memory/response_cache.json"))
     daily_challenge_file: Path = Field(default=Path("./memory/daily_challenges.json"))
     episode_memory_file: Path = Field(default=Path("./memory/episode_memory.json"))
+
+    # === Security ===
+    jwt_secret: str = Field(
+        default="", min_length=0, description="JWT signing secret (min 32 chars for production)"
+    )
+    enc_key: str = Field(
+        default="", min_length=0, description="Encryption key (min 16 chars for production)"
+    )
+    cors_origins: str = Field(
+        default="http://127.0.0.1:8000,http://localhost:8000",
+        description="CORS origins comma-separated",
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def generate_security_keys(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate JWT_SECRET and ENC_KEY from .env or create new ones if missing."""
+        from pathlib import Path
+        
+        # Read existing .env
+        env_path = Path(".env")
+        env_content = ""
+        if env_path.exists():
+            try:
+                env_content = env_path.read_text(encoding="utf-8")
+            except Exception:
+                pass
+        
+        env_dict = {}
+        if env_content:
+            for line in env_content.splitlines():
+                line = line.strip()
+                if "=" in line and not line.startswith("#"):
+                    k, v = line.split("=", 1)
+                    env_dict[k.strip()] = v.strip()
+        
+        # Check if keys exist in .env
+        jwt_from_env = env_dict.get("CYBERTEACHER_JWT_SECRET", "")
+        enc_from_env = env_dict.get("CYBERTEACHER_ENC_KEY", "")
+        
+        updated = False
+        
+        # Generate JWT secret if missing
+        if not jwt_from_env:
+            jwt_from_env = secrets.token_urlsafe(32)
+            env_dict["CYBERTEACHER_JWT_SECRET"] = jwt_from_env
+            updated = True
+        
+        # Generate ENC key if missing
+        if not enc_from_env:
+            enc_from_env = secrets.token_urlsafe(16)
+            env_dict["CYBERTEACHER_ENC_KEY"] = enc_from_env
+            updated = True
+        
+        # Write back to .env if updated
+        if updated:
+            try:
+                new_lines = [f"{k}={v}" for k, v in env_dict.items()]
+                env_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+            except Exception:
+                pass
+        
+        # Return data with generated keys
+        result = dict(data) if data else {}
+        if not result.get("jwt_secret"):
+            result["jwt_secret"] = jwt_from_env
+        if not result.get("enc_key"):
+            result["enc_key"] = enc_from_env
+        
+        return result
 
     # === LLM ===
     llm_provider: Literal[
@@ -77,6 +147,21 @@ class Settings(BaseSettings):
     )
     max_backup_age_hours: int = Field(
         default=168, ge=0, description="Max age in hours (0 = unlimited)"
+    )
+
+    # === Push Notifications (MF-05) ===
+    vapid_public_key: str = Field(
+        default="", description="VAPID public key for Web Push"
+    )
+    vapid_private_key: str = Field(
+        default="", description="VAPID private key for Web Push"
+    )
+    vapid_subject: str = Field(
+        default="mailto:admin@cyberteacher.local", description="VAPID subject (mailto: or https:)"
+    )
+    push_enabled: bool = Field(default=False, description="Enable push notifications")
+    push_schedule_hours: str = Field(
+        default="24,48,72", description="Push notification schedule hours (comma-separated)"
     )
 
     @field_validator("openrouter_api_key", "hf_token", mode="after")

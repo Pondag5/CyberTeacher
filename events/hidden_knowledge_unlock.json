@@ -1,0 +1,18 @@
+{
+  "id": "hidden_knowledge_unlock",
+  "name": "Hidden Knowledge Unlock",
+  "description": "A piece of hidden knowledge has been unlocked through skill progression.",
+  "trigger": {
+    "type": "skill_threshold",
+    "skill": "reverse_engineering",
+    "operator": ">=",
+    "value": 3
+  },
+  "effects": {
+    "message": "[HIDDEN KNOWLEDGE UNLOCKED] Reverse Engineering >= 3 achieved. Access granted to: Binary Exploitation Basics. The teacher nods: 'You're ready to look under the hood.'",
+    "xp_bonus": 200,
+    "unlock": "hidden_knowledge: binary_exploitation_basics"
+  },
+  "cooldown_hours": 168,
+  "once": true
+}

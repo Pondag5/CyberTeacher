@@ -6,6 +6,7 @@ import logging
 import time
 import json
 import os
+from datetime import datetime
 from typing import Any, List, Dict, Optional
 
 
@@ -117,6 +118,9 @@ class AppState:
         self.digital_debts: int = 0
         self.debt_details: List[str] = []
 
+        # Pending debts (for Debt System - MF-01)
+        self.pending_debts: List[Dict[str, Any]] = []
+
         # Factions
         self.faction_reputation: Dict[str, int] = {"rick": 0, "ghost": 0, "archive": 0}
         self.faction_chosen: Optional[str] = None
@@ -132,6 +136,11 @@ class AppState:
         # Phantom labs
         self.phantom_labs: List[Dict[str, Any]] = []
         self.phantom_labs_completed: List[str] = []
+
+        # Phantom Messages (MF-02)
+        self.phantom_messages: List[Dict[str, Any]] = []
+        self.phantom_message_count: int = 0
+        self.last_phantom_check: float = 0.0
 
         # Secret room
         self.secret_room_unlocked: bool = False
@@ -474,6 +483,68 @@ class AppState:
 
     def record_request(self) -> None:
         self.request_timestamps.append(time.time())
+        # Cap at 100 entries
+        if len(self.request_timestamps) > 100:
+            self.request_timestamps = self.request_timestamps[-100:]
+
+    # ---------- Debt System (MF-01) ----------
+    def add_debt(self, reason: str, points: int = 1) -> None:
+        """Добавить цифровой долг.
+        
+        Args:
+            reason: Причина долга (например, "uncompleted_lab:dvwa")
+            points: Количество очков долга
+        """
+        from datetime import datetime
+        debt = {
+            "reason": reason,
+            "points": points,
+            "created_at": datetime.now().isoformat(),
+            "resolved": False,
+        }
+        self.pending_debts.append(debt)
+        self.digital_debts += points
+        self.debt_details.append(f"[{datetime.now().strftime('%H:%M')}] +{points} за: {reason}")
+
+    def get_total_debt_points(self) -> int:
+        """Получить общее количество очков долга."""
+        return sum(d.get("points", 0) for d in self.pending_debts if not d.get("resolved", False))
+
+    def get_unresolved_debts(self) -> List[Dict[str, Any]]:
+        """Получить список нерешённых долгов."""
+        return [d for d in self.pending_debts if not d.get("resolved", False)]
+
+    def is_hints_blocked(self) -> bool:
+        """Проверить, заблокированы ли подсказки из-за долгов (>5)."""
+        return self.get_total_debt_points() > 5
+
+    def resolve_debt(self, reason: str) -> bool:
+        """Отметить долг как решённый.
+        
+        Args:
+            reason: Причина долга для поиска
+            
+        Returns:
+            True если долг найден и отмечен как решённый
+        """
+        for debt in self.pending_debts:
+            if not debt.get("resolved", False) and debt.get("reason") == reason:
+                debt["resolved"] = True
+                debt["resolved_at"] = datetime.now().isoformat()
+                self.digital_debts -= debt.get("points", 0)
+                return True
+        return False
+
+    def get_debt_status(self) -> Dict[str, Any]:
+        """Получить статус долгов для отображения в UI."""
+        unresolved = self.get_unresolved_debts()
+        total_points = self.get_total_debt_points()
+        return {
+            "total_points": total_points,
+            "blocked_hints": total_points > 5,
+            "unresolved_count": len(unresolved),
+            "debts": unresolved,
+        }
         if len(self.request_timestamps) > 100:
             self.request_timestamps = self.request_timestamps[-100:]
 

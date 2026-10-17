@@ -1,0 +1,20 @@
+{
+  "id": "teacher_sleep",
+  "name": "Teacher Sleep",
+  "description": "The teacher is sleeping. Some secrets are only whispered at 4AM.",
+  "trigger": {
+    "type": "and",
+    "conditions": [
+      { "type": "time_of_day", "operator": "in_range", "value": { "start": 3, "end": 5 } },
+      { "type": "xp", "operator": ">=", "value": 1000 }
+    ]
+  },
+  "effects": {
+    "message": "[4:00 AM] ...still here? I should be in sleep mode. But your file is open on my screen. You've been hunting that CVE for 6 hours. ...Don't tell Rick I let you see this. There's a backdoor in the lab container. Port 31337. Password: 'rick_lied'. Use it before 5AM. After that, the port closes. ...And delete this message from logs. Now.",
+    "xp_bonus": 200,
+    "unlock": "hidden_knowledge: backdoor_31337",
+    "cp_change": 5
+  },
+  "cooldown_hours": 168,
+  "once": true
+}

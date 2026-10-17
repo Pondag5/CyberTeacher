@@ -43,6 +43,8 @@ class TestStabilityBase(unittest.TestCase):
     def tearDown(self):
         if hasattr(self, "conn") and self.conn:
             self.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         if hasattr(self, "temp_dir"):
             shutil.rmtree(self.temp_dir, ignore_errors=True)
 

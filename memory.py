@@ -155,17 +155,80 @@ def cleanup_expired_cache(conn: Any) -> None:
     conn.commit()
 
 
-def get_cached_response(conn: Any, query_hash: str) -> str | None:
-    """Получить ответ из кэша если не просрочен"""
+# === LLM Response Cache with LRU + TTL + Token Budget ===
+# SQLite table: query_cache (already defined in db.py)
+# Additional in-memory LRU for hot entries
+
+_LLM_CACHE_LRU: dict[str, tuple[str, float]] = {}  # query_hash -> (response, timestamp)
+_LLM_CACHE_MAX_SIZE = 100  # LRU limit
+_LLM_CACHE_TTL_DEFAULT = 3600  # 1 hour default TTL
+_MAX_TOKENS_PER_RESPONSE = 2000  # token budget per response
+
+
+def _hash_query(query: str, model: str = "") -> str:
+    """Generate cache key from query + model"""
+    import hashlib
+    return hashlib.sha256(f"{model}:{query}".encode()).hexdigest()[:64]
+
+
+def _estimate_tokens(text: str) -> int:
+    """Rough token estimation: ~4 chars per token"""
+    return max(1, len(text) // 4)
+
+
+def _compress_prompt(query: str, max_chars: int = 8000) -> str:
+    """Compress prompt by removing redundant whitespace and truncating"""
+    import re
+    # Remove extra whitespace
+    compressed = re.sub(r'\s+', ' ', query.strip())
+    # Truncate if too long
+    if len(compressed) > max_chars:
+        compressed = compressed[:max_chars] + "... [truncated]"
+    return compressed
+
+
+def get_cached_response(conn: Any, query: str, model: str = "") -> str | None:
+    """Получить ответ из кэша если не просрочен (with LRU + TTL).
+    
+    Supports legacy API: get_cached_response(conn, "hash") for backward compatibility.
+    """
     from state import get_state
 
+    # Legacy API support: if query looks like a simple hash (no spaces, short)
+    if model == "" and isinstance(query, str) and len(query) <= 64 and " " not in query:
+        query_hash = query
+        model = ""  # No model for legacy
+    else:
+        query_hash = _hash_query(query, model)
+    
+    now = _utc_now_naive()
+
+    # 1. Check in-memory LRU first (fastest)
+    if query_hash in _LLM_CACHE_LRU:
+        response, timestamp = _LLM_CACHE_LRU[query_hash]
+        if (now - timestamp).total_seconds() < _LLM_CACHE_TTL_DEFAULT:
+            state = get_state()
+            state.cache_hits += 1
+            # Move to end (most recently used)
+            _LLM_CACHE_LRU[query_hash] = (response, now)
+            return response
+        else:
+            # Expired - remove from LRU
+            del _LLM_CACHE_LRU[query_hash]
+
+    # 2. Check SQLite cache
     row = conn.query(QueryCache).filter_by(query_hash=query_hash).first()
     state = get_state()
     if row:
-        now = _utc_now_naive()
         if row.expires_at is None or row.expires_at > now:
             state.cache_hits += 1
             result: str | None = row.response
+            # Update LRU
+            _LLM_CACHE_LRU[query_hash] = (result, now)
+            # Enforce LRU size limit
+            if len(_LLM_CACHE_LRU) > _LLM_CACHE_MAX_SIZE:
+                oldest = min(_LLM_CACHE_LRU.items(), key=lambda x: x[1][1])
+                del _LLM_CACHE_LRU[oldest[0]]
             return result
         conn.delete(row)
         conn.commit()
@@ -174,20 +237,39 @@ def get_cached_response(conn: Any, query_hash: str) -> str | None:
 
 
 def cache_response(
-    conn: Any, query_hash: str, response: str, ttl_seconds: int | None = None
+    conn: Any, query: str, response: str, model: str = "", ttl_seconds: int | None = None
 ) -> None:
-    """Сохранить ответ в кэш с TTL"""
-    now = _utc_now_naive()
-    expires_at = None
-    if ttl_seconds:
-        expires_at = now + timedelta(seconds=ttl_seconds)
+    """Сохранить ответ в кэш с TTL + LRU + token budget.
+    
+    Supports legacy API: cache_response(conn, "hash", "response", ttl_seconds=3600)
+    """
+    import hashlib
 
+    now = _utc_now_naive()
+
+    # Legacy API support: if query looks like a simple hash (no spaces, short)
+    if model == "" and isinstance(query, str) and len(query) <= 64 and " " not in query:
+        query_hash = query
+    else:
+        query_hash = _hash_query(query, model)
+    
+    ttl = ttl_seconds or _LLM_CACHE_TTL_DEFAULT
+    expires_at = now + timedelta(seconds=ttl)
+
+    # Token budget check - truncate if too large
+    response_tokens = _estimate_tokens(response)
+    if response_tokens > _MAX_TOKENS_PER_RESPONSE:
+        # Truncate response to fit token budget
+        max_chars = _MAX_TOKENS_PER_RESPONSE * 4
+        response = response[:max_chars] + "\n[truncated due to token budget]"
+
+    # Update SQLite
     existing = conn.query(QueryCache).filter_by(query_hash=query_hash).first()
     if existing:
         existing.response = response
         existing.created_at = now
         existing.expires_at = expires_at
-        existing.ttl_seconds = ttl_seconds
+        existing.ttl_seconds = ttl
     else:
         conn.add(
             QueryCache(
@@ -195,10 +277,18 @@ def cache_response(
                 response=response,
                 created_at=now,
                 expires_at=expires_at,
-                ttl_seconds=ttl_seconds,
+                ttl_seconds=ttl,
             )
         )
     conn.commit()
+
+    # Update LRU
+    _LLM_CACHE_LRU[query_hash] = (response, now)
+    if len(_LLM_CACHE_LRU) > _LLM_CACHE_MAX_SIZE:
+        oldest = min(_LLM_CACHE_LRU.items(), key=lambda x: x[1][1])
+        del _LLM_CACHE_LRU[oldest[0]]
+
+    # Cleanup old entries
     total = conn.query(QueryCache).count()
     if total > 1000:
         now2 = _utc_now_naive()
@@ -226,12 +316,12 @@ def get_cache_stats(conn: Any) -> dict[str, int]:
         .filter((QueryCache.expires_at.is_(None)) | (QueryCache.expires_at > now))
         .count()
     )
-    return {"total": total, "valid": valid, "expired": total - valid}
+    lru_size = len(_LLM_CACHE_LRU)
+    return {"total": total, "valid": valid, "expired": total - valid, "lru_size": lru_size}
 
 
 def cleanup_old_messages(conn: Any, keep_last: int = 500) -> None:
-    """
-    Удаляет старые сообщения, оставляя только последние `keep_last` записей.
+    """Удаляет старые сообщения, оставляя только последние `keep_last` записей.
     Вызывать при старте или периодически.
     """
     from db import Message

@@ -1,0 +1,19 @@
+{
+  "id": "ghost_echo",
+  "name": "Ghost Echo",
+  "description": "A message from a student who failed. They're still here... in the logs.",
+  "trigger": {
+    "type": "and",
+    "conditions": [
+      { "type": "xp", "operator": ">=", "value": 2000 },
+      { "type": "failed_labs", "operator": ">=", "value": 3 }
+    ]
+  },
+  "effects": {
+    "message": "[GHOST ECHO] Student #404: 'I failed the same lab 7 times. The teacher said I wasn't ready. I wasn't. But I found something in the logs... Port 31337. It's not in the lab guide. Check it.'",
+    "xp_bonus": 150,
+    "unlock": "hidden_knowledge: ghost_port_31337"
+  },
+  "cooldown_hours": 168,
+  "once": true
+}

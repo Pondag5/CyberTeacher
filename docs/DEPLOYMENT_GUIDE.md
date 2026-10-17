@@ -302,6 +302,26 @@ OPENROUTER_MODEL=qwen/qwen-2.5-72b-instruct
 
 ---
 
+## Безопасность: JWT и шифрование
+
+### Обязательно для production
+
+В `.env` задайте статические секреты, чтобы токены и зашифрованные данные сохранялись между перезапусками:
+
+```bash
+CYBERTEACHER_JWT_SECRET=<32+ hex chars>
+CYBERTEACHER_ENC_KEY=<32+ hex chars>
+```
+
+Если переменные не заданы, `auth.py` сгенерирует случайные значения автоматически, но токены будут невалидны после перезапуска.
+
+### Рекомендации
+- Используйте разные секреты для staging и production
+- Храните `.env` вне репозитория
+- Для генерации: `python -c "import secrets; print(secrets.token_hex(32))"`
+
+---
+
 ## Dockerfile
 
 ```dockerfile
@@ -335,5 +355,5 @@ CMD ["python", "main.py"]
 
 ---
 
-*Обновлено: 2026-05-15*
-*Версия: CyberTeacher v3.2*
+*Обновлено: 2026-09-20*
+*Версия: CyberTeacher v6.1*

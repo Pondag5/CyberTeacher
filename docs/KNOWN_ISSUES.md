@@ -23,6 +23,19 @@
 
 | # | Проблема | Влияние | Статус |
 |---|----------|---------|--------|
-| 12 | FAISS embed_one_by_one — нет батчинга | Медленная индексация | ⏳ Не критично |
-| 13 | Backup rotation не удаляет старые | Рост backups/ | ⏳ Не критично |
+| 12 | FAISS embed_one_by_one — нет батчинга | Медленная индексация | ✅ Реализовано: `ProgressEmbeddings.embed_documents()` — батчинг |
+| 13 | Backup rotation не удаляет старые | Рост backups/ | ✅ Реализовано: `state.py:388-431` + `main.py:286-288` |
 | 14 | `llm_total_tokens`/`llm_call_count` декоративные | Нулевое | ⏳ Косметика |
+
+## Незаконченные функции (TODO в коде)
+
+| # | Файл | Функция | Что не сделано |
+|---|------|---------|----------------|
+| 15 | `handlers/quiz.py:468` | `handle_code_review` | ✅ Реализовано: интерактивный ввод + чтение из файла + LLM анализ |
+| 16 | `handlers/hints.py:212` | mission-based hint | ✅ Реализовано: подсказка по текущему непройденному шагу активной миссии |
+
+## Предупреждения в логах (не ошибки, но шум)
+
+| # | Файл | Warning | Решение |
+|---|------|---------|---------|
+| 17 | `news_fetcher.py:66` | `XMLParsedAsHTMLWarning` — HTML parser для XML | ✅ Исправлено: добавлен `warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)` + парсер `html.parser` |

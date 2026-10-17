@@ -26,6 +26,8 @@ class TestMemory(unittest.TestCase):
     def tearDown(self):
         if self.conn:
             self.conn.close()
+        from db import dispose_engine
+        dispose_engine()
         # Reset env for next test
         if "DATABASE_URL" in os.environ:
             del os.environ["DATABASE_URL"]

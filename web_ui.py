@@ -436,8 +436,8 @@ def run_dashboard():
                     st.info("Эпизоды истории не найдены")
             else:
                 st.warning("API истории недоступен")
-        except:
-            st.error("Не удалось загрузить данные истории")
+        except Exception as e:
+            st.error(f"Не удалось загрузить данные истории: {e}")
 
     # ── Tab 6: Tracks ───────────────────────────────────────────────────
     with tabs[5]:
@@ -501,8 +501,8 @@ def run_dashboard():
                     st.info("Треки обучения не найдены")
             else:
                 st.warning("API треков недоступен")
-        except:
-            st.error("Не удалось загрузить данные треков")
+        except Exception as e:
+            st.error(f"Не удалось загрузить данные треков: {e}")
 
     # ── Tab 7: CTF ──────────────────────────────────────────────────────
     with tabs[6]:
@@ -567,8 +567,8 @@ def run_dashboard():
                     st.info("Миссии не найдены")
             else:
                 st.warning("API CTF недоступен")
-        except:
-            st.error("Не удалось загрузить данные CTF")
+        except Exception as e:
+            st.error(f"Не удалось загрузить данные CTF: {e}")
 
     # ── Tab 8: Laboratories ─────────────────────────────────────────────
     with tabs[7]:
@@ -644,8 +644,8 @@ def run_dashboard():
                     st.info("Лаборатории не найдены")
             else:
                 st.warning("API лабораторий недоступен")
-        except:
-            st.error("Не удалось загрузить данные лабораторий")
+        except Exception as e:
+            st.error(f"Не удалось загрузить данные лабораторий: {e}")
 
     # ── Tab 9: OSINT ────────────────────────────────────────────────────
     with tabs[8]:
@@ -736,8 +736,8 @@ def run_dashboard():
                         st.error("Ошибка при поиске CVE")
                 except Exception as e:
                     st.error(f"Ошибка: {str(e)}")
-        except:
-            st.error("Не удалось загрузить данные OSINT")
+        except Exception as e:
+            st.error(f"Не удалось загрузить данные OSINT: {e}")
 
     # ── Tab 10: Scanner ─────────────────────────────────────────────────
     with tabs[9]:
@@ -970,8 +970,8 @@ def run_dashboard():
                     st.info("Товары в магазине не найдены")
             else:
                 st.warning("API магазина недоступен")
-        except:
-            st.error("Не удалось загрузить данные магазина")
+        except Exception as e:
+            st.error(f"Не удалось загрузить данные магазина: {e}")
 
     # ── Tab 12: Achievements ────────────────────────────────────────────
 

@@ -41,14 +41,14 @@ class TestAchievementsIntegration(unittest.TestCase):
                     "id": "first_blood",
                     "name": "First Blood",
                     "description": "Get your first flag",
-                    "icon": "🩸",
+                    "icon": "[BLOOD]",
                     "points": 10,
                 },
                 {
                     "id": "explorer",
                     "name": "Explorer",
                     "description": "Find 10 flags",
-                    "icon": "🔍",
+                    "icon": "[SEARCH]",
                     "points": 50,
                 },
             ]

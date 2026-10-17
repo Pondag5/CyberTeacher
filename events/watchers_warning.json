@@ -1,0 +1,19 @@
+{
+  "id": "watchers_warning",
+  "name": "Watchers' Warning",
+  "description": "Watchers have noticed unusual activity. They're watching more closely now.",
+  "trigger": {
+    "type": "and",
+    "conditions": [
+      { "type": "noise_level", "operator": ">=", "value": 70 },
+      { "type": "cp_level", "operator": ">=", "value": 20 }
+    ]
+  },
+  "effects": {
+    "message": "[WATCHERS ALERT] Unusual activity detected. You've attracted attention. Noise level: {noise_level}. Cyberpsychosis: {cp_level}. Reduce activity or face consequences.",
+    "cp_change": 5,
+    "noise_change": -10
+  },
+  "cooldown_hours": 12,
+  "once": false
+}
