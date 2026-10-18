@@ -1,0 +1,39 @@
+{
+  "packageName": "com.cyberteacher.app",
+  "host": "localhost:8000",
+  "name": "CyberTeacher",
+  "launcherName": "CyberTeacher",
+  "display": "standalone",
+  "orientation": "any",
+  "themeColor": "#00B4D8",
+  "backgroundColor": "#1e1e2e",
+  "startUrl": "/",
+  "iconUrl": "icon-512.png",
+  "maskableIconUrl": "icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "cyberteacher-release.keystore",
+    "alias": "cyberteacher"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortVersion": "1.0",
+  "webManifestUrl": "https://localhost:8000/manifest.json",
+  "assetStatements": [
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.cyberteacher.app",
+        "sha256_cert_fingerprints": ["24:8C:10:16:71:77:94:8B:F4:D9:EC:FA:1E:EC:6B:20:09:A2:EB:75:72:11:63:3E:27:16:DC:1C:BC:AF:CB:E0"]
+      }
+    }
+  ],
+  "navigationScope": "https://localhost:8000/",
+  "enableNotifications": false,
+  "enableSiteSettingsShortcut": false,
+  "features": {
+    "locationDelegation": false,
+    "playBilling": false
+  }
+}

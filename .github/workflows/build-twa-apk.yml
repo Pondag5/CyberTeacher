@@ -1,0 +1,110 @@
+name: Build TWA APK
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Install JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          ndk-version: r26c
+          build-tools: 34.0.0
+
+      - name: Configure Bubblewrap
+        run: |
+          echo "y" | bubblewrap init --manifest=https://${{ secrets.DOMAIN }}/manifest.json
+        env:
+          DOMAIN: ${{ secrets.DOMAIN }}
+
+      - name: Update twa-manifest.json with secrets
+        run: |
+          cat > twa-manifest.json << 'EOF'
+          {
+            "packageName": "com.cyberteacher.app",
+            "host": "${{ secrets.DOMAIN }}",
+            "name": "CyberTeacher",
+            "launcherName": "CyberTeacher",
+            "display": "standalone",
+            "orientation": "any",
+            "themeColor": "#00B4D8",
+            "backgroundColor": "#1e1e2e",
+            "startUrl": "/",
+            "iconUrl": "https://${{ secrets.DOMAIN }}/icon-512.png",
+            "maskableIconUrl": "https://${{ secrets.DOMAIN }}/icon-512.png",
+            "splashScreenFadeOutDuration": 300,
+            "signingKey": {
+              "path": "cyberteacher-release.keystore",
+              "alias": "cyberteacher",
+              "keyPassword": "${{ secrets.KEYSTORE_PASSWORD }}",
+              "storePassword": "${{ secrets.KEYSTORE_PASSWORD }}"
+            },
+            "appVersionName": "1.0.0",
+            "appVersionCode": 1,
+            "shortVersion": "1.0",
+            "webManifestUrl": "https://${{ secrets.DOMAIN }}/manifest.json",
+            "assetStatements": [
+              {
+                "relation": ["delegate_permission/common.handle_all_urls"],
+                "target": {
+                  "namespace": "android_app",
+                  "package_name": "com.cyberteacher.app",
+                  "sha256_cert_fingerprints": ["${{ secrets.FINGERPRINT }}"]
+                }
+              }
+            ],
+            "navigationScope": "https://${{ secrets.DOMAIN }}/",
+            "enableNotifications": false,
+            "enableSiteSettingsShortcut": false,
+            "features": {
+              "locationDelegation": false,
+              "playBilling": false
+            }
+          }
+          EOF
+
+      - name: Import Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > cyberteacher-release.keystore
+
+      - name: Build APK
+        run: |
+          echo "y" | bubblewrap build
+        env:
+          BUBBLEWRAP_YES: 1
+
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: app-release-signed.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

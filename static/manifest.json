@@ -12,6 +12,11 @@
     "lang": "ru",
     "dir": "ltr",
     "id": "/",
+    "related_application": {
+        "platform": "play",
+        "id": "com.cyberteacher.app"
+    },
+    "prefer_related_applications": true,
     "shortcuts": [
         {
             "name": "Чат с учителем",

@@ -1,12 +1,10 @@
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.cyberteacher.app",
-      "sha256_cert_fingerprints": [
-        "TODO: замените на SHA-256 отпечаток вашего signing-сертификата"
-      ]
-    }
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.cyberteacher.app",
+    "sha256_cert_fingerprints": [
+      "24:8C:10:16:71:77:94:8B:F4:D9:EC:FA:1E:EC:6B:20:09:A2:EB:75:72:11:63:3E:27:16:DC:1C:BC:AF:CB:E0"
+    ]
   }
-]
+}]
