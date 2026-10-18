@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.cyberteacher.app">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.CyberTeacher">
+        <activity
+            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.CyberTeacher"
+            android:exported="true">
+            <meta-data
+                android:name="android.support.customtabs.supported_host"
+                android:value="cyberteacher.local" />
+            <meta-data
+                android:name="android.support.customtabs.action"
+                android:value="LAUNCH" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="cyberteacher.local" />
+                <data android:scheme="http" android:host="cyberteacher.local" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

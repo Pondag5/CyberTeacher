@@ -116,7 +116,7 @@
 
 | ID | Feature | Status | Effort | Dependencies |
 |----|---------|--------|--------|--------------|
-| P3-1 | Mobile App (React Native / TWA) | 📋 Planned | 2-4 weeks | PWA ready |
+| P3-1 | Mobile App (React Native / TWA) | 🔄 In Progress — TWA wrapper над PWA (решение: TWA, не RN) | `twa/`, `static/manifest.json`, `static/sw.js` |
 | P3-2 | OAuth2 (Google, GitHub) | 📋 Planned | 1-2 weeks | auth.py, JWT |
 | P3-3 | 2FA (TOTP) | 📋 Planned | 1 week | auth.py, pyotp |
 | P3-4 | Multi-user Auth (Roles) | 📋 Planned | 1 week | auth.py, JWT |
