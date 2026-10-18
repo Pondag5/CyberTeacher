@@ -1,15 +1,17 @@
-"""Auth system — user registration, login, JWT tokens, roles.
+"""Auth system — user registration, login, JWT tokens, roles, 2FA (TOTP).
 
 Multi-user support with:
 - Password hashing (bcrypt, backward-compat with SHA-256 salted)
 - JWT tokens (HMAC-SHA256)
 - Role-based access: admin / teacher / student
 - User CRUD operations
+- Two-factor authentication (TOTP) with backup codes
 """
 
 import base64
 import hashlib
 import hmac
+import io
 import json
 import logging
 import os
@@ -18,6 +20,8 @@ import time
 from typing import Any, Dict, List, Optional
 
 import bcrypt
+import pyotp
+import qrcode
 
 
 USERS_FILE = "./memory/users.json"
@@ -111,6 +115,9 @@ def create_user(
         "created_at": time.time(),
         "role": role,
         "user_id": f"user_{username_lower}",
+        "totp_enabled": False,
+        "totp_secret": None,
+        "backup_codes": [],
     }
     users[username_lower] = user
     _save_users(users)
@@ -122,8 +129,10 @@ def create_user(
     }
 
 
-def authenticate(username: str, password: str) -> Dict[str, Any]:
-    """Authenticate user. Returns token or error."""
+def authenticate(
+    username: str, password: str, totp_code: Optional[str] = None
+) -> Dict[str, Any]:
+    """Authenticate user. Returns token or 2fa_required flag."""
     users = _load_users()
     user = users.get(username.lower().strip())
 
@@ -131,6 +140,20 @@ def authenticate(username: str, password: str) -> Dict[str, Any]:
         return {"error": "User not found"}
     if not _verify_password(password, user["password_hash"]):
         return {"error": "Invalid password"}
+
+    # If TOTP is enabled, require a valid TOTP/backup code
+    if user.get("totp_enabled"):
+        if not totp_code:
+            return {
+                "2fa_required": True,
+                "user_id": user["user_id"],
+                "username": user["username"],
+                "display_name": user.get("display_name", user["username"]),
+                "avatar": user.get("avatar", "🧑‍💻"),
+                "role": user.get("role", "student"),
+            }
+        if not verify_totp_or_backup(username, totp_code):
+            return {"error": "Invalid 2FA code"}
 
     token = _create_token(
         user["user_id"], user["username"], user.get("role", "student")
@@ -198,7 +221,11 @@ def get_user(user_id: str) -> Optional[Dict[str, Any]]:
     users = _load_users()
     for user in users.values():
         if user.get("user_id") == user_id:
-            return {k: v for k, v in user.items() if k != "password_hash"}
+            return {
+                k: v
+                for k, v in user.items()
+                if k not in ("password_hash", "totp_secret")
+            }
     return None
 
 
@@ -230,10 +257,11 @@ def get_user_by_token(token: str) -> Optional[Dict[str, Any]]:
 
 
 def list_users() -> List[Dict[str, Any]]:
-    """List all users (without password hashes)."""
+    """List all users (without password hashes or TOTP secrets)."""
     users = _load_users()
     return [
-        {k: v for k, v in u.items() if k != "password_hash"} for u in users.values()
+        {k: v for k, v in u.items() if k not in ("password_hash", "totp_secret")}
+        for u in users.values()
     ]
 
 
@@ -251,3 +279,137 @@ def get_user_role(token: str) -> str:
     """Get user role from token."""
     payload = verify_token(token)
     return payload.get("role", "student") if payload else "guest"
+
+
+# =============================================================================
+# Two-Factor Authentication (TOTP)
+# =============================================================================
+
+TOTP_ISSUER = "CyberTeacher"
+
+
+def generate_totp_secret() -> str:
+    """Generate a new random TOTP secret (base32)."""
+    return pyotp.random_base32()
+
+
+def get_totp_provisioning_url(username: str, secret: str) -> str:
+    """Build otpauth:// provisioning URL for QR code."""
+    totp = pyotp.TOTP(secret)
+    return totp.provisioning_uri(name=username, issuer_name=TOTP_ISSUER)
+
+
+def generate_totp_qr_code(provisioning_url: str) -> str:
+    """Generate QR code PNG as base64 data URL."""
+    img = qrcode.make(provisioning_url)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    b64 = base64.b64encode(buf.read()).decode("ascii")
+    return f"data:image/png;base64,{b64}"
+
+
+def verify_totp_code(secret: str, code: str) -> bool:
+    """Verify a TOTP code against the secret."""
+    try:
+        totp = pyotp.TOTP(secret)
+        return totp.verify(code, valid_window=1)
+    except Exception:
+        return False
+
+
+def generate_backup_codes(count: int = 8) -> List[str]:
+    """Generate single-use backup codes."""
+    return [secrets.token_hex(4).upper() for _ in range(count)]
+
+
+def hash_backup_code(code: str) -> str:
+    """Hash a backup code for storage (bcrypt)."""
+    return bcrypt.hashpw(code.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_backup_code(stored_hash: str, code: str) -> bool:
+    """Verify a backup code against its stored hash."""
+    try:
+        return bcrypt.checkpw(code.encode("utf-8"), stored_hash.encode("utf-8"))
+    except Exception:
+        return False
+
+
+def enable_totp_for_user(username: str, secret: str, backup_codes: List[str]) -> Dict[str, Any]:
+    """Enable TOTP for a user. Stores secret and hashed backup codes."""
+    users = _load_users()
+    user = users.get(username.lower().strip())
+    if not user:
+        return {"error": "User not found"}
+
+    user["totp_secret"] = secret
+    user["totp_enabled"] = True
+    user["backup_codes"] = [
+        {"code": code, "hash": hash_backup_code(code), "used": False}
+        for code in backup_codes
+    ]
+    _save_users(users)
+    return {
+        "username": user["username"],
+        "totp_enabled": True,
+        "backup_codes": [c["code"] for c in user["backup_codes"]],
+    }
+
+
+def disable_totp_for_user(username: str) -> bool:
+    """Disable TOTP for a user."""
+    users = _load_users()
+    user = users.get(username.lower().strip())
+    if not user:
+        return False
+    user.pop("totp_secret", None)
+    user["totp_enabled"] = False
+    user.pop("backup_codes", None)
+    _save_users(users)
+    return True
+
+
+def get_totp_status(username: str) -> Dict[str, Any]:
+    """Get TOTP status for a user (without exposing secret)."""
+    users = _load_users()
+    user = users.get(username.lower().strip())
+    if not user:
+        return {"error": "User not found"}
+    return {
+        "username": user["username"],
+        "totp_enabled": bool(user.get("totp_enabled", False)),
+        "backup_codes_remaining": sum(
+            1 for c in user.get("backup_codes", []) if not c.get("used", False)
+        ),
+    }
+
+
+def consume_backup_code(username: str, code: str) -> bool:
+    """Verify and mark a backup code as used. Returns True if valid and unused."""
+    users = _load_users()
+    user = users.get(username.lower().strip())
+    if not user:
+        return False
+
+    for bc in user.get("backup_codes", []):
+        if not bc.get("used", False) and verify_backup_code(bc["hash"], code):
+            bc["used"] = True
+            _save_users(users)
+            return True
+    return False
+
+
+def verify_totp_or_backup(username: str, code: str) -> bool:
+    """Verify a TOTP code or a backup code for a user."""
+    users = _load_users()
+    user = users.get(username.lower().strip())
+    if not user:
+        return False
+
+    secret = user.get("totp_secret")
+    if secret and verify_totp_code(secret, code):
+        return True
+
+    return consume_backup_code(username, code)
+

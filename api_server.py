@@ -2975,18 +2975,20 @@ def register(username: str = "", password: str = "", display_name: str = ""):
 
 
 @_if_app("post", "/api/auth/login")
-def login(username: str = "", password: str = ""):
-    """Login and get JWT token. Rate limited."""
+def login(username: str = "", password: str = "", totp_code: str = ""):
+    """Login and get JWT token. Rate limited. Supports 2FA via totp_code."""
     if not username or not password:
         raise HTTPException(status_code=400, detail="username and password required")
     client_ip = f"login:{username}"
-    if _rate_limiter.is_limited(client_ip, cost=1, capacity=LOGIN_RATE_LIMIT, refill_rate=LOGIN_RATE_LIMIT/60):
+    if _rate_limiter.is_limited(
+        client_ip, cost=1, capacity=LOGIN_RATE_LIMIT, refill_rate=LOGIN_RATE_LIMIT / 60
+    ):
         raise HTTPException(
             status_code=429, detail="Too many login attempts. Try again later."
         )
     from auth import authenticate
 
-    result = authenticate(username, password)
+    result = authenticate(username, password, totp_code or None)
     if "error" in result:
         raise HTTPException(status_code=401, detail=result["error"])
     return result
@@ -3037,6 +3039,150 @@ def set_role(token: str = "", target_user: str = "", role: str = ""):
     if not success:
         raise HTTPException(status_code=400, detail="Invalid role")
     return {"status": "ok", "user": target_user, "role": role}
+
+
+# =============================================================================
+# Two-Factor Authentication (2FA / TOTP) endpoints
+# =============================================================================
+
+@_if_app("post", "/api/2fa/enable")
+def enable_2fa(token: str = ""):
+    """Generate TOTP secret and QR code for the user."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    from auth import get_user_by_token, generate_totp_secret, get_totp_provisioning_url, generate_totp_qr_code, generate_backup_codes, enable_totp_for_user
+
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.get("totp_enabled"):
+        raise HTTPException(status_code=400, detail="2FA already enabled")
+
+    username = user["username"]
+    secret = generate_totp_secret()
+    provisioning_url = get_totp_provisioning_url(username, secret)
+    qr_code = generate_totp_qr_code(provisioning_url)
+    backup_codes = generate_backup_codes()
+
+    result = enable_totp_for_user(username, secret, backup_codes)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    return {
+        "totp_enabled": True,
+        "qr_code": qr_code,
+        "provisioning_url": provisioning_url,
+        "secret": secret,
+        "backup_codes": result["backup_codes"],
+        "message": "2FA enabled. Save your backup codes — they cannot be recovered.",
+    }
+
+
+@_if_app("post", "/api/2fa/verify")
+def verify_2fa_setup(token: str = "", code: str = ""):
+    """Confirm 2FA setup by verifying a TOTP code."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    if not code:
+        raise HTTPException(status_code=400, detail="code required")
+    from auth import get_user_by_token, verify_totp_code
+
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    secret = user.get("totp_secret")  # get_user_by_token excludes totp_secret; reload
+    from auth import _load_users
+    users = _load_users()
+    stored = users.get(user["username"].lower().strip())
+    if not stored or not stored.get("totp_secret"):
+        raise HTTPException(status_code=400, detail="2FA setup not initiated")
+
+    if not verify_totp_code(stored["totp_secret"], code):
+        raise HTTPException(status_code=400, detail="Invalid TOTP code")
+
+    return {"verified": True, "message": "2FA setup confirmed"}
+
+
+@_if_app("post", "/api/2fa/disable")
+def disable_2fa(token: str = "", code: str = ""):
+    """Disable 2FA. Requires a valid TOTP/backup code."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    from auth import get_user_by_token, verify_totp_or_backup, disable_totp_for_user
+
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.get("totp_enabled"):
+        raise HTTPException(status_code=400, detail="2FA not enabled")
+
+    if not code:
+        raise HTTPException(status_code=400, detail="2FA code required to disable")
+
+    if not verify_totp_or_backup(user["username"], code):
+        raise HTTPException(status_code=400, detail="Invalid 2FA code")
+
+    disable_totp_for_user(user["username"])
+    return {"status": "ok", "message": "2FA disabled"}
+
+
+@_if_app("get", "/api/2fa/status")
+def get_2fa_status(token: str = ""):
+    """Get 2FA status for the current user."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    from auth import get_user_by_token, get_totp_status
+
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    status = get_totp_status(user["username"])
+    if "error" in status:
+        raise HTTPException(status_code=404, detail=status["error"])
+    return status
+
+
+@_if_app("post", "/api/2fa/backup-codes")
+def regenerate_backup_codes(token: str = ""):
+    """Regenerate backup codes (invalidates old ones)."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    from auth import (
+        get_user_by_token,
+        _load_users,
+        generate_backup_codes,
+        hash_backup_code,
+    )
+
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.get("totp_enabled"):
+        raise HTTPException(status_code=400, detail="2FA not enabled")
+
+    backup_codes = generate_backup_codes()
+    users = _load_users()
+    stored = users.get(user["username"].lower().strip())
+    stored["backup_codes"] = [
+        {"code": code, "hash": hash_backup_code(code), "used": False}
+        for code in backup_codes
+    ]
+    _save_users(users)
+
+    return {
+        "backup_codes": backup_codes,
+        "message": "Backup codes regenerated. Old codes are invalid.",
+    }
+
+
+# =============================================================================
+# End of 2FA endpoints
+# =============================================================================
 
 
 @_if_app("get", "/api/report")

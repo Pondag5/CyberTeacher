@@ -16,7 +16,7 @@ All features from **STORY_IMPLEMENTATION_PLAN.md** are complete (15/15). This do
 |------|---------|-------------|--------|--------------|
 | ECO-01 | **Mobile App (TWA)** | 🔄 In Progress — `twa/` проект создан: `twa_manifest.json`, `AndroidManifest.xml` (LauncherActivity), `assetlinks.json`, build-конфиг, Gradle wrapper. Нужен signing keystore и замена `cyberteacher.local` на реальный домен. | 2-4 недели | PWA ready, keystore, assetlinks |
 | ECO-02 | **OAuth2 (Google, GitHub)** | Authlib integration, JWT with role claim, account linking | 1-2 weeks | auth.py, JWT |
-| ECO-03 | **2FA (TOTP)** | pyotp, QR code in profile, backup codes, mandatory for admin | 1 week | auth.py, QR lib |
+| ECO-03 | **2FA (TOTP)** | 🔄 In Progress — `auth.py` extended with TOTP secret/backup codes, `api_server.py` endpoints: `/api/2fa/enable`, `/api/2fa/verify`, `/api/2fa/disable`, `/api/2fa/status`, `/api/2fa/backup-codes`. Login flow supports `totp_code` and returns `2fa_required`. | 1 week | auth.py, pyotp, qrcode |
 | ECO-08 | **Mobile App (React Native)** | ❌ Отменено в пользу TWA (ECO-01). RN требует переписывания всех 58+ вкладок, дублирует работу. | — | ECO-01 |
 
 ---
