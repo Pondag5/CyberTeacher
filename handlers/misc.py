@@ -820,13 +820,28 @@ def handle_story_mode(action: str) -> HandlerResult:
             try:
                 from services.learning_memory_service import get_learning_memory_service
 
-                get_learning_memory_service().record_event(
-                    topic="story",
-                    event_type="breakthrough",
-                    resolution=result_text,
-                    context_ref=f"story:submit:{flag}",
-                    importance=0.8,
-                )
+                learning_svc = get_learning_memory_service()
+                if "✅ ЭПИЗОД" in result_text:
+                    learning_svc.record_event(
+                        topic="story",
+                        event_type="breakthrough",
+                        resolution=result_text,
+                        context_ref=f"story:submit:{flag}",
+                        importance=0.8,
+                    )
+                elif "Неверный флаг" in result_text:
+                    st = get_state()
+                    ep_id = getattr(st, "current_story_episode", None)
+                    learning_svc.record_event(
+                        topic=f"story:episode:{ep_id}" if ep_id else "story",
+                        event_type="error",
+                        user_belief=flag,
+                        correct_model="",
+                        root_cause="Неверный флаг",
+                        resolution=result_text,
+                        context_ref=f"story:submit_fail:{flag}",
+                        importance=0.6,
+                    )
             except (ImportError, RuntimeError, Exception):
                 pass
         except Exception as e:

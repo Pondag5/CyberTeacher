@@ -223,9 +223,30 @@ def handle_quiz_action() -> HandlerResult:
 
         # Дать рекомендации с учётом personality
         try:
-            from personality import get_personality_prompt_modifiers
+            from context_awareness import get_context_info
+            from personality import apply_personality_drift
 
-            personality_modifiers = get_personality_prompt_modifiers()
+            ctx_info = get_context_info(
+                session_start=getattr(state_obj, "metrics", {}).get(
+                    "start_time", 0
+                ),
+                messages_this_session=0,
+            )
+            try:
+                from services.learning_memory_service import (
+                    get_learning_memory_service,
+                )
+
+                learning_svc = get_learning_memory_service()
+                weak = learning_svc.get_weak_topics(limit=3)
+                ctx_info["weak_topics_count"] = len(weak)
+                ctx_info["recent_errors"] = sum(
+                    item["error_count"] for item in weak
+                )
+            except (ImportError, RuntimeError, Exception):
+                ctx_info.setdefault("weak_topics_count", 0)
+                ctx_info.setdefault("recent_errors", 0)
+            personality_modifiers = apply_personality_drift(ctx_info)
         except (ImportError, RuntimeError, Exception):
             personality_modifiers = ""
 
@@ -580,9 +601,30 @@ def handle_code_review(action: str, conn: Any = None) -> HandlerResult:
     llm = get_llm()
 
     try:
-        from personality import get_personality_prompt_modifiers
+        from context_awareness import get_context_info
+        from personality import apply_personality_drift
 
-        personality_modifiers = get_personality_prompt_modifiers()
+        ctx = get_context()
+        st = ctx.state
+        ctx_info = get_context_info(
+            session_start=getattr(st, "metrics", {}).get("start_time", 0),
+            messages_this_session=0,
+        )
+        try:
+            from services.learning_memory_service import (
+                get_learning_memory_service,
+            )
+
+            learning_svc = get_learning_memory_service()
+            weak = learning_svc.get_weak_topics(limit=3)
+            ctx_info["weak_topics_count"] = len(weak)
+            ctx_info["recent_errors"] = sum(
+                item["error_count"] for item in weak
+            )
+        except (ImportError, RuntimeError, Exception):
+            ctx_info.setdefault("weak_topics_count", 0)
+            ctx_info.setdefault("recent_errors", 0)
+        personality_modifiers = apply_personality_drift(ctx_info)
     except (ImportError, RuntimeError, Exception):
         personality_modifiers = ""
 

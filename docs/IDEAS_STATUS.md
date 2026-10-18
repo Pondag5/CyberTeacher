@@ -144,6 +144,19 @@
 
 ---
 
+## Improvement Plan — Teacher Brain & Knowledge Base (`docs/IMPROVEMENT_PLAN.md`)
+
+| ID | Task | Status | Where |
+|----|------|--------|-------|
+| T1 | Persist BM25 index and verify reload | ✅ Done | `knowledge.py`, `tests/test_knowledge.py` |
+| T2 | CLI `/learning_memory` command | ✅ Done | `handlers/misc.py`, `handlers/core.py`, `handlers/__init__.py` |
+| T3 | API endpoints for learning memory | ✅ Done | `api_server.py` |
+| T4 | Extend learning events sources (story/lab/exploit failures) | ✅ Done | `handlers/misc.py` (story submit fail records `error` event) |
+| T5 | Personality drift in non-chat responses | ✅ Done | `personality.py` (`apply_personality_drift` in `quiz.py`, `story_mode.py`, `handlers/hints.py`) |
+| T6 | Embeddings model warm-up / caching | ✅ Done | `config.py` `LazyLoader` (class-level cache) + `api_server.py` startup `warm_up()` |
+
+---
+
 ## Architecture / ADR (`docs/adr/`)
 
 | ADR | Title | Status |
@@ -153,8 +166,6 @@
 | 0003 | LLM Caching (SQLite + TTL) | ✅ Implemented |
 | 0004 | Singleton AppState via `get_state()` | ✅ Implemented |
 | 0005 | Rate Limiting (sliding window) | ✅ Implemented |
-
----
 
 ## Key Insights
 
