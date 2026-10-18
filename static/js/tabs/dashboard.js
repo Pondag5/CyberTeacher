@@ -39,47 +39,13 @@ window.Tab_dashboard = {
                 </div>
             </div>`;
 
-        // Risk indicators
+        // Risk indicators (shared component)
         const riskInner = el.querySelector('#risk-indicators-inner');
-        if (riskInner) {
-            const noiseLevel = noise.level || 0;
-            const noisePct = Math.min(noiseLevel, 100);
-            const noiseColor = noisePct > 70 ? '#ff4444' : noisePct > 40 ? '#ff8800' : '#44bb44';
-            const traceActive = trace.active;
-            const tracePct = traceActive ? Math.min((trace.remaining_seconds || 0) / 180 * 100, 100) : 0;
-            const debtTotal = debts.total || 0;
-            const debtColor = debtTotal >= 5 ? '#ff4444' : debtTotal >= 3 ? '#ff8800' : 'inherit';
-
-            riskInner.innerHTML = `
-                <div style="margin-bottom:6px;">
-                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
-                        <span>\uD83D\uDCF4 Noise</span>
-                        <span>${noisePct}%</span>
-                    </div>
-                    <div style="height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;">
-                        <div style="width:${noisePct}%;height:100%;background:${noiseColor};border-radius:3px;"></div>
-                    </div>
-                </div>
-                ${traceActive ? `
-                <div style="margin-bottom:6px;">
-                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
-                        <span>\uD83D\uDD0D Trace</span>
-                        <span>${Math.ceil((trace.remaining_seconds||0)/60)}m ${(trace.remaining_seconds||0)%60}s</span>
-                    </div>
-                    <div style="height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;">
-                        <div style="width:${tracePct}%;height:100%;background:#ff4444;border-radius:3px;"></div>
-                    </div>
-                    <div style="font-size:0.7rem;color:var(--text-secondary);">Target: ${trace.target||'?'}</div>
-                </div>
-                ` : ''}
-                <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
-                    <span>\uD83D\uDCB3 Debts</span>
-                    <span style="color:${debtColor};">${debtTotal}</span>
-                </div>
-                <button class="btn-secondary" style="margin-top:6px;width:100%;font-size:0.8rem;" onclick="apiCall('/api/stealth/toggle',{method:'POST'}).then(()=>loadInitialData())">
-                    \uD83E\uDD77 Toggle Stealth
-                </button>
-            `;
+        if (riskInner && typeof renderRiskIndicators === 'function') {
+            renderRiskIndicators(riskInner);
+            updateRiskIndicators();
+        } else if (riskInner) {
+            riskInner.innerHTML = '<p style="color:var(--text-secondary);">Risk indicators unavailable</p>';
         }
 
         const historyRes = await apiCall('/api/history?limit=10').catch(() => ({ history: [] }));

@@ -3484,6 +3484,24 @@ def toggle_stealth():
         return {"active": False, "message": str(e)}
 
 
+# --- Knowledge Base: forced reindex ---
+@_if_app("post", "/api/knowledge/reindex")
+def reindex_knowledge_api():
+    """Принудительная переиндексация базы знаний (FAISS + BM25)."""
+    try:
+        from knowledge import force_reindex, get_knowledge_status
+
+        ok = force_reindex()
+        status = get_knowledge_status()
+        return {
+            "ok": bool(ok),
+            "files_on_disk": status.get("files_on_disk", 0),
+            "message": "index rebuilt" if ok else "reindex failed",
+        }
+    except Exception as e:
+        return {"ok": False, "message": str(e)}
+
+
 # --- Target Machine API ---
 @_if_app("get", "/api/targets")
 def list_targets():

@@ -1181,12 +1181,12 @@ def handle_reindex_knowledge(action: str) -> HandlerResult:
     category = parts[1].lower() if len(parts) > 1 else None
 
     try:
-        from knowledge import load_knowledge_base, get_knowledge_status, _infer_category
+        from knowledge import force_reindex, get_knowledge_status, _infer_category
 
-        console.print("[bold cyan]🔄 Переиндексация базы знаний...[/bold cyan]")
-        vectordb = load_knowledge_base()
-        if vectordb is None:
-            console.print("[red]Не удалось загрузить/построить индекс[/red]")
+        console.print("[bold cyan]🔄 Принудительная переиндексация базы знаний...[/bold cyan]")
+        ok = force_reindex()
+        if not ok:
+            console.print("[red]Не удалось перестроить индекс[/red]")
             return True, None, None, True
 
         status = get_knowledge_status()

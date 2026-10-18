@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import pickle
+import shutil
 import time
 from typing import Any, Dict, List, Optional
 
@@ -250,6 +251,28 @@ def reindex_if_needed() -> bool:
         result = load_knowledge_base()
         return result is not None
     return False
+
+
+def force_reindex() -> bool:
+    """Принудительная переиндексация базы знаний независимо от таймстампов.
+
+    Удаляет существующий persistent индекс и перестраивает его из исходных
+    файлов knowledge_base/ + docs/. Возвращает True при успехе.
+    """
+    global _INDEX_TIMESTAMP, _current_vectordb, _bm25_index, _all_docs_store
+    try:
+        if os.path.exists(PERSIST_DIR):
+            shutil.rmtree(PERSIST_DIR)
+        _INDEX_TIMESTAMP = 0.0
+        _current_vectordb = None
+        _bm25_index = None
+        _all_docs_store = []
+        clear_kb_cache()
+        vectordb = load_knowledge_base()
+        return vectordb is not None
+    except Exception as e:
+        logger.error(f"Force reindex failed: {e}")
+        return False
 
 
 def _load_docs_from_dir(directory: str):
