@@ -116,7 +116,7 @@
 
 | ID | Feature | Status | Effort | Dependencies |
 |----|---------|--------|--------|--------------|
-| P3-1 | Mobile App (React Native / TWA) | 🔄 In Progress — TWA wrapper над PWA (решение: TWA, не RN) | `twa/`, `static/manifest.json`, `static/sw.js` |
+| P3-1 | Mobile App (React Native / TWA) | ✅ Done — TWA wrapper над PWA. Keystore, fingerprint, assetlinks.json, GitHub Actions workflow готовы. Осталось: 4 секрета в GitHub Settings + тег v1.0.0. | `twa/`, `app/src/main/`, `.github/workflows/build-twa-apk.yml` |
 | P3-2 | OAuth2 (Google, GitHub) | 🔄 In Progress — `auth.py` + `api_server.py`: OAuth2 flow, account linking, JWT issuance. Needs real client_id/secret from Google/GitHub consoles. | `auth.py`, `api_server.py` |
 | P3-3 | 2FA (TOTP) | 🔄 In Progress — `auth.py` + `api_server.py` implemented: TOTP secret, QR code, backup codes, login flow with `2fa_required` | `auth.py`, `api_server.py` |
 | P3-4 | Multi-user Auth (Roles) | 📋 Planned | 1 week | auth.py, JWT |
