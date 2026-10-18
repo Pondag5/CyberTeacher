@@ -3185,6 +3185,145 @@ def regenerate_backup_codes(token: str = ""):
 # =============================================================================
 
 
+# =============================================================================
+# OAuth2 (Google, GitHub) endpoints
+# =============================================================================
+
+@_if_app("get", "/api/auth/oauth/{provider}")
+def oauth_start(provider: str, redirect_uri: str = ""):
+    """Start OAuth2 authorization flow. Returns authorization URL."""
+    if not redirect_uri:
+        raise HTTPException(status_code=400, detail="redirect_uri required")
+    from auth import get_oauth_provider, oauth_authorize_url
+
+    cfg = get_oauth_provider(provider)
+    if not cfg:
+        raise HTTPException(status_code=400, detail=f"OAuth provider '{provider}' not configured")
+
+    state = secrets.token_urlsafe(32)
+    # Store state in session/temp for verification on callback (simplified: in-memory)
+    if not hasattr(oauth_start, "_states"):
+        oauth_start._states: Dict[str, str] = {}
+    oauth_start._states[state] = provider
+
+    auth_url = oauth_authorize_url(provider, redirect_uri, state)
+    if not auth_url:
+        raise HTTPException(status_code=500, detail="Failed to build authorization URL")
+
+    return {"auth_url": auth_url, "state": state}
+
+
+@_if_app("get", "/api/auth/oauth/{provider}/callback")
+def oauth_callback(provider: str, code: str = "", state: str = "", redirect_uri: str = ""):
+    """OAuth2 callback. Exchanges code for token, gets user info, creates/links user, returns JWT."""
+    if not code:
+        raise HTTPException(status_code=400, detail="code required")
+    if not state:
+        raise HTTPException(status_code=400, detail="state required")
+    from auth import (
+        get_oauth_provider,
+        oauth_exchange_code,
+        oauth_get_userinfo,
+        get_or_create_oauth_user,
+        oauth_create_token,
+    )
+
+    # Verify state
+    states = getattr(oauth_start, "_states", {})
+    if state not in states or states[state].lower() != provider.lower():
+        raise HTTPException(status_code=400, detail="Invalid state parameter")
+    del states[state]
+
+    cfg = get_oauth_provider(provider)
+    if not cfg:
+        raise HTTPException(status_code=400, detail=f"OAuth provider '{provider}' not configured")
+
+    token_data = oauth_exchange_code(provider, code, redirect_uri)
+    if not token_data:
+        raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+
+    userinfo = oauth_get_userinfo(provider, token_data)
+    if not userinfo:
+        raise HTTPException(status_code=400, detail="Failed to get user info from provider")
+
+    provider_user_id = userinfo.get("provider_user_id", "")
+    email = userinfo.get("email", "")
+    name = userinfo.get("name", "")
+    picture = userinfo.get("picture", "")
+
+    if not provider_user_id or not email:
+        raise HTTPException(status_code=400, detail="Provider did not return user ID or email")
+
+    user = get_or_create_oauth_user(provider, provider_user_id, email, name, picture)
+    token = oauth_create_token(user["user_id"], user["username"], user["role"])
+
+    return {
+        "token": token,
+        "user_id": user["user_id"],
+        "username": user["username"],
+        "display_name": user["display_name"],
+        "avatar": user["avatar"],
+        "role": user["role"],
+        "linked": user["linked"],
+        "provider": provider,
+        "email": email,
+    }
+
+
+@_if_app("get", "/api/auth/oauth/providers")
+def oauth_providers():
+    """List configured OAuth providers."""
+    from auth import get_oauth_provider, OAUTH_PROVIDERS
+
+    result = {}
+    for name, cfg in OAUTH_PROVIDERS.items():
+        result[name] = {
+            "configured": bool(cfg.get("client_id") and cfg.get("client_secret")),
+            "scope": cfg.get("scope", ""),
+        }
+    return {"providers": result}
+
+
+@_if_app("get", "/api/auth/oauth/links")
+def oauth_links_list(token: str = ""):
+    """List OAuth accounts linked to the current user."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    from auth import get_user_by_token, get_oauth_links
+
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    links = get_oauth_links(user["username"])
+    return {"links": links}
+
+
+@_if_app("post", "/api/auth/oauth/unlink")
+def oauth_unlink(token: str = "", provider: str = ""):
+    """Unlink an OAuth provider from the current user."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    if not provider:
+        raise HTTPException(status_code=400, detail="provider required")
+    from auth import get_user_by_token, unlink_oauth_from_user
+
+    user = get_user_by_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    success = unlink_oauth_from_user(user["username"], provider)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to unlink provider")
+
+    return {"status": "ok", "provider": provider}
+
+
+# =============================================================================
+# End of OAuth2 endpoints
+# =============================================================================
+
+
 @_if_app("get", "/api/report")
 def export_report(token: str = ""):
     """Generate and return HTML training report."""

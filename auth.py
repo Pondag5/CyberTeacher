@@ -22,6 +22,9 @@ from typing import Any, Dict, List, Optional
 import bcrypt
 import pyotp
 import qrcode
+from jose import jwt as jose_jwt
+from oauthlib.oauth2 import WebApplicationClient
+import requests
 
 
 USERS_FILE = "./memory/users.json"
@@ -118,6 +121,7 @@ def create_user(
         "totp_enabled": False,
         "totp_secret": None,
         "backup_codes": [],
+        "oauth_links": [],
     }
     users[username_lower] = user
     _save_users(users)
@@ -224,7 +228,7 @@ def get_user(user_id: str) -> Optional[Dict[str, Any]]:
             return {
                 k: v
                 for k, v in user.items()
-                if k not in ("password_hash", "totp_secret")
+                if k not in ("password_hash", "totp_secret", "oauth_links")
             }
     return None
 
@@ -257,10 +261,10 @@ def get_user_by_token(token: str) -> Optional[Dict[str, Any]]:
 
 
 def list_users() -> List[Dict[str, Any]]:
-    """List all users (without password hashes or TOTP secrets)."""
+    """List all users (without password hashes, TOTP secrets, or OAuth links)."""
     users = _load_users()
     return [
-        {k: v for k, v in u.items() if k not in ("password_hash", "totp_secret")}
+        {k: v for k, v in u.items() if k not in ("password_hash", "totp_secret", "oauth_links")}
         for u in users.values()
     ]
 
@@ -412,4 +416,290 @@ def verify_totp_or_backup(username: str, code: str) -> bool:
         return True
 
     return consume_backup_code(username, code)
+
+
+# =============================================================================
+# OAuth2 (Google, GitHub)
+# =============================================================================
+
+OAUTH_PROVIDERS: Dict[str, Dict[str, str]] = {
+    "google": {
+        "client_id": os.getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
+        "client_secret": os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
+        "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        "userinfo_url": "https://www.googleapis.com/oauth2/v2/userinfo",
+        "scope": "openid email profile",
+    },
+    "github": {
+        "client_id": os.getenv("GITHUB_OAUTH_CLIENT_ID", ""),
+        "client_secret": os.getenv("GITHUB_OAUTH_CLIENT_SECRET", ""),
+        "authorize_url": "https://github.com/login/oauth/authorize",
+        "token_url": "https://github.com/login/oauth/access_token",
+        "userinfo_url": "https://api.github.com/user",
+        "scope": "read:user user:email",
+    },
+}
+
+
+def get_oauth_provider(provider: str) -> Optional[Dict[str, str]]:
+    """Return OAuth provider config or None if not configured."""
+    cfg = OAUTH_PROVIDERS.get(provider.lower())
+    if not cfg:
+        return None
+    if not cfg["client_id"] or not cfg["client_secret"]:
+        return None
+    return cfg
+
+
+def oauth_authorize_url(provider: str, redirect_uri: str, state: str) -> Optional[str]:
+    """Build OAuth authorization URL for the given provider."""
+    cfg = get_oauth_provider(provider)
+    if not cfg:
+        return None
+    client = WebApplicationClient(cfg["client_id"])
+    url = client.prepare_request_uri(
+        cfg["authorize_url"],
+        redirect_uri=redirect_uri,
+        scope=cfg["scope"],
+        state=state,
+        access_type="offline",
+        prompt="consent",
+    )
+    return url
+
+
+def oauth_exchange_code(
+    provider: str, code: str, redirect_uri: str
+) -> Optional[Dict[str, Any]]:
+    """Exchange authorization code for access token."""
+    cfg = get_oauth_provider(provider)
+    if not cfg:
+        return None
+    client = WebApplicationClient(cfg["client_id"])
+    token_url, headers, body = client.prepare_token_request(
+        cfg["token_url"],
+        authorization_response="",
+        redirect_url=redirect_uri,
+        code=code,
+    )
+    try:
+        resp = requests.post(
+            token_url,
+            headers=headers,
+            data=body,
+            auth=(cfg["client_id"], cfg["client_secret"]),
+            timeout=10,
+        )
+        resp.raise_for_status()
+        token_data = client.parse_request_body_response(resp.text)
+        return token_data
+    except Exception:
+        return None
+
+
+def oauth_get_userinfo(
+    provider: str, token_data: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
+    """Fetch user info from OAuth provider using access token."""
+    cfg = get_oauth_provider(provider)
+    if not cfg:
+        return None
+    access_token = token_data.get("access_token")
+    if not access_token:
+        return None
+    try:
+        resp = requests.get(
+            cfg["userinfo_url"],
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        if provider.lower() == "google":
+            return {
+                "provider_user_id": data.get("id", ""),
+                "email": data.get("email", ""),
+                "name": data.get("name", ""),
+                "picture": data.get("picture", ""),
+                "verified_email": data.get("verified_email", False),
+            }
+        elif provider.lower() == "github":
+            emails = []
+            try:
+                eresp = requests.get(
+                    "https://api.github.com/user/emails",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    timeout=10,
+                )
+                if eresp.ok:
+                    emails = eresp.json()
+            except Exception:
+                pass
+            primary_email = ""
+            for e in emails:
+                if e.get("primary"):
+                    primary_email = e.get("email", "")
+                    break
+            return {
+                "provider_user_id": str(data.get("id", "")),
+                "email": primary_email or data.get("email", ""),
+                "name": data.get("name") or data.get("login", ""),
+                "picture": data.get("avatar_url", ""),
+                "verified_email": bool(primary_email),
+            }
+        return None
+    except Exception:
+        return None
+
+
+def get_or_create_oauth_user(
+    provider: str, provider_user_id: str, email: str, name: str, picture: str = ""
+) -> Dict[str, Any]:
+    """Find existing user by OAuth link or email, or create new user."""
+    users = _load_users()
+    username_lower = email.split("@")[0].lower().strip() if email else ""
+
+    # 1. Look for existing OAuth link
+    for user in users.values():
+        oauth_links = user.get("oauth_links", [])
+        for link in oauth_links:
+            if (
+                link.get("provider") == provider.lower()
+                and link.get("provider_user_id") == provider_user_id
+            ):
+                return {
+                    "user_id": user["user_id"],
+                    "username": user["username"],
+                    "display_name": user.get("display_name", user["username"]),
+                    "avatar": user.get("avatar", "🧑‍💻"),
+                    "role": user.get("role", "student"),
+                    "linked": True,
+                }
+
+    # 2. Look for existing user by email
+    for user in users.values():
+        if user.get("email", "").lower() == email.lower():
+            if "oauth_links" not in user:
+                user["oauth_links"] = []
+            user["oauth_links"].append(
+                {
+                    "provider": provider.lower(),
+                    "provider_user_id": provider_user_id,
+                    "email": email,
+                    "linked_at": time.time(),
+                }
+            )
+            _save_users(users)
+            return {
+                "user_id": user["user_id"],
+                "username": user["username"],
+                "display_name": user.get("display_name", user["username"]),
+                "avatar": user.get("avatar", "🧑‍💻"),
+                "role": user.get("role", "student"),
+                "linked": True,
+            }
+
+    # 3. Create new user
+    if not username_lower or len(username_lower) < 3:
+        username_lower = f"oauth_{provider}_{provider_user_id}"[:20]
+    base = username_lower
+    counter = 1
+    while username_lower in users:
+        username_lower = f"{base}{counter}"
+        counter += 1
+
+    user = {
+        "username": username_lower,
+        "display_name": name or username_lower,
+        "password_hash": "",
+        "email": email,
+        "avatar": picture or "🧑‍💻",
+        "created_at": time.time(),
+        "role": "admin" if not users else "student",
+        "user_id": f"user_{username_lower}",
+        "totp_enabled": False,
+        "totp_secret": None,
+        "backup_codes": [],
+        "oauth_links": [
+            {
+                "provider": provider.lower(),
+                "provider_user_id": provider_user_id,
+                "email": email,
+                "linked_at": time.time(),
+            }
+        ],
+    }
+    users[username_lower] = user
+    _save_users(users)
+    return {
+        "user_id": user["user_id"],
+        "username": user["username"],
+        "display_name": user["display_name"],
+        "avatar": user["avatar"],
+        "role": user["role"],
+        "linked": False,
+    }
+
+
+def link_oauth_to_user(
+    username: str, provider: str, provider_user_id: str, email: str
+) -> bool:
+    """Link an OAuth account to an existing user."""
+    users = _load_users()
+    user = users.get(username.lower().strip())
+    if not user:
+        return False
+    if "oauth_links" not in user:
+        user["oauth_links"] = []
+    for link in user["oauth_links"]:
+        if link.get("provider") == provider.lower():
+            return False
+    user["oauth_links"].append(
+        {
+            "provider": provider.lower(),
+            "provider_user_id": provider_user_id,
+            "email": email,
+            "linked_at": time.time(),
+        }
+    )
+    _save_users(users)
+    return True
+
+
+def unlink_oauth_from_user(username: str, provider: str) -> bool:
+    """Unlink an OAuth account from a user."""
+    users = _load_users()
+    user = users.get(username.lower().strip())
+    if not user:
+        return False
+    oauth_links = user.get("oauth_links", [])
+    user["oauth_links"] = [
+        l for l in oauth_links if l.get("provider") != provider.lower()
+    ]
+    _save_users(users)
+    return True
+
+
+def get_oauth_links(username: str) -> List[Dict[str, Any]]:
+    """List OAuth links for a user (without sensitive data)."""
+    users = _load_users()
+    user = users.get(username.lower().strip())
+    if not user:
+        return []
+    links = user.get("oauth_links", [])
+    return [
+        {
+            "provider": l.get("provider"),
+            "email": l.get("email"),
+            "linked_at": l.get("linked_at"),
+        }
+        for l in links
+    ]
+
+
+def oauth_create_token(user_id: str, username: str, role: str = "student") -> str:
+    """Create JWT token (reuses HS256 signing)."""
+    return _create_token(user_id, username, role)
 
