@@ -147,8 +147,15 @@ class BM25Retriever:
     """Simple BM25 retriever for hybrid search."""
 
     def __init__(self, documents: List[str], tokenizer=None):
+        global BM25Okapi, BM25_ENABLED
         if BM25Okapi is None:
-            raise RuntimeError("rank_bm25 not installed")
+            try:
+                from rank_bm25 import BM25Okapi as _BM25Okapi
+
+                BM25Okapi = _BM25Okapi
+                BM25_ENABLED = True
+            except ImportError:
+                raise RuntimeError("rank_bm25 not installed")
         self.documents = documents
         tokenized = [tokenizer(doc) for doc in documents]
         self.bm25 = BM25Okapi(tokenized)
