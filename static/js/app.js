@@ -43,6 +43,8 @@ const TAB_SOURCES = {
     media: 'js/tabs/media.js',
     context: 'js/tabs/context.js',
     doctor: 'js/tabs/doctor.js',
+    rewind: 'js/tabs/rewind.js',
+    secret: 'js/tabs/secret.js',
     mistakes: 'js/tabs/mistakes.js', feedback: 'js/tabs/feedback.js',
     settings: 'js/tabs/settings.js'
 };
@@ -109,7 +111,9 @@ const tabs = [
     { id: 'media', icon: 'fa-play-circle', label: 'Media' },
     { id: 'leaderboard', icon: 'fa-medal', label: '\u0420\u0435\u043A\u043E\u0440\u0434\u044B' },
     { id: 'admin', icon: 'fa-cog', label: '\u0410\u0434\u043C\u0438\u043D' },
-    { id: 'doctor', icon: 'fa-stethoscope', label: '\u0414\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0430' },
+    { id: 'doctor', icon: 'fa-stethoscope', label: '\u0414\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430' },
+    { id: 'rewind', icon: 'fa-hourglass-start', label: '\u0420\u0435\u0432\u0438\u043d\u0434' },
+    { id: 'secret', icon: 'fa-door-open', label: '\u0422\u0410\u0419\u041d\u0410\u042f \u041a\u041e\u041c\u041d\u0410\u0422\u0410' },
     { id: 'context', icon: 'fa-database', label: '\u041A\u043E\u043D\u0442\u0435\u043A\u0441\u0442' },
     { id: 'mistakes', icon: 'fa-exclamation-triangle', label: '\u041E\u0448\u0438\u0431\u043A\u0438' },
     { id: 'feedback', icon: 'fa-comment-dots', label: '\u041E\u0442\u0437\u044B\u0432' },
