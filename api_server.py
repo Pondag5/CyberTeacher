@@ -296,6 +296,14 @@ if FASTAPI_AVAILABLE and app is not None and os.path.exists("static"):
     def read_icon_512() -> FileResponse:
         return FileResponse("static/icon-512.png", media_type="image/png")
 
+    @app.get("/.well-known/assetlinks.json")
+    def read_assetlinks() -> FileResponse:
+        return FileResponse(
+            "static/.well-known/assetlinks.json",
+            media_type="application/json",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+
 
 class QuizResult(BaseModel):
     topic: str
