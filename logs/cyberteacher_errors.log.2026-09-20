@@ -1,0 +1,24 @@
+2026-09-20 13:39:15 | ERROR    | handlers.bug_bounty | LLM review failed: LLM down
+2026-09-20 13:39:17 | WARNING  | huggingface_hub.utils._http | Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-09-20 13:39:34 | ERROR    | knowledge | Failed to add PDF test.pdf: File path test.pdf is not a valid file or url
+2026-09-20 13:39:42 | WARNING  | knowledge | Failed to load file /nonexistent/path/file.txt: Error loading /nonexistent/path/file.txt
+2026-09-20 13:39:42 | WARNING  | pypdf._reader | invalid pdf header: b'pdf'
+2026-09-20 13:39:42 | WARNING  | pypdf._reader | EOF marker not found
+2026-09-20 13:39:42 | WARNING  | pypdf._reader | EOF marker not found
+2026-09-20 13:39:42 | WARNING  | knowledge | Failed to load file C:\Users\ADMINI~1\AppData\Local\Temp\tmp52tasu8c\test.pdf: Stream has ended unexpectedly
+2026-09-20 13:39:42 | ERROR    | knowledge | File not found: /nonexistent/path.pdf
+2026-09-20 13:39:42 | WARNING  | knowledge | No chunks extracted from C:\Users\ADMINI~1\AppData\Local\Temp\tmp11uh3gzo.pdf
+2026-09-20 13:39:45 | ERROR    | services.learning_memory_service | Failed to record learning event: (sqlite3.OperationalError) no such table: learning_events
+[SQL: INSERT INTO learning_events (user_id, timestamp, topic, event_type, user_belief, correct_model, root_cause, resolution, context_ref, embedding, importance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('default', '2026-09-20 10:39:45.166130', 'web', 'breakthrough', '', '', '', "Миссия 'test_mission' завершена", 'mission:test_mission', '[0.04441124573349953, -0.012890063226222992, -0.046044960618019104, -0.06752822548151016, 0.06412104517221451, -0.0050973049364984035, 0.063024647533 ... (8071 characters truncated) ... 03243062645196915, -0.04270610585808754, -0.03643902391195297, 0.059161245822906494, 0.041087742894887924, 0.08235390484333038, 0.032376497983932495]', 0.8)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-09-20 13:39:45 | ERROR    | handlers.pcap_analyzer | Error parsing pcap: Not a valid pcap file
+2026-09-20 13:39:45 | WARNING  | quiz_generator | No JSON block in LLM response for assignment
+2026-09-20 13:39:45 | WARNING  | quiz_generator | No JSON block in LLM response for quiz
+2026-09-20 13:39:45 | ERROR    | quiz_generator | Error generating quiz: LLM unavailable
+2026-09-20 13:39:48 | WARNING  | resilient_llm | Provider bad_provider failed after 3 attempts: down
+2026-09-20 13:39:49 | WARNING  | resilient_llm | Provider bad_provider failed after 3 attempts: down
+2026-09-20 13:39:51 | WARNING  | resilient_llm | Circuit breaker OPEN after 3 failures: down
+2026-09-20 13:39:51 | WARNING  | resilient_llm | Provider bad_provider failed after 3 attempts: down
+2026-09-20 13:39:53 | WARNING  | resilient_llm | Provider failing_provider failed after 3 attempts: Provider down
+2026-09-20 13:39:56 | ERROR    | state | Corrupt state file C:\Users\ADMINI~1\AppData\Local\Temp\tmpibxi7rug.json: Expecting value: line 1 column 1 (char 0)

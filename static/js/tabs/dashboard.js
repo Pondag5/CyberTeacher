@@ -27,6 +27,13 @@ window.Tab_dashboard = {
                         <div>Flags: ${stats.flags_captured || 0} | Skills: ${stats.skills_learned || 0}</div>
                     </div>
                 </div>
+                <div class="card" id="kb-indicators-container">
+                    <h3><i class="fas fa-book"></i> Knowledge Base</h3>
+                    <div id="kb-indicators-inner" style="margin-top:8px;font-size:0.85rem;color:var(--text-secondary);">Загрузка...</div>
+                    <button id="kb-reindex-btn" class="btn-secondary" style="margin-top:10px;width:100%;font-size:0.8rem;">
+                        <i class="fas fa-sync"></i> Переиндексировать БЗ
+                    </button>
+                </div>
                 <div class="card" id="risk-indicators-container">
                     <h3><i class="fas fa-shield"></i> Risk Status</h3>
                     <div id="risk-indicators-inner"></div>
@@ -38,6 +45,52 @@ window.Tab_dashboard = {
                     </div>
                 </div>
             </div>`;
+
+        // Knowledge Base
+        const kbInner = el.querySelector('#kb-indicators-inner');
+        const kbBtn = el.querySelector('#kb-reindex-btn');
+        async function loadKBStatus() {
+            if (!kbInner) return;
+            try {
+                const res = await apiCall('/api/knowledge/status').catch(() => ({}));
+                const filesDisk = res.files_on_disk ?? res.files ?? 0;
+                const filesDb = res.files_in_db ?? res.count ?? 0;
+                const chunks = res.total_chunks ?? res.chunks ?? 0;
+                kbInner.innerHTML = `
+                    <div>Файлов на диске: <span style="color:var(--text-primary);">${filesDisk}</span></div>
+                    <div>Файлов в БЗ: <span style="color:var(--text-primary);">${filesDb}</span></div>
+                    <div>Чанков: <span style="color:var(--text-primary);">${chunks}</span></div>
+                    <div style="margin-top:4px;font-size:0.75rem;">${res.status === 'error' ? '<span style="color:var(--error);">Ошибка статуса</span>' : '<span style="color:var(--success);">Готово</span>'}</div>
+                `;
+                const statusEl = document.getElementById('statusKB');
+                if (statusEl) statusEl.textContent = `KB: ${chunks} ч.`;
+            } catch(e) {
+                kbInner.innerHTML = '<span style="color:var(--error);">Не удалось получить статус</span>';
+            }
+        }
+        loadKBStatus();
+        if (kbBtn) {
+            kbBtn.onclick = async () => {
+                kbBtn.disabled = true;
+                kbBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Переиндексация...';
+                try {
+                    const res = await apiCall('/api/knowledge/reindex', { method: 'POST' }).catch(() => ({}));
+                    if (res.status === 'ok') {
+                        kbBtn.innerHTML = '<i class="fas fa-check"></i> Готово';
+                    } else {
+                        kbBtn.innerHTML = '<i class="fas fa-times"></i> Ошибка';
+                    }
+                    await loadKBStatus();
+                    if (typeof updateRiskIndicators === 'function') updateRiskIndicators();
+                } catch(e) {
+                    kbBtn.innerHTML = '<i class="fas fa-times"></i> Ошибка';
+                }
+                setTimeout(() => {
+                    kbBtn.disabled = false;
+                    kbBtn.innerHTML = '<i class="fas fa-sync"></i> Переиндексировать БЗ';
+                }, 2000);
+            };
+        }
 
         // Risk indicators
         const riskInner = el.querySelector('#risk-indicators-inner');
@@ -88,12 +141,17 @@ window.Tab_dashboard = {
         if (history.length) {
             historyEl.innerHTML = history.map(h => `
                 <div style="padding:4px 0;border-bottom:1px solid var(--border);">
-                    <span style="color:var(--text-secondary);font-size:0.75rem;">[${h.role || h.sender || '?'}]</span>
-                    ${(h.message || h.content || '').substring(0, 100)}
+                    <div style="font-size:0.8rem;color:var(--text-secondary);">${h.timestamp ? new Date(h.timestamp).toLocaleString() : ''}</div>
+                    <div style="font-size:0.85rem;"><span style="color:var(--accent);">${h.role}:</span> ${(h.content||'').substring(0,100)}${(h.content||'').length>100?'...':''}</div>
                 </div>
             `).join('');
         } else {
             historyEl.innerHTML = '<p style="color:var(--text-secondary);">No recent activity</p>';
+        }
+
+        // Update risk indicators if present
+        if (typeof updateRiskIndicators === 'function') {
+            updateRiskIndicators();
         }
     }
 };

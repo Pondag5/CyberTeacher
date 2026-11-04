@@ -1,0 +1,75 @@
+"""Daily challenge handler."""
+
+from typing import Any, Tuple
+
+from src.gamification.daily_challenge import (
+    generate_daily_challenge,
+    get_daily_status,
+    get_hint,
+    submit_daily_answer,
+)
+from src.core.di import get_context
+from src.cli.ui import console
+from .types import HandlerResult
+
+
+
+def handle_daily(action: str) -> HandlerResult:
+    """Handle /daily command and its subcommands."""
+    ctx = get_context()
+    state = ctx.state
+    parts = action.split(maxsplit=1)
+    subcmd = parts[0].lower() if len(parts) > 0 else ""
+    arg = parts[1].strip() if len(parts) > 1 else ""
+
+    if subcmd in ("", "daily", "challenge"):
+        # Show current challenge
+        challenge = generate_daily_challenge()
+        console.print(get_daily_status())
+        console.print(f"\n[bold]Задание:[/bold] {challenge['desc']}")
+        console.print(f"[dim]Сложность: {challenge['difficulty']}[/dim]")
+        console.print("[dim]Ответь текстом или используй /daily hint[/dim]")
+        return True, None, None, True
+
+    if subcmd == "hint":
+        console.print(f"[yellow]💡 Подсказка:[/yellow] {get_hint()}")
+        return True, None, None, True
+
+    if subcmd == "status":
+        console.print(get_daily_status())
+        return True, None, None, True
+
+    if subcmd == "force":
+        # For testing — regenerate challenge
+        import os
+
+        from src.gamification.daily_challenge import CHALLENGE_FILE, _get_today_str
+
+        if os.path.exists(CHALLENGE_FILE):
+            import json
+
+            with open(CHALLENGE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            today = _get_today_str()
+            data.get("history", {}).pop(today, None)
+            with open(CHALLENGE_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f)
+        challenge = generate_daily_challenge(difficulty=arg if arg else None)
+        console.print(get_daily_status())
+        console.print(f"\n[bold]Задание:[/bold] {challenge['desc']}")
+        return True, None, None, True
+
+    # Everything else is treated as an answer to the challenge
+    result = submit_daily_answer(action)
+    if result["correct"]:
+        console.print(f"[green]✅ {result['feedback']}[/green]")
+        console.print(f"[bold]+{result['xp_reward']} XP[/bold]")
+        state.points += result["xp_reward"]
+        if result.get("streak_bonus", 0) > 0:
+            console.print(
+                f"[yellow]🔥 Бонус за стрик: +{result['streak_bonus']} XP[/yellow]"
+            )
+    else:
+        console.print(f"[yellow]❌ {result['feedback']}[/yellow]")
+
+    return True, None, None, True

@@ -56,8 +56,27 @@ def save_message(conn: Any, role: str, content: str, mode: str = "teacher") -> N
     conn.commit()
 
 
+def search_chat_history(conn: Any, query: str, limit: int = 20) -> list[dict[str, str]]:
+    """Поиск по истории чата."""
+    if not query:
+        return get_chat_history(conn, limit)
+    q = query.lower()
+    try:
+        rows = conn.query(Message).order_by(Message.id.desc()).limit(200).all()
+        results = []
+        for r in rows:
+            content = r.content or ""
+            if q in content.lower():
+                results.append({"role": r.role, "content": content, "mode": getattr(r, "mode", None), "timestamp": r.timestamp.isoformat() if r.timestamp else None})
+                if len(results) >= limit:
+                    break
+        return list(reversed(results))
+    except Exception:
+        return []
+
+
 def get_chat_history(conn: Any, limit: int = 10) -> list[dict[str, str]]:
-    """Получить историю чата"""
+    """РџРѕР»СѓС‡РёС‚СЊ РёСЃС‚РѕСЂРёСЋ С‡Р°С‚Р°"""
     rows = conn.query(Message).order_by(Message.id.desc()).limit(limit).all()
     return [
         {"role": r.role, "content": r.content, "mode": r.mode} for r in reversed(rows)

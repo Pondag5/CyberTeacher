@@ -1,0 +1,194 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.4, pytest-9.2.0, pluggy-1.7.0 -- M:\Cyber_Teacher\Cyber_Teacher\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: M:\Cyber_Teacher\Cyber_Teacher
+configfile: pyproject.toml
+plugins: anyio-4.12.1, langsmith-0.7.12
+collecting ... collected 1271 items
+
+tests/test_achievements.py::TestAchievements::test_list_all_achievements PASSED [  0%]
+tests/test_achievements.py::TestAchievements::test_missing_file PASSED   [  0%]
+tests/test_achievements.py::TestAchievements::test_shows_earned_achievements PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_achievements_not_awarded_twice PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_apt_groups_viewed_counter PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_apt_hunter_achievement_unlocked PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_apt_hunter_expert_achievement PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_ghost_in_the_shell_achievement_unlocked PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_ghost_in_the_shell_legend_achievement PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_risk_based_stealth_not_automatic PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_snowden_achievement_unlocked PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_snowden_legend_achievement PASSED [  0%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_social_engineer_achievement_unlocked PASSED [  1%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_social_engineer_master_achievement PASSED [  1%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_social_success_counter PASSED [  1%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_stealth_ops_counter PASSED [  1%]
+tests/test_achievements_c13.py::TestAchievementsC13::test_threat_exposures_counter PASSED [  1%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_clear_weak_topics PASSED [  1%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_get_next_weak_topic_returns_none_when_all_good PASSED [  1%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_get_next_weak_topic_returns_weakest PASSED [  1%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_get_weak_topics_filters_by_threshold PASSED [  1%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_get_weak_topics_sorted_by_success_rate PASSED [  1%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_save_and_load_weak_topics PASSED [  1%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_update_weak_topic_creates_new_entry PASSED [  1%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_update_weak_topic_multiple_topics PASSED [  1%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_update_weak_topic_updates_existing PASSED [  2%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_update_weak_topic_zero_success_rate PASSED [  2%]
+tests/test_adaptive.py::TestAdaptiveLearning::test_weak_topics_initial_empty PASSED [  2%]
+tests/test_adaptive.py::TestAdaptiveCommand::test_handle_adaptive_with_no_weak_topics PASSED [  2%]
+tests/test_adaptive.py::TestAdaptiveCommand::test_handle_adaptive_with_weak_topics PASSED [  2%]
+tests/test_analytics.py::TestAnalytics::test_compute_metrics_basic PASSED [  2%]
+tests/test_analytics.py::TestAnalytics::test_compute_metrics_with_weak_topics PASSED [  2%]
+tests/test_analytics.py::TestAnalytics::test_generate_ai_recommendation PASSED [  2%]
+tests/test_analytics.py::TestAnalytics::test_generate_ai_recommendation_failure PASSED [  2%]
+tests/test_analytics.py::TestAnalytics::test_handle_analytics_returns_output PASSED [  2%]
+tests/test_api_integration.py::TestAPIIntegration::test_achievements_endpoint PASSED [  2%]
+tests/test_api_integration.py::TestAPIIntegration::test_courses_endpoint PASSED [  2%]
+tests/test_api_integration.py::TestAPIIntegration::test_health_endpoint PASSED [  2%]
+tests/test_api_integration.py::TestAPIIntegration::test_labs_endpoint PASSED [  3%]
+tests/test_api_integration.py::TestAPIIntegration::test_progress_endpoint PASSED [  3%]
+tests/test_api_integration.py::TestAPIIntegration::test_quiz_result_endpoint PASSED [  3%]
+tests/test_api_integration.py::TestAPIIntegration::test_select_course_endpoint PASSED [  3%]
+tests/test_api_integration.py::TestAPIIntegration::test_stats_endpoint PASSED [  3%]
+tests/test_api_integration.py::TestAPIVersusE2E::test_versus_scenarios_endpoint PASSED [  3%]
+tests/test_api_integration.py::TestAPIVersusE2E::test_versus_start_stop_cycle PASSED [  3%]
+tests/test_api_integration.py::TestAPILearningCycleE2E::test_full_learning_cycle_api PASSED [  3%]
+tests/test_api_integration.py::TestAPIChatE2E::test_chat_endpoint_structure FAILED [  3%]
+
+================================== FAILURES ===================================
+_________________ TestAPIChatE2E.test_chat_endpoint_structure _________________
+tests\test_api_integration.py:325: in test_chat_endpoint_structure
+    response = self.client.post("/api/chat", json=payload)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:1144: in post
+    return self.request(
+.venv\Lib\site-packages\starlette\testclient.py:518: in request
+    return super().request(
+.venv\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:928: in send
+    raise exc
+.venv\Lib\site-packages\httpx\_client.py:922: in send
+    response.read()
+.venv\Lib\site-packages\httpx\_models.py:881: in read
+    self._content = b"".join(self.iter_bytes())
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_models.py:897: in iter_bytes
+    for raw_bytes in self.iter_raw():
+.venv\Lib\site-packages\httpx\_models.py:951: in iter_raw
+    for raw_stream_bytes in self.stream:
+.venv\Lib\site-packages\httpx\_client.py:153: in __iter__
+    for chunk in self._stream:
+.venv\Lib\site-packages\starlette\testclient.py:384: in iter_body
+    exit_stack.close()
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\contextlib.py:618: in close
+    self.__exit__(None, None, None)
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\contextlib.py:610: in __exit__
+    raise exc_details[1]
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\testclient.py:399: in close_app
+    raise exception
+.venv\Lib\site-packages\anyio\from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\testclient.py:366: in run_app
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\fastapi\applications.py:1194: in __call__
+    await super().__call__(scope, receive, send)
+.venv\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+.venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv\Lib\site-packages\fastapi\telemetry\_asgi.py:151: in __call__
+    await self.app(scope, receive, send)
+src\api\api_server.py:257: in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\api\api_server.py:178: in __call__
+    return await self.app(scope, receive, send_wrapper)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\api\api_server.py:126: in __call__
+    return await self.app(scope, receive, send_wrapper)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\routing.py:683: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:2811: in app
+    await route.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1330: in handle
+    await super().handle(scope, receive, send)
+.venv\Lib\site-packages\starlette\routing.py:289: in handle
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:166: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\fastapi\routing.py:152: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\routing.py:745: in app
+    raw_response = await run_endpoint_function(
+.venv\Lib\site-packages\fastapi\routing.py:374: in run_endpoint_function
+    return await run_in_threadpool(
+.venv\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\anyio\to_thread.py:63: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+.venv\Lib\site-packages\anyio\_backends\_asyncio.py:2502: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+.venv\Lib\site-packages\anyio\_backends\_asyncio.py:986: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\telemetry\_api.py:244: in _run_sync_endpoint
+    return function(**arguments)
+           ^^^^^^^^^^^^^^^^^^^^^
+src\api\api_server.py:758: in chat_with_llm
+    f"РЎР»Р°Р±С‹Рµ С‚РµРјС‹: {', '.join(getattr(state, 'weak_topics', [])[-5:]) or 'РЅРµС‚'}\n"
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: sequence item 0: expected str instance, dict found
+------------------------------ Captured log call ------------------------------
+ERROR    src.core.config:config.py:303 langchain-groq not installed
+WARNING  src.core.config:config.py:313 HuggingFace API key missing
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastapi\testclient.py:1
+  M:\Cyber_Teacher\Cyber_Teacher\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+src\api\api_server.py:76
+  M:\Cyber_Teacher\Cyber_Teacher\src\api\api_server.py:76: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+.venv\Lib\site-packages\fastapi\applications.py:4723
+  M:\Cyber_Teacher\Cyber_Teacher\.venv\Lib\site-packages\fastapi\applications.py:4723: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_api_integration.py::TestAPIChatE2E::test_chat_endpoint_structure
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 46 passed, 3 warnings in 7.72s ===================

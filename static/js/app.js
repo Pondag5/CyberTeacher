@@ -292,8 +292,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     if (window.NotificationsWS) NotificationsWS.connect();
+    // Risk indicators update
+    if (typeof updateRiskIndicators === 'function') {
+        setTimeout(updateRiskIndicators, 800);
+        setInterval(updateRiskIndicators, 5000);
+    }
+    // KB status in bar
+    async function updateKBStatusBar() {
+        try {
+            const res = await fetch('/api/knowledge/status').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+            const chunks = res.total_chunks ?? res.chunks ?? 0;
+            const el = document.getElementById('statusKB');
+            if (el) el.textContent = `KB: ${chunks} ч.`;
+        } catch(e) {}
+    }
+    updateKBStatusBar();
+    setInterval(updateKBStatusBar, 60000);
 
-    // ── State auto-save ──
+    // в”Ђв”Ђ State auto-save в”Ђв”Ђ
     async function pwaSaveState() {
         try {
             const resp = await fetch('/api/save', { method: 'POST' });

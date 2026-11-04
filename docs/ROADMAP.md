@@ -1,6 +1,6 @@
 # CyberTeacher v6.1 — Roadmap
 
-*Last updated: 2026-09-18 | Version: 6.1*
+*Last updated: 2026-10-30 | Version: 6.1*
 
 ---
 
@@ -32,8 +32,8 @@
 
 | Week | Focus | Deliverables |
 |------|-------|--------------|
-| **1** | **Learning Memory Polish** | CLI command `/reindex_knowledge`, category-aware retrieval UI |
-| **2** | **PWA Risk Indicators** | noise bar, trace progress, debt counter |
+| **1** | **Learning Memory Polish** | CLI command `/reindex_knowledge`, category-aware retrieval UI ✅ (API + UI in progress) |
+| **2** | **PWA Risk Indicators** | noise bar, trace progress, debt counter ✅ (live updates added) |
 | **3** | **Knowledge Base UX** | force reindex, category filters in chat |
 | **4** | **Netbuk Lab Plan 1** | Docker Labs SSH management |
 | **5** | **Platform Prep** | OAuth2 foundation, 2FA groundwork |
@@ -43,43 +43,47 @@
 
 ## 📋 Prioritized Backlog
 
-### 🟢 P3 — Long-term / Platform
+### 🔴 P0 — Critical Fixes (from "НОВЫЙ ВЗГЛЯД")
 
-| ID | Feature | Effort | Dependencies |
-|----|---------|--------|--------------|
-| P3-1 | Mobile App (React Native / TWA) | 2-4 weeks | PWA ready |
-| P3-2 | OAuth2 (Google, GitHub) | 1-2 weeks | auth.py, JWT |
-| P3-3 | 2FA (TOTP) | 1 week | auth.py, pyotp |
-| P3-4 | Multi-user Auth (Roles) | 1 week | auth.py, JWT |
-| P3-5 | Admin Panel | 1 week | JWT, roles |
-| P3-6 | GDPR Export/Import | 3 days | |
-| P3-7 | SCORM Export | 2 days | `course_manager.py` |
-
-### 🟡 P2 — Infrastructure
-
-| ID | Feature | Effort | Dependencies |
-|----|---------|--------|--------------|
-| P2-1 | DB Indexes + Connection Pooling | 1-2d | SQLAlchemy |
-| P2-2 | WebSocket Pooling + Auto-reconnect | 2-3d | `api_server.py` |
-| P2-3 | LLM Response Caching (SQLite TTL + LRU) | 2-3d | `config.py` |
-| P2-4 | PWA SW stale-while-revalidate | 2-3d | `static/sw.js` |
-| P2-5 | Portable .exe build (PyInstaller) | 1-2d | PyInstaller |
+| ID | Task | Effort | Status |
+|----|------|--------|--------|
+| P0-1 | **Add `lxml` to requirements.txt** (fix XML/RSS parsing) | 5m | ⏳ TODO |
+| P0-2 | **Fix news_fetcher.py XML parsing** (use `features="xml"` where needed) | 30m | ⏳ TODO |
+| P0-3 | API Keys Rotation (manual `/keys rotate`) | 1-2d | ⏳ TODO |
+| P0-4 | JWT_SECRET + ENC_KEY hardening | 1h | ⏳ TODO |
+| P0-5 | Rate Limiting token bucket | 1-2d | ⏳ TODO |
 
 ### 🟠 P1 — Code Debt
 
-| ID | File:Line | Function | Task | Effort |
-|----|-----------|----------|------|--------|
-| P1-1 | `handlers/quiz.py` | code review | Interactive input / file read + LLM analysis | 2-3d |
-| P1-2 | `handlers/hints.py` | mission hint | Hint for current uncompleted mission step | 1-2d |
-| P1-3 | `news_fetcher.py` | XMLParsedAsHTMLWarning | Add `features="xml"` to BeautifulSoup | 1h |
+| ID | File:Line | Function | Task | Effort | Status |
+|----|-----------|----------|------|--------|--------|
+| P1-1 | `handlers/quiz.py` | code review | Interactive input / file read + LLM analysis | 2-3d | ⏳ TODO |
+| P1-2 | `handlers/hints.py` | mission hint | Hint for current uncompleted mission step | 1-2d | ⏳ TODO |
+| P1-3 | `news_fetcher.py` | XMLParsedAsHTMLWarning | Add `features="xml"` to BeautifulSoup + handle lxml | 1h | ⏳ TODO |
+| P1-4 | **NVD CVE API integration** | `news_fetcher.py`/`handlers/cve.py` | Fix 404/403 — use API key or alternative source | 2-3h | ⏳ TODO |
+| P1-5 | **LLM auth/log noise** | `config.py`/`resilient_llm.py` | Reduce noisy warnings on provider switch | 1h | ⏳ TODO |
 
-### 🔴 P0 — Manual Actions
+### 🟡 P2 — Infrastructure
 
-| ID | Task | Effort |
-|----|------|--------|
-| P0-1 | API Keys Rotation (manual `/keys rotate`) | 1-2d |
-| P0-2 | JWT_SECRET + ENC_KEY hardening | 1h |
-| P0-3 | Rate Limiting token bucket | 1-2d |
+| ID | Feature | Effort | Dependencies | Status |
+|----|---------|--------|--------------|--------|
+| P2-1 | DB Indexes + Connection Pooling | 1-2d | SQLAlchemy | ⏳ TODO |
+| P2-2 | WebSocket Pooling + Auto-reconnect | 2-3d | `api_server.py` | ⏳ TODO |
+| P2-3 | LLM Response Caching (SQLite TTL + LRU) | 2-3d | `config.py` | ⏳ TODO |
+| P2-4 | PWA SW stale-while-revalidate | 2-3d | `static/sw.js` | ⏳ TODO |
+| P2-5 | Portable .exe build (PyInstaller) | 1-2d | PyInstaller | ⏳ TODO |
+
+### 🟢 P3 — Long-term / Platform
+
+| ID | Feature | Effort | Dependencies | Status |
+|----|---------|--------|--------------|--------|
+| P3-1 | Mobile App (React Native / TWA) | 2-4 weeks | PWA ready | ⏳ TODO |
+| P3-2 | OAuth2 (Google, GitHub) | 1-2 weeks | auth.py, JWT | ⏳ TODO |
+| P3-3 | 2FA (TOTP) | 1 week | auth.py, pyotp | ⏳ TODO |
+| P3-4 | Multi-user Auth (Roles) | 1 week | auth.py, JWT | ⏳ TODO |
+| P3-5 | Admin Panel | 1 week | JWT, roles | ⏳ TODO |
+| P3-6 | GDPR Export/Import | 3 days | | ⏳ TODO |
+| P3-7 | SCORM Export | 2 days | `course_manager.py` | ⏳ TODO |
 
 ---
 

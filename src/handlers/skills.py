@@ -1,0 +1,303 @@
+# handlers/skills.py — Skill tracker + reputation + depth (L-02, L-10, L-05)
+"""Practical skill tracking, reputation system, explanation depth."""
+
+import os
+import time
+from datetime import datetime
+from typing import Any, Dict, List, Tuple
+
+from rich.console import Console
+from rich.panel import Panel
+
+from src.core.di import get_context
+from .types import HandlerResult
+
+
+console = Console()
+
+TOPIC_SKILL_MAP: Dict[str, str] = {
+    "sqli": "sql_injection",
+    "sql": "sql_injection",
+    "xss": "xss",
+    "csrf": "web_exploitation",
+    "network": "network_scanning",
+    "nmap": "network_scanning",
+    "scan": "network_scanning",
+    "privesc": "privilege_escalation",
+    "privilege": "privilege_escalation",
+    "crypto": "cryptography",
+    "cryptography": "cryptography",
+    "hash": "cryptography",
+    "social": "social_engineering",
+    "phish": "social_engineering",
+    "forensic": "forensics",
+    "forensics": "forensics",
+    "pcap": "forensics",
+    "reverse": "reverse_engineering",
+    "rev": "reverse_engineering",
+    "web": "web_exploitation",
+    "injection": "sql_injection",
+    "malware": "malware_analysis",
+    "virus": "malware_analysis",
+    "osint": "osint",
+    "recon": "osint",
+    "cloud": "cloud_security",
+    "aws": "cloud_security",
+}
+
+
+def guess_skill_from_topic(topic: str) -> str | None:
+    """Guess skill category from topic name using keyword matching."""
+    topic_lower = topic.lower()
+    for keyword, skill in TOPIC_SKILL_MAP.items():
+        if keyword in topic_lower:
+            return skill
+    return None
+
+
+SKILL_CATEGORIES = [
+    "sql_injection",
+    "xss",
+    "network_scanning",
+    "privilege_escalation",
+    "cryptography",
+    "social_engineering",
+    "forensics",
+    "reverse_engineering",
+    "web_exploitation",
+    "malware_analysis",
+    "osint",
+    "cloud_security",
+]
+
+
+def handle_skills(action: str) -> HandlerResult:
+    """Управление навыками, репутацией, глубиной."""
+    parts = action.split(maxsplit=2)
+
+    if len(parts) == 1:
+        console.print(
+            Panel(
+                "[bold cyan]🎯 Навыки, репутация, глубина[/bold cyan]\n\n"
+                "Использование:\n"
+                "  /skills                     — показать все навыки\n"
+                "  /skills track <навык> <ok/fail> — записать практику\n"
+                "  /reputation                 — показать репутацию\n"
+                "  /depth [beginner|normal|expert] — глубина объяснений",
+                title="НАВЫКИ",
+                border_style="cyan",
+            )
+        )
+        return True, None, None, True
+
+    subcommand = parts[1].lower()
+
+    if subcommand == "track" and len(parts) >= 4:
+        return _track_skill(parts[2], parts[3])
+
+    if subcommand == "track":
+        console.print("[yellow]/skills track <навык> <ok|fail>[/yellow]")
+        return True, None, None, True
+
+    return True, None, None, True
+
+
+def handle_reputation(action: str) -> HandlerResult:
+    """Show reputation and handle."""
+    ctx = get_context()
+    state = ctx.state
+    handle = state.get_handle()
+    rep = state.reputation
+
+    next_handle = None
+    next_threshold = None
+    for threshold, name in state.HANDLES:
+        if rep < threshold:
+            next_handle = name
+            next_threshold = threshold
+            break
+
+    progress = ""
+    if next_threshold:
+        pct = (rep / next_threshold) * 100
+        bar_len = int(pct / 5)
+        bar = "█" * bar_len + "░" * (20 - bar_len)
+        progress = f"\n  Прогресс: [{bar}] {pct:.0f}% до '{next_handle}'"
+
+    console.print(
+        Panel(
+            f"[bold]🏆 Репутация: {rep}[/bold]\n[bold]Хэндл: {handle}[/bold]{progress}",
+            title="РЕПУТАЦИЯ",
+            border_style="yellow",
+        )
+    )
+    return True, None, None, True
+
+
+def handle_depth(action: str) -> HandlerResult:
+    """Manage explanation depth."""
+    ctx = get_context()
+    state = ctx.state
+    parts = action.split(maxsplit=1)
+
+    if len(parts) == 1:
+        current = state.get_explanation_depth()
+        depth_names = {
+            "beginner": "🟢 Новичок — простые объяснения, аналогии, пошагово",
+            "normal": "🟡 Стандарт — баланс деталей и краткости",
+            "expert": "🔴 Эксперт — технически точно, без воды",
+        }
+        console.print(
+            Panel(
+                f"Текущая: [bold]{depth_names.get(current, current)}[/bold]\n\n"
+                "Доступные:\n"
+                f"  /depth beginner  — {depth_names['beginner']}\n"
+                f"  /depth normal    — {depth_names['normal']}\n"
+                f"  /depth expert    — {depth_names['expert']}",
+                title="ГЛУБИНА ОБЪЯСНЕНИЙ",
+                border_style="cyan",
+            )
+        )
+        return True, None, None, True
+
+    depth = parts[1].strip().lower()
+    if depth not in ("beginner", "normal", "expert"):
+        console.print("[red]❌ Доступные: beginner, normal, expert[/red]")
+        return True, None, None, True
+
+    state.set_explanation_depth(depth)
+    ctx.save_state()
+    console.print(f"[green]✅ Глубина установлена: {depth}[/green]")
+    return True, None, None, True
+
+
+def _track_skill(skill: str, result: str) -> HandlerResult:
+    """Record skill practice."""
+    ctx = get_context()
+    state = ctx.state
+    success = result.lower() in ("ok", "yes", "true", "1", "success")
+    xp = 15 if success else 5
+
+    state.track_skill(skill, success, xp)
+    level = state.get_skill_level(skill)
+
+    status = "✅ успех" if success else "❌ попытка"
+    console.print(f"[green]📈 {skill}: {status} (+{xp} XP, уровень {level})[/green]")
+    return True, None, None, True
+
+
+def handle_skills_list(action: str) -> HandlerResult:
+    """Show all skills."""
+    ctx = get_context()
+    state = ctx.state
+    skills_data = state.get_all_skills()  # Dict[str, Dict]
+
+    if not skills_data:
+        console.print(
+            "[yellow]Нет записанных навыков. Используйте /skills track <навык> <ok/fail>[/yellow]"
+        )
+        return True, None, None, True
+
+    lines = []
+    for skill_id, sdata in skills_data.items():
+        level = state.get_skill_level(skill_id)
+        xp = sdata.get("xp", 0)
+        attempts = sdata.get("attempts", 0)
+        successes = sdata.get("successes", 0)
+        success_rate = int(successes / attempts * 100) if attempts > 0 else 0
+        bar = "█" * level + "░" * (5 - level)
+        lines.append(
+            f"  [cyan]{skill_id:<25}[/cyan] [{bar}] L{level} "
+            f"({xp} XP, {success_rate}% success, {attempts} attempts)"
+        )
+
+    console.print(
+        Panel(
+            "\n".join(lines),
+            title="🎯 ПРАКТИЧЕСКИЕ НАВЫКИ",
+            border_style="cyan",
+        )
+    )
+    return True, None, None, True
+
+
+def handle_certificates(action: str) -> HandlerResult:
+    """SKL-03: Show skill mastery certificates."""
+    ctx = get_context()
+    state = ctx.state
+    skills_data = state.get_all_skills()
+
+    if not skills_data:
+        console.print("[yellow]Нет навыков для сертификатов[/yellow]")
+        return True, None, None, True
+
+    # Построим список освоенных навыков (level >= 5)
+    mastered = []
+    for skill_id, sdata in skills_data.items():
+        level = state.get_skill_level(skill_id)
+        if level >= 5:
+            attempts = sdata.get("attempts", 0)
+            successes = sdata.get("successes", 0)
+            success_rate = int(successes / attempts * 100) if attempts > 0 else 0
+            mastered.append(
+                {
+                    "name": skill_id,
+                    "level": level,
+                    "xp": sdata.get("xp", 0),
+                    "success_rate": success_rate,
+                    "attempts": attempts,
+                }
+            )
+
+    if not mastered:
+        console.print(
+            "[yellow]Пока нет освоенных навыков (нужен lvl 5). Продолжайте практику![/yellow]"
+        )
+        return True, None, None, True
+
+    parts = action.split()
+    subcmd = parts[1] if len(parts) > 1 else "list"
+
+    if subcmd == "list":
+        console.print("[bold cyan]🏆 Сертификаты мастерства[/bold cyan]")
+        console.print(f"[dim]Всего: {len(mastered)}[/dim]\n")
+        for s in mastered:
+            console.print(
+                f"  ✅ {s['name']} — L{s['level']} ({s['xp']} XP, {s['success_rate']}% success)"
+            )
+        console.print("\n[yellow]Просмотр: /certificates <навык>[/yellow]")
+    else:
+        skill_name = " ".join(parts[1:])
+        skill = next(
+            (s for s in mastered if s["name"].lower() == skill_name.lower()), None
+        )
+        if not skill:
+            console.print(f"[red]Навык '{skill_name}' не освоен (нужен lvl 5)[/red]")
+            return True, None, None, True
+
+        now = datetime.now().strftime("%Y-%m-%d")
+        cert = f"""
+╔══════════════════════════════════════════════════════════╗
+║                                                          ║
+║              🏆  CERTIFICATE OF MASTERY  🏆              ║
+║                                                          ║
+║   Навык: {skill["name"].upper():<42}║
+║   Уровень: {skill["level"]}/5{" " * 42}║
+║   XP: {skill["xp"]:<48}║
+║   Успешность: {skill["success_rate"]}%{" " * 38}║
+║   Попыток: {skill["attempts"]:<44}║
+║                                                          ║
+║   Дата: {now:<46}║
+║                                                          ║
+║          CyberTeacher — Learning Platform                ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝"""
+        console.print(cert)
+
+        os.makedirs("certificates", exist_ok=True)
+        filename = f"certificates/{skill['name']}_{now}.txt"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(cert)
+        console.print(f"\n[dim]Сохранено: {filename}[/dim]")
+
+    return True, None, None, True

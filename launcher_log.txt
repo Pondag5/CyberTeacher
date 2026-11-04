@@ -1,0 +1,8 @@
+﻿py : [ERROR] Failed to launch 'C:\Python314\python.exe' (0x80070002)
+строка:4 знак:1
++ py launcher.py 2>&1 | Out-File -FilePath M:\Cyber_Teacher\Cyber_Teach ...
++ ~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([ERROR] Failed ...e' (0x80070002):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+This may be a corrupt install or a system configuration issue.

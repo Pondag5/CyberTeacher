@@ -2,10 +2,10 @@
 function renderRiskIndicators(container) {
     container.innerHTML = `
         <div class="card" style="padding:12px;">
-            <h3 style="margin-bottom:8px;">\uD83D\uDCCA Risk Status</h3>
+            <h3 style="margin-bottom:8px;">\ud83d\udcca Risk Status</h3>
             <div id="noise-indicator" style="margin-bottom:8px;">
                 <div style="display:flex; justify-content:space-between;">
-                    <span>\uD83D\uDCF4 Noise</span>
+                    <span>\ud83d\udcf4 Noise</span>
                     <span id="noise-value">0%</span>
                 </div>
                 <div style="height:8px; background:var(--bg-secondary); border-radius:4px; overflow:hidden;">
@@ -14,7 +14,7 @@ function renderRiskIndicators(container) {
             </div>
             <div id="trace-indicator" style="margin-bottom:8px; display:none;">
                 <div style="display:flex; justify-content:space-between;">
-                    <span>\uD83D\uDD0D Trace</span>
+                    <span>\ud83d\udd0d Trace</span>
                     <span id="trace-value">--</span>
                 </div>
                 <div style="height:8px; background:var(--bg-secondary); border-radius:4px; overflow:hidden;">
@@ -24,11 +24,11 @@ function renderRiskIndicators(container) {
             </div>
             <div id="debt-indicator">
                 <div style="display:flex; justify-content:space-between;">
-                    <span>\uD83D\uDCB3 Debts</span>
+                    <span>\ud83d\udcb3 Debts</span>
                     <span id="debt-value">0</span>
                 </div>
             </div>
-            <button id="stealth-toggle" style="margin-top:8px; width:100%;" class="btn-secondary">\uD83E\uDD77 Toggle Stealth</button>
+            <button id="stealth-toggle" style="margin-top:8px; width:100%;" class="btn-secondary">\ud83e\udd77 Toggle Stealth</button>
         </div>
     `;
 
@@ -49,7 +49,7 @@ async function updateRiskIndicators() {
         const debtVal = document.getElementById('debt-value');
 
         if (noiseEl) {
-            const noiseRes = await apiCall('/api/noise');
+            const noiseRes = await apiCall('/api/noise').catch(() => ({}));
             const level = noiseRes.level || 0;
             const pct = Math.min(level, 100);
             noiseEl.style.width = pct + '%';
@@ -58,11 +58,11 @@ async function updateRiskIndicators() {
         }
 
         if (traceEl) {
-            const traceRes = await apiCall('/api/trace');
+            const traceRes = await apiCall('/api/trace').catch(() => ({}));
             if (traceRes.active) {
                 traceEl.style.display = 'block';
                 const remaining = traceRes.remaining_seconds || 0;
-                const pct = Math.min(remaining / 180 * 100, 100);
+                const pct = Math.max(0, Math.min(remaining / 180 * 100, 100));
                 traceBar.style.width = pct + '%';
                 traceVal.textContent = Math.ceil(remaining / 60) + 'm ' + (remaining % 60) + 's';
                 traceTarget.textContent = 'Target: ' + (traceRes.target || '?');
@@ -72,14 +72,19 @@ async function updateRiskIndicators() {
         }
 
         if (debtVal) {
-            const debtRes = await apiCall('/api/debts');
-            debtVal.textContent = debtRes.total || 0;
-            debtVal.style.color = debtRes.total >= 5 ? 'var(--error)' : debtRes.total >= 3 ? 'orange' : 'inherit';
+            const debtRes = await apiCall('/api/debts').catch(() => ({}));
+            const total = debtRes.total || 0;
+            debtVal.textContent = total;
+            debtVal.style.color = total >= 5 ? 'var(--error)' : total >= 3 ? 'orange' : 'inherit';
         }
     } catch(e) { /* silent */ }
 }
 
-// Auto-update every 10 seconds
+// Auto-update more aggressively
 if (typeof window !== 'undefined') {
-    setInterval(updateRiskIndicators, 10000);
+    if (!window._riskIndicatorsInterval) {
+        window._riskIndicatorsInterval = setInterval(updateRiskIndicators, 5000);
+    }
+    // Try immediate update
+    setTimeout(updateRiskIndicators, 500);
 }

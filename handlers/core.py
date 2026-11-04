@@ -906,6 +906,14 @@ def handle_extended_commands(action: str, llm: Any, conn: Any) -> HandlerResult:
         from handlers.misc import handle_reindex_knowledge
         return handle_reindex_knowledge(action)
 
+    if action == "kb_status" or action == "knowledge_status":
+        from knowledge import get_knowledge_status
+        from ui import console, Panel
+        status = get_knowledge_status()
+        text = f"[bold]Файлов на диске:[/bold] {status.get('files_on_disk','?')}\n[bold]Файлов в базе:[/bold] {status.get('files_in_db','?')}\n[bold]Всего чанков:[/bold] {status.get('total_chunks','?')}"
+        console.print(Panel(text, title="📚 База знаний", border_style="cyan"))
+        return True, None, None, True
+
     if action == "knowledge" or action.startswith("knowledge "):
         from handlers.misc import handle_knowledge_search
         return handle_knowledge_search(action)

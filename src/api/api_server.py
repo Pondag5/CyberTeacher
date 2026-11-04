@@ -1,0 +1,4723 @@
+﻿"""REST API РґР»СЏ РѕС‚СЃР»РµР¶РёРІР°РЅРёСЏ РїСЂРѕРіСЂРµСЃСЃР° (L-16).
+
+FastAPI СЃРµСЂРІРµСЂ РґР»СЏ РІРЅРµС€РЅРµРіРѕ РјРѕРЅРёС‚РѕСЂРёРЅРіР° Рё РёРЅС‚РµРіСЂР°С†РёРё СЃ LMS.
+
+Endpoints:
+    GET  /api/health       вЂ” РЎС‚Р°С‚СѓСЃ СЃРµСЂРІРµСЂР°
+    GET  /api/progress     вЂ” РџСЂРѕРіСЂРµСЃСЃ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
+    GET  /api/stats        вЂ” РЎС‚Р°С‚РёСЃС‚РёРєР°
+    GET  /api/achievements вЂ” Р”РѕСЃС‚РёР¶РµРЅРёСЏ
+    GET  /api/weak-topics  вЂ” РЎР»Р°Р±С‹Рµ С‚РµРјС‹
+    POST /api/quiz/result  вЂ” РћС‚РїСЂР°РІРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚ РєРІРёР·Р°
+"""
+
+import asyncio
+import contextlib
+import json
+import logging
+import time
+import os
+import signal
+import subprocess
+import sys
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from src.core.state import get_state
+from src.core.startup_checks import check_dependencies
+
+# РџСЂРѕРІРµСЂРєР° Р·Р°РІРёСЃРёРјРѕСЃС‚РµР№
+check_dependencies()
+
+# API logger with 7-day rotation
+try:
+    from logging_config import setup_logging
+
+    setup_logging()
+except ImportError:
+    pass
+
+api_log = logging.getLogger("cyberteacher.api")
+
+# Р“Р»РѕР±Р°Р»СЊРЅР°СЏ РїРµСЂРµРјРµРЅРЅР°СЏ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ PID СЃРµСЂРІРµСЂР°
+_server_process: Optional[subprocess.Popen] = None
+
+# FastAPI РѕРїС†РёРѕРЅР°Р»РµРЅ
+try:
+    from fastapi import FastAPI, HTTPException
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+    from pydantic import BaseModel
+
+    FASTAPI_AVAILABLE = True
+except ImportError:
+    FastAPI = None  # type: ignore[misc,assignment]
+    HTTPException = Exception  # type: ignore[misc,assignment]
+    FileResponse = None  # type: ignore[misc,assignment]
+    StaticFiles = None  # type: ignore[misc,assignment]
+    BaseModel = object  # type: ignore[misc,assignment]
+    FASTAPI_AVAILABLE = False
+
+app: Optional[FastAPI] = None
+if FASTAPI_AVAILABLE:
+    try:
+        app = FastAPI(title="CyberTeacher API", version="1.0")
+    except Exception:
+        app = None
+
+# Р“Р°СЂР°РЅС‚РёСЂСѓРµРј РЅР°Р»РёС‡РёРµ app РґР»СЏ uvicorn
+if app is None:
+    try:
+        from fastapi import FastAPI
+
+        app = FastAPI(title="CyberTeacher API", version="1.0")
+        FASTAPI_AVAILABLE = True
+    except Exception as e:
+        raise RuntimeError(f"FastAPI РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ РёР»Рё РЅРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ app: {e}")
+
+if FASTAPI_AVAILABLE and app is not None:
+
+    @app.on_event("startup")
+    def _warm_up_models():
+        try:
+            from config import LazyLoader
+
+            LazyLoader.warm_up()
+        except Exception:
+            pass
+
+# CORS middleware РґР»СЏ РІРµР±-С„СЂРѕРЅС‚Р° (raw ASGI вЂ” РЅРµ Р±Р»РѕРєРёСЂСѓРµС‚ WebSocket)
+if FASTAPI_AVAILABLE and app is not None:
+    _cors_origins = os.getenv(
+        "CORS_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000"
+    ).split(",")
+
+    class _CORSMiddleware:
+        """Simple CORS that skips WebSocket connections."""
+
+        def __init__(self, app: Any, origins: list) -> None:
+            self.app = app
+            self.origins = origins
+
+        async def __call__(self, scope: Any, receive: Any, send: Any) -> Any:
+            if scope.get("type") != "http":
+                return await self.app(scope, receive, send)
+            from starlette.datastructures import Headers
+
+            headers = Headers(scope=scope)
+            origin = headers.get("origin", "")
+            is_cors = origin != ""
+            response_headers = {}
+            if is_cors and origin in self.origins:
+                response_headers["access-control-allow-origin"] = origin
+                response_headers["access-control-allow-credentials"] = "true"
+                response_headers["access-control-allow-methods"] = "GET, POST, OPTIONS"
+                response_headers["access-control-allow-headers"] = "*"
+            if scope.get("method") == "OPTIONS":
+                from starlette.responses import Response
+
+                resp = Response("", status_code=204, headers=response_headers)
+                return await resp(scope, receive, send)
+
+            async def send_wrapper(message: Any) -> None:
+                if message.get("type") == "http.response.start" and is_cors:
+                    existing = dict(message.get("headers", []))
+                    for k, v in response_headers.items():
+                        existing[k.encode()] = v.encode()
+                    message["headers"] = list(existing.items())
+                await send(message)
+
+            return await self.app(scope, receive, send_wrapper)
+
+    app.add_middleware(_CORSMiddleware, origins=_cors_origins)
+
+    # Security headers + cache-control middleware (raw ASGI вЂ” no WebSocket blocking)
+    class _NoCacheMiddleware:
+        def __init__(self, app: Any) -> None:
+            self.app = app
+
+        async def __call__(self, scope: Any, receive: Any, send: Any) -> Any:
+            if scope.get("type") != "http":
+                return await self.app(scope, receive, send)
+
+            async def send_wrapper(message: Any) -> None:
+                if message.get("type") == "http.response.start":
+                    headers = dict(message.get("headers", []))
+                    path = scope.get("path", "")
+
+                    headers[b"x-content-type-options"] = b"nosniff"
+                    headers[b"x-frame-options"] = b"DENY"
+                    headers[b"x-xss-protection"] = b"1; mode=block"
+                    headers[b"referrer-policy"] = b"strict-origin-when-cross-origin"
+                    headers[b"permissions-policy"] = (
+                        b"camera=(), microphone=(), geolocation=()"
+                    )
+                    headers[b"strict-transport-security"] = (
+                        b"max-age=31536000; includeSubDomains"
+                    )
+                    headers[b"content-security-policy"] = (
+                        b"default-src 'self'; "
+                        b"script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+                        b"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                        b"font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+                        b"img-src 'self' data:; "
+                        b"connect-src 'self' ws: wss:; "
+                        b"frame-ancestors 'none'"
+                    )
+
+                    if (
+                        path.endswith(".js")
+                        or path.endswith(".css")
+                        or path == "/sw.js"
+                    ):
+                        headers[b"cache-control"] = (
+                            b"no-cache, no-store, must-revalidate"
+                        )
+                        headers.pop(b"etag", None)
+                        headers.pop(b"last-modified", None)
+
+                    message["headers"] = list(headers.items())
+                await send(message)
+
+            return await self.app(scope, receive, send_wrapper)
+
+    app.add_middleware(_NoCacheMiddleware)
+
+    # Legacy API path redirect middleware (skip WebSockets)
+    _LEGACY_API_MAP = {
+        "/get_progress": "/api/progress",
+        "/get_modes": "/api/modes",
+        "/get_courses": "/api/courses",
+        "/get_labs": "/api/labs",
+        "/get_profile": "/api/profile",
+        "/get_daily_challenge": "/api/daily",
+        "/get_achievements_list": "/api/achievements/list",
+        "/get_skills": "/api/skills",
+        "/get_shop": "/api/shop",
+        "/get_story_episodes": "/api/story",
+        "/get_tracks": "/api/tracks",
+        "/get_ctf_status": "/api/ctf/status",
+        "/get_config": "/api/config",
+        "/get_world": "/api/world",
+        "/get_episodes": "/api/episodes",
+        "/get_cyberpsychosis": "/api/cyberpsychosis",
+        "/get_detailed_stats": "/api/stats",
+        "/get_heatmap": "/api/heatmap",
+        "/get_threats": "/api/threats",
+        "/get_news": "/api/news",
+        "/get_history": "/api/history",
+        "/get_scan_rules": "/api/scan/rules",
+        "/get_versus_scenarios": "/api/versus/scenarios",
+        "/get_versus_status": "/api/versus/status",
+        "/chat_with_llm": "/api/chat",
+        "/docker_containers": "/api/docker/containers",
+        "/docker_status": "/api/docker/status",
+        "/docker_start_lab": "/api/docker/start",
+        "/docker_stop_lab": "/api/docker/stop",
+        "/start_lab": "/api/labs/start",
+        "/stop_lab": "/api/labs/stop",
+        "/generate_quiz": "/api/quiz/generate",
+        "/submit_quiz_result": "/api/quiz/result",
+        "/list_users": "/api/users",
+        "/set_role": "/api/users/role",
+        "/create_course": "/api/courses/create",
+        "/verify_auth": "/api/auth/verify",
+        "/login": "/api/auth/login",
+        "/register": "/api/auth/register",
+        "/set_mode": "/api/modes/set",
+        "/select_course": "/api/courses/select",
+        "/submit_daily_challenge": "/api/daily/submit",
+        "/purchase_item": "/api/shop/purchase",
+        "/scan_code": "/api/scan",
+        "/start_versus": "/api/versus/start",
+        "/versus_move": "/api/versus/move",
+        "/start_story_episode": "/api/story/start",
+        "/start_track": "/api/tracks/start",
+        "/submit_flag": "/api/ctf/flag",
+        "/submit_mission_flag": "/api/missions/submit",
+        "/get_history_eras": "/api/history/eras",
+        "/study_history_era": "/api/history/study",
+        "/analyze_malware": "/api/malware",
+        "/export_user_data": "/api/gdpr/export",
+        "/import_user_data": "/api/gdpr/import",
+    }
+
+    class _LegacyRedirectMiddleware:
+        def __init__(self, app: Any) -> None:
+            self.app = app
+
+        async def __call__(self, scope: Any, receive: Any, send: Any) -> Any:
+            if scope.get("type") != "http":
+                return await self.app(scope, receive, send)
+            path = scope.get("path", "")
+            if path in _LEGACY_API_MAP:
+                from starlette.responses import RedirectResponse as _RR
+
+                qs = scope.get("query_string", b"").decode()
+                new_path = _LEGACY_API_MAP[path]
+                url = new_path + (f"?{qs}" if qs else "")
+                resp = _RR(url=url, status_code=307)
+                return await resp(scope, receive, send)
+            return await self.app(scope, receive, send)
+
+    app.add_middleware(_LegacyRedirectMiddleware)
+
+# Р Р°Р·РґР°С‡Р° СЃС‚Р°С‚РёРєРё (PWA)
+if FASTAPI_AVAILABLE and app is not None and os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    # Mount subdirectories so /css/*, /js/* resolve correctly
+    if os.path.isdir("static/css"):
+        app.mount("/css", StaticFiles(directory="static/css"), name="css")
+    if os.path.isdir("static/js"):
+        app.mount("/js", StaticFiles(directory="static/js"), name="js")
+
+    @app.get("/")
+    def read_root() -> FileResponse:
+        return FileResponse(
+            "static/index.html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+
+    @app.get("/index.html")
+    def read_index() -> FileResponse:
+        return FileResponse(
+            "static/index.html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+
+    @app.get("/manifest.json")
+    def read_manifest() -> FileResponse:
+        return FileResponse(
+            "static/manifest.json",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+
+    @app.get("/sw.js")
+    def read_sw() -> FileResponse:
+        return FileResponse(
+            "static/sw.js",
+            media_type="application/javascript",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+
+    @app.get("/favicon.ico")
+    def read_favicon() -> FileResponse:
+        return FileResponse("static/icon-192.png", media_type="image/png")
+
+    @app.get("/icon-192.png")
+    def read_icon_192() -> FileResponse:
+        return FileResponse("static/icon-192.png", media_type="image/png")
+
+    @app.get("/icon-512.png")
+    def read_icon_512() -> FileResponse:
+        return FileResponse("static/icon-512.png", media_type="image/png")
+
+    @app.get("/.well-known/assetlinks.json")
+    def read_assetlinks() -> FileResponse:
+        return FileResponse(
+            "static/.well-known/assetlinks.json",
+            media_type="application/json",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+
+
+class QuizResult(BaseModel):
+    topic: str
+    score: float
+    total: int
+
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list = []
+
+
+class QuizGenerateRequest(BaseModel):
+    topic: str = "general"
+    count: int = 5
+
+
+class PhishingGenerateRequest(BaseModel):
+    template_type: str = ""
+
+
+class SandboxRunRequest(BaseModel):
+    code: str
+    language: str = "python"
+    timeout: int = 10
+
+
+class DockerGenRequest(BaseModel):
+    labs: list[str] = []
+
+
+# ----------------------------------------------------------------------
+# Rate Limiter (Token Bucket with persistence)
+# ----------------------------------------------------------------------
+class _TokenBucketRateLimiter:
+    """Token bucket rate limiter with configurable capacity and refill rate.
+    
+    Features:
+    - Token bucket algorithm (smooth rate limiting, handles bursts)
+    - Per-client buckets with automatic cleanup
+    - Configurable capacity and refill rate per endpoint
+    - Persistent state (can be extended with Redis)
+    """
+
+    def __init__(
+        self,
+        default_capacity: int = 100,
+        default_refill_rate: float = 10.0,  # tokens per second
+        cleanup_interval: int = 300,  # 5 minutes
+    ) -> None:
+        self._buckets: Dict[str, Dict] = {}
+        self._default_capacity = default_capacity
+        self._default_refill_rate = default_refill_rate
+        self._cleanup_interval = cleanup_interval
+        self._last_cleanup = time.time()
+
+    def _get_bucket(self, key: str, capacity: Optional[int] = None, refill_rate: Optional[float] = None) -> Dict:
+        """Get or create a token bucket for a key."""
+        now = time.time()
+        
+        if key not in self._buckets:
+            cap = capacity or self._default_capacity
+            rate = refill_rate or self._default_refill_rate
+            self._buckets[key] = {
+                "tokens": float(cap),  # Start full
+                "capacity": cap,
+                "refill_rate": rate,
+                "last_refill": now,
+            }
+        
+        bucket = self._buckets[key]
+        
+        # Refill tokens based on elapsed time
+        elapsed = now - bucket["last_refill"]
+        if elapsed > 0:
+            bucket["tokens"] = min(
+                bucket["capacity"],
+                bucket["tokens"] + elapsed * bucket["refill_rate"]
+            )
+            bucket["last_refill"] = now
+        
+        return bucket
+    
+    def _cleanup_expired(self) -> None:
+        """Remove buckets that haven't been used for a long time."""
+        now = time.time()
+        if now - self._last_cleanup < self._cleanup_interval:
+            return
+        
+        self._last_cleanup = now
+        expired_keys = []
+        for key, bucket in self._buckets.items():
+            # If bucket is full and hasn't been used in 2x cleanup interval, remove it
+            if bucket["tokens"] >= bucket["capacity"] * 0.99:
+                if now - bucket["last_refill"] > self._cleanup_interval * 2:
+                    expired_keys.append(key)
+        
+        for key in expired_keys:
+            del self._buckets[key]
+
+    def is_limited(
+        self, 
+        key: str, 
+        cost: int = 1,
+        capacity: Optional[int] = None,
+        refill_rate: Optional[float] = None
+    ) -> bool:
+        """Check if request should be rate limited. Returns True if limited."""
+        now = time.time()
+        
+        # Periodic cleanup
+        if now - self._last_cleanup > self._cleanup_interval:
+            self._cleanup_expired()
+        
+        if key not in self._buckets:
+            cap = capacity or self._default_capacity
+            rate = refill_rate or self._default_refill_rate
+            self._buckets[key] = {
+                "tokens": float(cap - cost),  # Start full minus this request
+                "capacity": cap,
+                "refill_rate": rate,
+                "last_refill": now,
+            }
+            return False  # First request allowed
+        
+        bucket = self._buckets[key]
+        
+        # Update capacity/refill rate if provided
+        if capacity is not None:
+            bucket["capacity"] = capacity
+        if refill_rate is not None:
+            bucket["refill_rate"] = refill_rate
+        
+        # Refill tokens
+        elapsed = now - bucket["last_refill"]
+        if elapsed > 0:
+            bucket["tokens"] = min(
+                bucket["capacity"],
+                bucket["tokens"] + elapsed * bucket["refill_rate"]
+            )
+            bucket["last_refill"] = now
+        
+        # Check if we have enough tokens
+        if bucket["tokens"] >= cost:
+            bucket["tokens"] -= cost
+            return False  # Not limited
+        
+        return True  # Limited
+
+
+# Global rate limiter instance
+_rate_limiter = _TokenBucketRateLimiter()
+
+
+# ----------------------------------------------------------------------
+# Context Budget Manager (global for API endpoints)
+# ----------------------------------------------------------------------
+try:
+    from context_budget import ContextBudgetManager as _CBM
+
+    api_budget_manager = _CBM(max_tokens=8000)
+    BUDGET_AVAILABLE = True
+except ImportError:
+    api_budget_manager = None  # type: ignore[assignment]
+    BUDGET_AVAILABLE = False
+
+
+# ----------------------------------------------------------------------
+# Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅР°СЏ С„СѓРЅРєС†РёСЏ РґР»СЏ РґРµРєРѕСЂРёСЂРѕРІР°РЅРёСЏ, РµСЃР»Рё app РЅРµ None
+# ----------------------------------------------------------------------
+def _if_app(method: str, path: str):
+    def decorator(func):
+        if app is not None:
+            return getattr(app, method)(path)(func)
+        return func
+
+    return decorator
+
+
+# Register extracted route modules
+if FASTAPI_AVAILABLE and app is not None:
+    from src.api.routes.story import register_story_routes
+    from src.api.routes.risk import register_risk_routes
+    from src.api.routes.faction import register_faction_routes
+    from src.api.routes.phantom import register_phantom_routes
+    from src.api.routes.rewind import register_rewind_routes
+
+    register_story_routes(app, _if_app, HTTPException, get_state)
+    register_risk_routes(app, _if_app, HTTPException, get_state)
+    register_faction_routes(app, _if_app, HTTPException, get_state)
+    register_phantom_routes(app, _if_app, HTTPException, get_state)
+    register_rewind_routes(app, _if_app, HTTPException, get_state)
+
+
+# ----------------------------------------------------------------------
+# API endpoints (РІСЃРµ СЃ РїСЂРѕРІРµСЂРєРѕР№ app)
+# ----------------------------------------------------------------------
+@_if_app("get", "/api/health")
+def health_check():
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
+
+
+@_if_app("get", "/api/doctor")
+def doctor_status():
+    """Return LLM provider status and system info."""
+    try:
+        from handlers.doctor import get_doctor_status
+
+        return get_doctor_status()
+    except Exception as e:
+        return {"current_provider": "unknown", "error": str(e), "providers": []}
+
+
+@_if_app("get", "/api/offline")
+def get_offline_status():
+    state = get_state()
+    return {"offline_mode": state.offline_mode}
+
+
+@_if_app("post", "/api/offline")
+def set_offline_status(action: str = "toggle"):
+    state = get_state()
+    if action == "on":
+        state.offline_mode = True
+    elif action == "off":
+        state.offline_mode = False
+    else:
+        state.offline_mode = not state.offline_mode
+    return {"offline_mode": state.offline_mode, "action": action}
+
+
+@_if_app("get", "/api/progress")
+def get_progress():
+    state = get_state()
+    return {
+        "xp": getattr(state, "xp", 0),
+        "level": getattr(state, "level", 1),
+        "reputation": getattr(state, "reputation", 0),
+        "current_course": getattr(state, "current_course", None),
+        "current_topic": getattr(state, "current_topic", None),
+        "streak": getattr(state, "daily_streak", 0),
+    }
+
+
+@_if_app("get", "/api/achievements")
+def get_achievements():
+    state = get_state()
+    return {"achievements": getattr(state, "achievements", [])}
+
+
+@_if_app("get", "/api/weak-topics")
+def get_weak_topics():
+    state = get_state()
+    return {"weak_topics": getattr(state, "weak_topics", [])}
+
+
+# ----------------------------------------------------------------------
+# РљСѓСЂСЃС‹ (РёРјРїРѕСЂС‚РёСЂСѓРµРј COURSES РёР· courses)
+# ----------------------------------------------------------------------
+@_if_app("get", "/api/courses")
+def get_courses():
+    try:
+        from courses import COURSES
+
+        state = get_state()
+        courses_list = []
+        for cid, course in COURSES.items():
+            total_topics = len(course.get("topics", []))
+            progress = 0
+            if total_topics > 0:
+                current_topic_idx = state.course_progress.get(cid, 0)
+                progress = int((current_topic_idx / total_topics) * 100)
+            topics_data = []
+            for t in course.get("topics", []):
+                if hasattr(t, "__dataclass_fields__"):
+                    topics_data.append(
+                        {
+                            "id": t.name.lower().replace(" ", "-"),
+                            "name": t.name,
+                            "description": t.description,
+                            "labs": t.labs if hasattr(t, "labs") else [],
+                            "quiz_topics": t.quiz_topics
+                            if hasattr(t, "quiz_topics")
+                            else [],
+                        }
+                    )
+                elif isinstance(t, dict):
+                    topics_data.append(
+                        {
+                            "id": t.get(
+                                "id", t.get("name", "").lower().replace(" ", "-")
+                            ),
+                            "name": t.get("name", ""),
+                            "description": t.get("description", ""),
+                            "labs": t.get("labs", []),
+                            "quiz_topics": t.get("quiz_topics", []),
+                        }
+                    )
+            courses_list.append(
+                {
+                    "id": cid,
+                    "name": course.get("name", ""),
+                    "description": course.get("desc", ""),
+                    "icon": course.get("icon", "рџ“љ"),
+                    "topics_count": total_topics,
+                    "topics": topics_data,
+                    "duration": f"{total_topics} С‚РµРј",
+                    "level": course.get("level", "beginner"),
+                    "progress": progress,
+                    "active": state.current_course == cid,
+                }
+            )
+        return {"courses": courses_list}
+    except Exception as e:
+        return {"courses": [], "error": "Internal error"}
+
+
+@_if_app("post", "/api/courses/{course_id}/select")
+@_if_app("post", "/api/courses/select")
+def select_course(course_id: str = "", token: str = ""):
+    try:
+        from courses import COURSES
+
+        if course_id not in COURSES:
+            raise HTTPException(status_code=404, detail="Course not found")
+        state = get_state()
+        state.current_course = course_id
+        state.current_topic = 0
+        state.save_to_file()
+        return {"status": "selected", "course": course_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("post", "/api/quiz/result")
+def submit_quiz_result(result: QuizResult):
+    state = get_state()
+    if result.score / result.total < 0.6:
+        weak_topics = getattr(state, "weak_topics", [])
+        if result.topic not in weak_topics:
+            weak_topics.append(result.topic)
+            state.weak_topics = weak_topics
+    try:
+        from handlers.skills import guess_skill_from_topic
+
+        skill = guess_skill_from_topic(result.topic)
+        if skill:
+            success = result.score / result.total >= 0.6
+            state.track_skill(skill, success, xp=result.score)
+    except (ValueError, RuntimeError):
+        pass
+    return {"status": "recorded", "topic": result.topic, "score": result.score}
+
+
+@_if_app("post", "/api/chat")
+def chat_with_llm(req: ChatRequest):
+    try:
+        from config import LazyLoader
+        from handlers.mood import get_mood_prompt_modifier
+        from pedagogy import TeacherPersona
+        from courses import COURSES
+
+        llm = LazyLoader.get_llm()
+        if llm is None:
+            raise RuntimeError("LLM РЅРµ Р·Р°РіСЂСѓР¶РµРЅ")
+
+        state = get_state()
+        language = getattr(state, "language", "ru")
+        mode = getattr(state, "current_mode", "hybrid")
+
+        # Secret phrase detection
+        try:
+            from secret_language import detect_secret_phrase
+
+            secret = detect_secret_phrase(req.message)
+            if secret:
+                # Apply effect and return special response
+                if secret["effect"] == "hint":
+                    state.hint_credits = min(10, state.hint_credits + 1)
+                elif secret["effect"] == "mood_serious":
+                    state.current_mood = "serious"
+                elif secret["effect"] == "unlock_ghost_log":
+                    pass  # Ghost log unlock is informational
+                return {
+                    "response": f"рџ”ђ **РЎРµРєСЂРµС‚РЅР°СЏ С„СЂР°Р·Р°:** {secret['phrase']}\n\n{secret['response']}",
+                    "history": [
+                        *req.history,
+                        {"role": "user", "content": req.message},
+                        {"role": "assistant", "content": secret["response"]},
+                    ],
+                    "secret_phrase": secret,
+                }
+        except ImportError:
+            pass
+
+        # Use PromptBuilder for unified prompt construction
+        from src.prompt_engine.builder import PromptContext
+
+        prompt_context = PromptContext(mode)
+        
+        mood_modifier = get_mood_prompt_modifier()
+        if mood_modifier:
+            prompt_context.add_modifier(f"\n\nStyle: {mood_modifier}")
+
+        # Behavioral archetype
+        try:
+            from behavior_profile import get_archetype_prompt_modifier
+
+            archetype_mod = get_archetype_prompt_modifier(state)
+            if archetype_mod:
+                prompt_context.with_archetype(archetype_mod)
+        except ImportError:
+            pass
+
+        # Persona Router (dynamic)
+        try:
+            from persona_router import (
+                select_persona,
+                get_persona_prompt,
+                get_persona_info,
+            )
+
+            persona_id = select_persona(state, req.message)
+            persona_mod = get_persona_prompt(persona_id)
+            if persona_mod:
+                prompt_context.with_persona(persona_mod)
+        except ImportError:
+            pass
+
+        # Inject user statistics for context awareness
+        weak_topics_list = getattr(state, "weak_topics", [])
+        weak_names = [
+            t.get("topic", str(t)) if isinstance(t, dict) else str(t)
+            for t in weak_topics_list[-5:]
+        ]
+        study_context = (
+            f"\n\n---\nДАННЫЕ УЧЕНИКА:\n"
+            f"XP: {getattr(state, 'xp', 0)}, "
+            f"Level: {getattr(state, 'level', 1)}, "
+            f"Streak: {getattr(state, 'daily_streak', 0)} дн.\n"
+            f"Текущий курс: {getattr(state, 'current_course', 'не выбран')}\n"
+            f"Слабые темы: {', '.join(weak_names) or 'нет'}\n"
+            f"---"
+        )
+        prompt_context.with_study_context(study_context)
+
+        # Inject RAG from knowledge base
+        kb_sources = []
+        try:
+            from knowledge import get_relevant_docs
+
+            vectordb = getattr(state, "_vectordb", None)
+            if vectordb is None:
+                from knowledge import load_knowledge_base
+
+                vectordb = load_knowledge_base()
+                state._vectordb = vectordb
+            if vectordb:
+                docs = (
+                    get_relevant_docs(vectordb, req.message, top_k=3)
+                    if hasattr(vectordb, "similarity_search")
+                    else []
+                )
+                if docs:
+                    docs_context = "\nрџ“– Р‘Р°Р·Р° Р·РЅР°РЅРёР№:\n" + "\n".join(
+                        [f"- {d.page_content[:500]}" for d in docs]
+                    )
+                    prompt_context.with_docs_context(docs_context)
+                    for d in docs:
+                        src = d.metadata.get("source")
+                        if src and src not in kb_sources:
+                            kb_sources.append(src)
+        except (ValueError, RuntimeError):
+            pass
+
+        # Inject learning memory context
+        try:
+            from services.learning_memory_service import get_learning_memory_service
+
+            learning_svc = get_learning_memory_service()
+            similar_errors = learning_svc.get_similar_events(req.message, top_k=3)
+            if similar_errors:
+                errors_context = "\n\n[PAST SIMILAR MISTAKES]\n"
+                for err in similar_errors:
+                    errors_context += (
+                        f"- Topic: {err['topic']}, type: {err['event_type']}\n"
+                        f"  You believed: {err['user_belief']}\n"
+                        f"  Correct: {err['correct_model']}\n"
+                        f"  Root cause: {err['root_cause']}\n"
+                    )
+                prompt_context.add_modifier(errors_context)
+
+            personality_insights = learning_svc.get_personality_insights()
+            if personality_insights:
+                insights_context = "\n\n[LEARNING INSIGHTS]\n"
+                for key, value in personality_insights.items():
+                    insights_context += f"- {key}: {value:+.2f}\n"
+                prompt_context.add_modifier(insights_context)
+        except (ImportError, RuntimeError, Exception):
+            pass
+
+        # Personality drift
+        try:
+            from context_awareness import get_context_info
+            from personality import apply_personality_drift
+
+            ctx_info = get_context_info(
+                session_start=getattr(state, "metrics", {}).get("start_time", 0),
+                messages_this_session=len(req.history),
+            )
+            try:
+                from services.learning_memory_service import get_learning_memory_service
+
+                learning_svc = get_learning_memory_service()
+                weak = learning_svc.get_weak_topics(limit=3)
+                ctx_info["weak_topics_count"] = len(weak)
+                ctx_info["recent_errors"] = sum(item["error_count"] for item in weak)
+            except (ImportError, RuntimeError, Exception):
+                ctx_info.setdefault("weak_topics_count", 0)
+                ctx_info.setdefault("recent_errors", 0)
+            pmod = apply_personality_drift(ctx_info)
+            if pmod:
+                prompt_context.with_personality_drift(pmod)
+        except (ImportError, RuntimeError, Exception):
+            pass
+
+        messages = [{"role": "system", "content": prompt_context.build()}]
+
+        # Inject summary if available
+        if BUDGET_AVAILABLE and api_budget_manager is not None:
+            summary = api_budget_manager.extract_summary(req.history)
+            if summary:
+                messages.append(
+                    {"role": "system", "content": f"[Context summary: {summary}]"}
+                )
+
+            trimmed, _ = api_budget_manager.prepare_context(
+                req.history, max_messages=30, user_input=req.message
+            )
+            history_slice = trimmed
+        else:
+            history_slice = req.history[-10:]
+        for msg in history_slice:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+        messages.append({"role": "user", "content": req.message})
+
+        response = llm.invoke(messages)
+        response_text = (
+            response.content if hasattr(response, "content") else str(response)
+        )
+
+        # Narrative events
+        try:
+            from handlers.event_engine import check_events
+
+            fired = check_events()
+            if fired:
+                event_lines = []
+                for evt in fired:
+                    msg = f"вљЎ {evt['title']}: {evt['message']}"
+                    if evt["effects"]:
+                        msg += f" ({', '.join(evt['effects'])})"
+                    event_lines.append(msg)
+                response_text += "\n\n" + "\n".join(event_lines)
+        except ImportError:
+            pass
+
+        # Persona info for PWA
+        try:
+            from persona_router import get_persona_info
+
+            persona_info = get_persona_info(persona_id)
+        except ImportError:
+            persona_info = {"id": "rick", "name": "Rick", "emoji": "рџ§Є"}
+
+        new_history = [
+            *req.history,
+            {"role": "user", "content": req.message},
+            {"role": "assistant", "content": response_text},
+        ]
+
+        return {
+            "response": response_text,
+            "history": new_history,
+            "persona": persona_info,
+            "kb_sources": kb_sources,
+        }
+    except (ValueError, RuntimeError, KeyError, OSError) as e:
+        import logging
+
+        logging.exception(f"[API Chat Error] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"LLM error: {e}")
+
+
+# Hardcoded fallback quiz questions (LLM-free game mechanic)
+_FALLBACK_QUESTIONS = {
+    "general": [
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ С„РёС€РёРЅРі?",
+            "options": [
+                "Р’РёРґ СЂС‹Р±Р°Р»РєРё",
+                "РђС‚Р°РєР° СЃ РїРѕРґРґРµР»РєРѕР№ РїРёСЃРµРј/СЃР°Р№С‚РѕРІ",
+                "РўРёРї С€РёС„СЂРѕРІР°РЅРёСЏ",
+                "РЎРµС‚РµРІРѕР№ РїСЂРѕС‚РѕРєРѕР»",
+            ],
+            "correct": 1,
+            "explanation": "Р¤РёС€РёРЅРі вЂ” РІРёРґ СЃРѕС†РёР°Р»СЊРЅРѕР№ РёРЅР¶РµРЅРµСЂРёРё, РіРґРµ Р·Р»РѕСѓРјС‹С€Р»РµРЅРЅРёРє РїРѕРґРґРµР»С‹РІР°РµС‚ РїРёСЃСЊРјР°/СЃР°Р№С‚С‹.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ zero-day СѓСЏР·РІРёРјРѕСЃС‚СЊ?",
+            "options": [
+                "РЈСЏР·РІРёРјРѕСЃС‚СЊ РЅСѓР»РµРІРѕРіРѕ РґРЅСЏ",
+                "РЈСЏР·РІРёРјРѕСЃС‚СЊ Р±РµР· РїР°С‚С‡Р°",
+                "РќРµРёР·РІРµСЃС‚РЅР°СЏ СЂР°Р·СЂР°Р±РѕС‚С‡РёРєСѓ СѓСЏР·РІРёРјРѕСЃС‚СЊ",
+                "Р’СЃС‘ РІС‹С€РµРїРµСЂРµС‡РёСЃР»РµРЅРЅРѕРµ",
+            ],
+            "correct": 3,
+            "explanation": "Zero-day вЂ” СѓСЏР·РІРёРјРѕСЃС‚СЊ, Рѕ РєРѕС‚РѕСЂРѕР№ СЂР°Р·СЂР°Р±РѕС‚С‡РёРє РЅРµ Р·РЅР°РµС‚, Рё РїР°С‚С‡Р° РµС‰С‘ РЅРµС‚.",
+        },
+        {
+            "question": "Р§С‚Рѕ РѕР·РЅР°С‡Р°РµС‚ CIA Triad?",
+            "options": [
+                "Confidentiality, Integrity, Availability",
+                "Code, Internet, Access",
+                "Central Intelligence Agency",
+                "Cryptography, Identity, Authentication",
+            ],
+            "correct": 0,
+            "explanation": "РўСЂРёР°РґР° CIA вЂ” РєРѕРЅС„РёРґРµРЅС†РёР°Р»СЊРЅРѕСЃС‚СЊ, С†РµР»РѕСЃС‚РЅРѕСЃС‚СЊ, РґРѕСЃС‚СѓРїРЅРѕСЃС‚СЊ.",
+        },
+        {
+            "question": "РљР°РєРѕР№ РїРѕСЂС‚ РёСЃРїРѕР»СЊР·СѓРµС‚ HTTP?",
+            "options": ["443", "80", "22", "8080"],
+            "correct": 1,
+            "explanation": "HTTP РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РёСЃРїРѕР»СЊР·СѓРµС‚ РїРѕСЂС‚ 80.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ Р±РѕС‚РЅРµС‚?",
+            "options": [
+                "РЎРµС‚СЊ Р±РѕС‚РѕРІ",
+                "РўРёРї РІРёСЂСѓСЃР°",
+                "РЎРµС‚СЊ Р·Р°СЂР°Р¶С‘РЅРЅС‹С… СѓСЃС‚СЂРѕР№СЃС‚РІ РїРѕРґ РєРѕРЅС‚СЂРѕР»РµРј Р°С‚Р°РєСѓСЋС‰РµРіРѕ",
+                "РђРЅС‚РёРІРёСЂСѓСЃРЅР°СЏ РїСЂРѕРіСЂР°РјРјР°",
+            ],
+            "correct": 2,
+            "explanation": "Р‘РѕС‚РЅРµС‚ вЂ” СЃРµС‚СЊ Р·Р°СЂР°Р¶С‘РЅРЅС‹С… СѓСЃС‚СЂРѕР№СЃС‚РІ, СѓРїСЂР°РІР»СЏРµРјР°СЏ Р·Р»РѕСѓРјС‹С€Р»РµРЅРЅРёРєРѕРј.",
+        },
+    ],
+    "networking": [
+        {
+            "question": "РљР°РєРѕР№ РїРѕСЂС‚ РёСЃРїРѕР»СЊР·СѓРµС‚ SSH?",
+            "options": ["22", "23", "443", "3389"],
+            "correct": 0,
+            "explanation": "SSH РёСЃРїРѕР»СЊР·СѓРµС‚ РїРѕСЂС‚ 22 РґР»СЏ Р±РµР·РѕРїР°СЃРЅРѕРіРѕ СѓРґР°Р»С‘РЅРЅРѕРіРѕ РґРѕСЃС‚СѓРїР°.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ DNS?",
+            "options": [
+                "РЎРёСЃС‚РµРјР° РґРѕРјРµРЅРЅС‹С… РёРјС‘РЅ",
+                "РџСЂРѕС‚РѕРєРѕР» С€РёС„СЂРѕРІР°РЅРёСЏ",
+                "РњРµР¶СЃРµС‚РµРІРѕР№ СЌРєСЂР°РЅ",
+                "РўРёРї Р°С‚Р°РєРё",
+            ],
+            "correct": 0,
+            "explanation": "DNS РїСЂРµРѕР±СЂР°Р·СѓРµС‚ РґРѕРјРµРЅРЅС‹Рµ РёРјРµРЅР° РІ IP-Р°РґСЂРµСЃР°.",
+        },
+        {
+            "question": "РљР°РєРѕР№ РїСЂРѕС‚РѕРєРѕР» РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ Р±РµР·РѕРїР°СЃРЅРѕР№ РІРµР±-РїРµСЂРµРґР°С‡Рё?",
+            "options": ["HTTP", "FTP", "HTTPS", "SMTP"],
+            "correct": 2,
+            "explanation": "HTTPS вЂ” HTTP РїРѕРІРµСЂС… SSL/TLS, РѕР±РµСЃРїРµС‡РёРІР°РµС‚ С€РёС„СЂРѕРІР°РЅРёРµ.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ NAT?",
+            "options": [
+                "РўСЂР°РЅСЃР»СЏС†РёСЏ СЃРµС‚РµРІС‹С… Р°РґСЂРµСЃРѕРІ",
+                "РџСЂРѕС‚РѕРєРѕР» РјР°СЂС€СЂСѓС‚РёР·Р°С†РёРё",
+                "РўРёРї РјРµР¶СЃРµС‚РµРІРѕРіРѕ СЌРєСЂР°РЅР°",
+                "РђР»РіРѕСЂРёС‚Рј С€РёС„СЂРѕРІР°РЅРёСЏ",
+            ],
+            "correct": 0,
+            "explanation": "NAT РїРѕРґРјРµРЅСЏРµС‚ С‡Р°СЃС‚РЅС‹Рµ IP-Р°РґСЂРµСЃР° РЅР° РїСѓР±Р»РёС‡РЅС‹Р№.",
+        },
+        {
+            "question": "РљР°РєРѕР№ РїРѕСЂС‚ РёСЃРїРѕР»СЊР·СѓРµС‚ DNS?",
+            "options": ["53", "80", "443", "25"],
+            "correct": 0,
+            "explanation": "DNS СЂР°Р±РѕС‚Р°РµС‚ РЅР° РїРѕСЂС‚Сѓ 53.",
+        },
+    ],
+    "web": [
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ XSS?",
+            "options": [
+                "Cross-Site Scripting",
+                "Extra Secure System",
+                "XML Style Sheet",
+                "Cross-Site Request",
+            ],
+            "correct": 0,
+            "explanation": "XSS вЂ” РІРЅРµРґСЂРµРЅРёРµ СЃРєСЂРёРїС‚РѕРІ РЅР° РІРµР±-СЃС‚СЂР°РЅРёС†Сѓ С‡РµСЂРµР· СѓСЏР·РІРёРјРѕСЃС‚СЊ.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ SQL-РёРЅСЉРµРєС†РёСЏ?",
+            "options": [
+                "Р’РЅРµРґСЂРµРЅРёРµ SQL-РєРѕРґР°",
+                "РўРёРї Р±Р°Р·С‹ РґР°РЅРЅС‹С…",
+                "РџСЂРѕС‚РѕРєРѕР» Р±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё",
+                "РњРµС‚РѕРґ С€РёС„СЂРѕРІР°РЅРёСЏ",
+            ],
+            "correct": 0,
+            "explanation": "SQLi вЂ” РІРЅРµРґСЂРµРЅРёРµ РІСЂРµРґРѕРЅРѕСЃРЅРѕРіРѕ SQL-РєРѕРґР° С‡РµСЂРµР· РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёР№ РІРІРѕРґ.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ CSRF?",
+            "options": [
+                "Cross-Site Request Forgery",
+                "РџРѕРґРґРµР»РєР° РјРµР¶СЃР°Р№С‚РѕРІРѕРіРѕ Р·Р°РїСЂРѕСЃР°",
+                "РђС‚Р°РєР° С‡РµСЂРµР· cookie",
+                "Р’СЃС‘ РІС‹С€РµРїРµСЂРµС‡РёСЃР»РµРЅРЅРѕРµ",
+            ],
+            "correct": 3,
+            "explanation": "CSRF вЂ” Р°С‚Р°РєР°, Р·Р°СЃС‚Р°РІР»СЏСЋС‰Р°СЏ Р±СЂР°СѓР·РµСЂ Р¶РµСЂС‚РІС‹ РІС‹РїРѕР»РЅРёС‚СЊ РЅРµР¶РµР»Р°С‚РµР»СЊРЅРѕРµ РґРµР№СЃС‚РІРёРµ.",
+        },
+        {
+            "question": "РљР°РєРѕР№ Р·Р°РіРѕР»РѕРІРѕРє Р·Р°С‰РёС‰Р°РµС‚ РѕС‚ XSS?",
+            "options": [
+                "X-XSS-Protection",
+                "Content-Security-Policy",
+                "X-Content-Type-Options",
+                "Р’СЃРµ РІС‹С€РµРїРµСЂРµС‡РёСЃР»РµРЅРЅС‹Рµ",
+            ],
+            "correct": 3,
+            "explanation": "X-XSS-Protection, CSP Рё X-Content-Type-Options РїРѕРјРѕРіР°СЋС‚ РѕС‚ XSS.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ CORS?",
+            "options": [
+                "РЎРѕРІРјРµСЃС‚РЅРѕРµ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ СЂРµСЃСѓСЂСЃРѕРІ РјРµР¶РґСѓ РёСЃС‚РѕС‡РЅРёРєР°РјРё",
+                "РџСЂРѕС‚РѕРєРѕР» С€РёС„СЂРѕРІР°РЅРёСЏ",
+                "РўРёРї Р°С‚Р°РєРё",
+                "РЎРµСЂРІРµСЂРЅР°СЏ С‚РµС…РЅРѕР»РѕРіРёСЏ",
+            ],
+            "correct": 0,
+            "explanation": "CORS вЂ” РјРµС…Р°РЅРёР·Рј, СЂР°Р·СЂРµС€Р°СЋС‰РёР№ Р·Р°РїСЂРѕСЃС‹ СЃ РґСЂСѓРіРёС… РґРѕРјРµРЅРѕРІ.",
+        },
+    ],
+    "crypto": [
+        {
+            "question": "РљР°РєРѕР№ Р°Р»РіРѕСЂРёС‚Рј СЃС‡РёС‚Р°РµС‚СЃСЏ РЅРµР±РµР·РѕРїР°СЃРЅС‹Рј РґР»СЏ С…РµС€РёСЂРѕРІР°РЅРёСЏ?",
+            "options": ["SHA-256", "MD5", "bcrypt", "Argon2"],
+            "correct": 1,
+            "explanation": "MD5 СѓСЃС‚Р°СЂРµР» Рё РїРѕРґРІРµСЂР¶РµРЅ РєРѕР»Р»РёР·РёСЏРј.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ СЃРёРјРјРµС‚СЂРёС‡РЅРѕРµ С€РёС„СЂРѕРІР°РЅРёРµ?",
+            "options": [
+                "РћРґРёРЅ РєР»СЋС‡ РґР»СЏ С€РёС„СЂРѕРІР°РЅРёСЏ Рё РґРµС€РёС„СЂРѕРІР°РЅРёСЏ",
+                "Р”РІР° СЂР°Р·РЅС‹С… РєР»СЋС‡Р°",
+                "РћС‚РєСЂС‹С‚С‹Р№ РєР»СЋС‡",
+                "РҐРµС€-С„СѓРЅРєС†РёСЏ",
+            ],
+            "correct": 0,
+            "explanation": "РЎРёРјРјРµС‚СЂРёС‡РЅРѕРµ С€РёС„СЂРѕРІР°РЅРёРµ РёСЃРїРѕР»СЊР·СѓРµС‚ РѕРґРёРЅ РєР»СЋС‡ РґР»СЏ РѕР±РµРёС… РѕРїРµСЂР°С†РёР№.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ SSL/TLS?",
+            "options": [
+                "РџСЂРѕС‚РѕРєРѕР» С€РёС„СЂРѕРІР°РЅРёСЏ РєР°РЅР°Р»Р°",
+                "РўРёРї СЃРµСЂС‚РёС„РёРєР°С‚Р°",
+                "РђР»РіРѕСЂРёС‚Рј С…РµС€РёСЂРѕРІР°РЅРёСЏ",
+                "РњРµР¶СЃРµС‚РµРІРѕР№ СЌРєСЂР°РЅ",
+            ],
+            "correct": 0,
+            "explanation": "TLS Р·Р°С‰РёС‰Р°РµС‚ РґР°РЅРЅС‹Рµ РїСЂРё РїРµСЂРµРґР°С‡Рµ РїРѕ СЃРµС‚Рё.",
+        },
+        {
+            "question": "Р”Р»СЏ С‡РµРіРѕ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ С†РёС„СЂРѕРІР°СЏ РїРѕРґРїРёСЃСЊ?",
+            "options": [
+                "РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ Р°РІС‚РѕСЂСЃС‚РІР°",
+                "РЁРёС„СЂРѕРІР°РЅРёРµ РґР°РЅРЅС‹С…",
+                "РЎР¶Р°С‚РёРµ РґР°РЅРЅС‹С…",
+                "РђСѓС‚РµРЅС‚РёС„РёРєР°С†РёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ",
+            ],
+            "correct": 0,
+            "explanation": "Р¦РёС„СЂРѕРІР°СЏ РїРѕРґРїРёСЃСЊ РїРѕРґС‚РІРµСЂР¶РґР°РµС‚ С†РµР»РѕСЃС‚РЅРѕСЃС‚СЊ Рё Р°РІС‚РѕСЂСЃС‚РІРѕ.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ AES?",
+            "options": [
+                "РЎС‚Р°РЅРґР°СЂС‚ С€РёС„СЂРѕРІР°РЅРёСЏ",
+                "РџСЂРѕС‚РѕРєРѕР» Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё",
+                "РўРёРї Р°С‚Р°РєРё",
+                "РҐРµС€-С„СѓРЅРєС†РёСЏ",
+            ],
+            "correct": 0,
+            "explanation": "AES вЂ” Advanced Encryption Standard, СЃРёРјРјРµС‚СЂРёС‡РЅРѕРµ С€РёС„СЂРѕРІР°РЅРёРµ.",
+        },
+    ],
+    "malware": [
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ ransomware?",
+            "options": [
+                "РЁРёС„СЂРѕРІР°Р»СЊС‰РёРє-РІС‹РјРѕРіР°С‚РµР»СЊ",
+                "РўСЂРѕСЏРЅ СѓРґР°Р»С‘РЅРЅРѕРіРѕ РґРѕСЃС‚СѓРїР°",
+                "РЎРµС‚РµРІРѕР№ С‡РµСЂРІСЊ",
+                "РљРµР№Р»РѕРіРіРµСЂ",
+            ],
+            "correct": 0,
+            "explanation": "Ransomware С€РёС„СЂСѓРµС‚ С„Р°Р№Р»С‹ Рё С‚СЂРµР±СѓРµС‚ РІС‹РєСѓРї Р·Р° РёС… СЂР°СЃС€РёС„СЂРѕРІРєСѓ.",
+        },
+        {
+            "question": "Р§РµРј РІРёСЂСѓСЃ РѕС‚Р»РёС‡Р°РµС‚СЃСЏ РѕС‚ С‡РµСЂРІСЏ?",
+            "options": [
+                "Р’РёСЂСѓСЃСѓ РЅСѓР¶РµРЅ РЅРѕСЃРёС‚РµР»СЊ; С‡РµСЂРІСЊ СЃР°Рј СЂР°СЃРїСЂРѕСЃС‚СЂР°РЅСЏРµС‚СЃСЏ",
+                "РќРёС‡РµРј",
+                "Р§РµСЂРІСЊ С€РёС„СЂСѓРµС‚ С„Р°Р№Р»С‹",
+                "Р’РёСЂСѓСЃ СЂР°СЃРїСЂРѕСЃС‚СЂР°РЅСЏРµС‚СЃСЏ РїРѕ СЃРµС‚Рё",
+            ],
+            "correct": 0,
+            "explanation": "Р’РёСЂСѓСЃ РїСЂРёРєСЂРµРїР»СЏРµС‚СЃСЏ Рє С„Р°Р№Р»Р°Рј; С‡РµСЂРІСЊ Р°РІС‚РѕРЅРѕРјРЅРѕ СЂР°СЃРїСЂРѕСЃС‚СЂР°РЅСЏРµС‚СЃСЏ РїРѕ СЃРµС‚Рё.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ С‚СЂРѕСЏРЅ?",
+            "options": [
+                "Р’СЂРµРґРѕРЅРѕСЃРЅР°СЏ РїСЂРѕРіСЂР°РјРјР° РїРѕРґ РІРёРґРѕРј Р»РµРіРёС‚РёРјРЅРѕР№",
+                "РЎР°РјРѕСЂР°СЃРїСЂРѕСЃС‚СЂР°РЅСЏСЋС‰РёР№СЃСЏ РІРёСЂСѓСЃ",
+                "РўРёРї С€РёС„СЂРѕРІР°Р»СЊС‰РёРєР°",
+                "РџСЂРѕРіСЂР°РјРјР° РґР»СЏ РІР·Р»РѕРјР°",
+            ],
+            "correct": 0,
+            "explanation": "РўСЂРѕСЏРЅ РјР°СЃРєРёСЂСѓРµС‚СЃСЏ РїРѕРґ РїРѕР»РµР·РЅСѓСЋ РїСЂРѕРіСЂР°РјРјСѓ.",
+        },
+        {
+            "question": "Р§С‚Рѕ С‚Р°РєРѕРµ rootkit?",
+            "options": [
+                "РќР°Р±РѕСЂ РёРЅСЃС‚СЂСѓРјРµРЅС‚РѕРІ РґР»СЏ СЃРєСЂС‹С‚РёСЏ РїСЂРёСЃСѓС‚СЃС‚РІРёСЏ РІ СЃРёСЃС‚РµРјРµ",
+                "Р’РёСЂСѓСЃ",
+                "РњРµР¶СЃРµС‚РµРІРѕР№ СЌРєСЂР°РЅ",
+                "РђРЅС‚РёРІРёСЂСѓСЃ",
+            ],
+            "correct": 0,
+            "explanation": "Rootkit СЃРєСЂС‹РІР°РµС‚ Р°РєС‚РёРІРЅРѕСЃС‚СЊ Р·Р»РѕСѓРјС‹С€Р»РµРЅРЅРёРєР° РІ СЃРёСЃС‚РµРјРµ.",
+        },
+        {
+            "question": "РљР°РєРѕР№ С‚РёРї Р°РЅР°Р»РёР·Р° РјР°Р»РІР°СЂРё РёСЃРїРѕР»СЊР·СѓРµС‚ РёР·РѕР»РёСЂРѕРІР°РЅРЅСѓСЋ СЃСЂРµРґСѓ?",
+            "options": [
+                "Р”РёРЅР°РјРёС‡РµСЃРєРёР№ Р°РЅР°Р»РёР·",
+                "РЎС‚Р°С‚РёС‡РµСЃРєРёР№ Р°РЅР°Р»РёР·",
+                "Р­РІСЂРёСЃС‚РёС‡РµСЃРєРёР№ Р°РЅР°Р»РёР·",
+                "РЎРёРіРЅР°С‚СѓСЂРЅС‹Р№ Р°РЅР°Р»РёР·",
+            ],
+            "correct": 0,
+            "explanation": "Р”РёРЅР°РјРёС‡РµСЃРєРёР№ Р°РЅР°Р»РёР· Р·Р°РїСѓСЃРєР°РµС‚ РѕР±СЂР°Р·РµС† РІ РёР·РѕР»РёСЂРѕРІР°РЅРЅРѕР№ СЃСЂРµРґРµ (sandbox).",
+        },
+    ],
+}
+
+
+@_if_app("post", "/api/quiz/generate")
+def generate_quiz(req: QuizGenerateRequest) -> dict[str, Any]:
+    try:
+        from config import LazyLoader
+
+        llm = LazyLoader.get_llm()
+
+        # If LLM available, try AI-generation first
+        if llm is not None:
+            topic_map = {
+                "general": "РѕР±С‰РёРµ РІРѕРїСЂРѕСЃС‹ РєРёР±РµСЂР±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё",
+                "networking": "СЃРµС‚РµРІР°СЏ Р±РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ (РїРѕСЂС‚С‹, РїСЂРѕС‚РѕРєРѕР»С‹, Р°С‚Р°РєРё)",
+                "crypto": "РєСЂРёРїС‚РѕРіСЂР°С„РёСЏ (С€РёС„СЂРѕРІР°РЅРёРµ, С…РµС€Рё, СЃРµСЂС‚РёС„РёРєР°С‚С‹)",
+                "web": "РІРµР±-Р±РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ (XSS, SQLi, CSRF)",
+                "malware": "РІСЂРµРґРѕРЅРѕСЃРЅРѕРµ РџРћ (РІРёСЂСѓСЃС‹, С‚СЂРѕСЏРЅС‹, ransomware)",
+            }
+            topic_desc = topic_map.get(req.topic, "РєРёР±РµСЂР±РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ")
+
+            prompt = (
+                f"РЎРѕР·РґР°Р№ {req.count} РІРѕРїСЂРѕСЃРѕРІ СЃ РІС‹Р±РѕСЂРѕРј РѕС‚РІРµС‚Р° РїРѕ С‚РµРјРµ: {topic_desc}. "
+                "Р¤РѕСЂРјР°С‚: JSON РјР°СЃСЃРёРІ РѕР±СЉРµРєС‚РѕРІ СЃ РїРѕР»СЏРјРё: question (СЃС‚СЂРѕРєР°), options (РјР°СЃСЃРёРІ РёР· 4 СЃС‚СЂРѕРє), "
+                "correct (РёРЅРґРµРєСЃ РїСЂР°РІРёР»СЊРЅРѕРіРѕ РѕС‚РІРµС‚Р° 0-3), explanation (РєСЂР°С‚РєРѕРµ РѕР±СЉСЏСЃРЅРµРЅРёРµ). "
+                "РўРѕР»СЊРєРѕ JSON, Р±РµР· markdown."
+            )
+
+            response = llm.invoke(prompt)
+            response_text = (
+                response.content if hasattr(response, "content") else str(response)
+            )
+
+            import json
+            import re
+
+            json_match = re.search(r"\[.*\]", response_text, re.DOTALL)
+            if json_match:
+                questions = json.loads(json_match.group())
+                return {"questions": questions, "source": "ai"}
+
+        # Fallback: use hardcoded questions (LLM-free)
+        topic = req.topic if req.topic in _FALLBACK_QUESTIONS else "general"
+        pool = _FALLBACK_QUESTIONS[topic]
+        count = min(req.count, len(pool))
+        import random
+
+        questions = random.sample(pool, count)
+        return {"questions": questions, "source": "local"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Ultimate fallback: return whatever local questions we have
+        topic = req.topic if req.topic in _FALLBACK_QUESTIONS else "general"
+        pool = _FALLBACK_QUESTIONS[topic]
+        count = min(req.count, len(pool))
+        import random
+
+        questions = random.sample(pool, count)
+        return {"questions": questions, "source": "local_fallback"}
+
+
+# ----------------------------------------------------------------------
+# РћСЃС‚Р°Р»СЊРЅС‹Рµ СЌРЅРґРїРѕРёРЅС‚С‹ (Р°РЅР°Р»РѕРіРёС‡РЅРѕ, СЃ Р·Р°С‰РёС‚РѕР№)
+# ----------------------------------------------------------------------
+@_if_app("get", "/api/courses-alt")
+def get_courses_alt():
+    # Р”СѓР±Р»РёРєР°С‚ вЂ“ СѓРґР°Р»СЏРµРј, РѕРЅ РЅРµ РЅСѓР¶РµРЅ, РЅРѕ РѕСЃС‚Р°РІРёРј РґР»СЏ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё
+    return get_courses()
+
+
+@_if_app("post", "/api/courses-alt/select")
+def select_course_alt(course_id: str):
+    return select_course(course_id)
+
+
+@_if_app("get", "/api/labs")
+def get_labs():
+    try:
+        from practice import DOCKER_LABS
+
+        state = get_state()
+        running = getattr(state, "running_labs", [])
+
+        result = []
+        for lid, lab in DOCKER_LABS.items():
+            result.append(
+                {
+                    "id": lid,
+                    "name": lab.get("name", ""),
+                    "description": lab.get("desc", ""),
+                    "image": lab.get("image", ""),
+                    "ports": lab.get("ports", {}),
+                    "tags": lab.get("tags", []),
+                    "running": lid in running,
+                    "difficulty": "beginner"
+                    if "beginner" in lab.get("tags", [])
+                    else (
+                        "intermediate"
+                        if "intermediate" in lab.get("tags", [])
+                        else "advanced"
+                    ),
+                }
+            )
+        return {"labs": result}
+    except Exception as e:
+        return {"labs": [], "error": "Internal error"}
+
+
+@_if_app("post", "/api/labs/{lab_id}/start")
+@_if_app("post", "/api/labs/start")
+def start_lab(lab_id: str = "", token: str = ""):
+    if not lab_id:
+        raise HTTPException(status_code=400, detail="lab_id required")
+    return docker_start_lab(lab_id)
+
+
+@_if_app("post", "/api/labs/{lab_id}/stop")
+@_if_app("post", "/api/labs/stop")
+def stop_lab(lab_id: str = "", token: str = ""):
+    return docker_stop_lab(lab_id)
+
+
+@_if_app("get", "/api/docker/status")
+def docker_status():
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["docker", "info"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        available = result.returncode == 0
+        return {
+            "available": available,
+            "message": "Docker РґРѕСЃС‚СѓРїРµРЅ"
+            if available
+            else "Docker РЅРµ Р·Р°РїСѓС‰РµРЅ РёР»Рё РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ",
+        }
+    except FileNotFoundError:
+        return {"available": False, "message": "Docker РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ"}
+    except Exception as e:
+        return {"available": False, "message": str(e)}
+
+
+@_if_app("post", "/api/docker/start")
+def docker_start_lab(lab_id: str):
+    try:
+        from practice import DOCKER_LABS
+
+        if lab_id not in DOCKER_LABS:
+            raise HTTPException(status_code=404, detail="Lab not found")
+
+        lab = DOCKER_LABS[lab_id]
+        image = lab.get("image", "")
+        if not image:
+            raise HTTPException(status_code=400, detail="No Docker image specified")
+
+        import subprocess
+
+        ports = lab.get("ports", {})
+        port_args = []
+        port_list = []
+        for host_port, container_port in ports.items():
+            port_args.extend(["-p", f"{host_port}:{container_port}"])
+            port_list.append(f"http://localhost:{host_port}")
+
+        cmd = [
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            f"cyberteacher-{lab_id}",
+            *port_args,
+            image,
+        ]
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=60, check=False
+        )
+
+        if result.returncode != 0:
+            if "already in use" in result.stderr:
+                start_cmd = ["docker", "start", f"cyberteacher-{lab_id}"]
+                start_result = subprocess.run(
+                    start_cmd, capture_output=True, text=True, timeout=30, check=False
+                )
+                if start_result.returncode == 0:
+                    state = get_state()
+                    running = getattr(state, "running_labs", [])
+                    if lab_id not in running:
+                        running.append(lab_id)
+                        state.running_labs = running
+                    post_start = lab.get("post_start", "")
+                    if post_start:
+                        try:
+                            subprocess.run(
+                                [
+                                    "docker",
+                                    "exec",
+                                    f"cyberteacher-{lab_id}",
+                                    "/bin/bash",
+                                    "-c",
+                                    post_start,
+                                ],
+                                capture_output=True,
+                                text=True,
+                                timeout=30,
+                                check=False,
+                            )
+                        except (subprocess.TimeoutExpired, OSError):
+                            pass
+                    return {
+                        "status": "ok",
+                        "lab": lab_id,
+                        "ports": port_list,
+                        "message": f"Р›Р°Р±РѕСЂР°С‚РѕСЂРёСЏ {lab.get('name', lab_id)} РїРµСЂРµР·Р°РїСѓС‰РµРЅР°",
+                    }
+            raise HTTPException(status_code=500, detail=result.stderr)
+
+        container_id = result.stdout.strip()
+        state = get_state()
+        running = getattr(state, "running_labs", [])
+        if lab_id not in running:
+            running.append(lab_id)
+            state.running_labs = running
+
+        # Post-start hooks (e.g., MySQL init for DVWA)
+        post_start = lab.get("post_start", "")
+        if post_start:
+            try:
+                subprocess.run(
+                    [
+                        "docker",
+                        "exec",
+                        f"cyberteacher-{lab_id}",
+                        "/bin/bash",
+                        "-c",
+                        post_start,
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+            except (subprocess.TimeoutExpired, OSError):
+                pass
+
+        return {
+            "status": "ok",
+            "lab": lab_id,
+            "container_id": container_id[:12],
+            "ports": port_list,
+            "message": f"Р›Р°Р±РѕСЂР°С‚РѕСЂРёСЏ {lab.get('name', lab_id)} Р·Р°РїСѓС‰РµРЅР°",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("post", "/api/docker/stop")
+def docker_stop_lab(lab_id: str):
+    try:
+        import subprocess
+
+        cmd = ["docker", "stop", f"cyberteacher-{lab_id}"]
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30, check=False
+        )
+
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=result.stderr)
+
+        state = get_state()
+        running = getattr(state, "running_labs", [])
+        if lab_id in running:
+            running.remove(lab_id)
+            state.running_labs = running
+
+        return {"status": "ok", "lab": lab_id, "message": "Р›Р°Р±РѕСЂР°С‚РѕСЂРёСЏ РѕСЃС‚Р°РЅРѕРІР»РµРЅР°"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("get", "/api/docker/containers")
+def docker_containers():
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            [
+                "docker",
+                "ps",
+                "--filter",
+                "name=cyberteacher-",
+                "--format",
+                "{{.Names}}\t{{.Status}}\t{{.Ports}}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+
+        containers = []
+        for line in result.stdout.strip().split("\n"):
+            if line:
+                parts = line.split("\t")
+                containers.append(
+                    {
+                        "name": parts[0] if len(parts) > 0 else "",
+                        "status": parts[1] if len(parts) > 1 else "",
+                        "ports": parts[2] if len(parts) > 2 else "",
+                    }
+                )
+        return {"containers": containers}
+    except Exception as e:
+        return {"containers": [], "error": "Internal error"}
+
+
+@_if_app("get", "/api/achievements/list")
+def get_achievements_list():
+    try:
+        state = get_state()
+        earned = getattr(state, "earned_achievements", [])
+
+        all_achievements = [
+            {
+                "id": "first_quiz",
+                "name": "РџРµСЂРІС‹Р№ РєРІРёР·",
+                "desc": "РџСЂРѕР№РґРё СЃРІРѕР№ РїРµСЂРІС‹Р№ РєРІРёР·",
+                "icon": "рџ“ќ",
+                "xp": 10,
+            },
+            {
+                "id": "first_lab",
+                "name": "РџРµСЂРІР°СЏ Р»Р°Р±Р°",
+                "desc": "Р—Р°РїСѓСЃС‚Рё СЃРІРѕСЋ РїРµСЂРІСѓСЋ Р»Р°Р±РѕСЂР°С‚РѕСЂРёСЋ",
+                "icon": "рџђі",
+                "xp": 20,
+            },
+            {
+                "id": "streak_7",
+                "name": "РќРµРґРµР»СЏ РїРѕРґСЂСЏРґ",
+                "desc": "7 РґРЅРµР№ СЃС‚СЂРёРє",
+                "icon": "рџ”Ґ",
+                "xp": 50,
+            },
+            {
+                "id": "streak_30",
+                "name": "РњРµСЃСЏС† РїРѕРґСЂСЏРґ",
+                "desc": "30 РґРЅРµР№ СЃС‚СЂРёРє",
+                "icon": "в­ђ",
+                "xp": 100,
+            },
+            {
+                "id": "xp_1000",
+                "name": "РўС‹СЃСЏС‡РЅРёРє",
+                "desc": "РќР°Р±РµСЂРё 1000 XP",
+                "icon": "рџ’Ћ",
+                "xp": 0,
+            },
+            {
+                "id": "all_courses",
+                "name": "РџРѕР»РёРіР»РѕС‚",
+                "desc": "РџСЂРѕР№РґРё РІСЃРµ РєСѓСЂСЃС‹",
+                "icon": "рџЋ“",
+                "xp": 200,
+            },
+            {
+                "id": "flag_hunter",
+                "name": "РћС…РѕС‚РЅРёРє Р·Р° С„Р»Р°РіР°РјРё",
+                "desc": "РќР°Р№РґРё 10 С„Р»Р°РіРѕРІ",
+                "icon": "рџљ©",
+                "xp": 50,
+            },
+            {
+                "id": "code_reviewer",
+                "name": "Р РµРІСЊСЋРµСЂ",
+                "desc": "РџСЂРѕРІРµСЂСЊ 5 РєРѕРґРѕРІ",
+                "icon": "рџ”Ќ",
+                "xp": 30,
+            },
+        ]
+
+        result = []
+        for a in all_achievements:
+            result.append({**a, "earned": a["id"] in earned, "earned_date": None})
+
+        return {"achievements": result, "total": len(earned)}
+    except Exception as e:
+        return {"achievements": [], "error": "Internal error"}
+
+
+@_if_app("get", "/api/stats")
+def get_detailed_stats():
+    try:
+        state = get_state()
+        xp = getattr(state, "xp", 0)
+        level = getattr(state, "level", 1)
+        streak = getattr(state, "daily_streak", 0)
+        completed_quizzes = getattr(state, "completed_quizzes", [])
+        completed_tasks = getattr(state, "completed_tasks", [])
+        weak_topics = getattr(state, "weak_topics", [])
+
+        xp_needed = level * 100
+        xp_progress = (xp % xp_needed) / xp_needed * 100 if xp_needed > 0 else 0
+
+        activity = [
+            {"day": "РџРЅ", "value": 3},
+            {"day": "Р’С‚", "value": 5},
+            {"day": "РЎСЂ", "value": 2},
+            {"day": "Р§С‚", "value": 7},
+            {"day": "РџС‚", "value": 4},
+            {"day": "РЎР±", "value": 1},
+            {"day": "Р’СЃ", "value": 0},
+        ]
+
+        skills = [
+            {
+                "name": "Web Security",
+                "level": min(100, len(completed_quizzes) * 15 + 10),
+            },
+            {"name": "Network", "level": min(100, len(completed_tasks) * 20 + 5)},
+            {"name": "Cryptography", "level": min(100, 25)},
+            {"name": "Reverse Engineering", "level": min(100, 10)},
+            {"name": "Malware Analysis", "level": min(100, 15)},
+        ]
+
+        return {
+            "xp": xp,
+            "level": level,
+            "xp_needed": xp_needed,
+            "xp_progress": round(xp_progress, 1),
+            "streak": streak,
+            "total_quizzes": len(completed_quizzes),
+            "total_tasks": len(completed_tasks),
+            "weak_topics": weak_topics[:5],
+            "activity": activity,
+            "skills": skills,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# --- Versus Mode Endpoints ---
+class VersusStartRequest(BaseModel):
+    scenario: str
+
+
+class VersusMoveRequest(BaseModel):
+    message: str
+
+
+@_if_app("get", "/api/versus/scenarios")
+def get_versus_scenarios():
+    try:
+        from handlers.versus import VERSUS_SCENARIOS
+
+        result = []
+        for sid, scenario in VERSUS_SCENARIOS.items():
+            result.append(
+                {
+                    "id": sid,
+                    "name": scenario["name"],
+                    "description": scenario["description"],
+                }
+            )
+        return {"scenarios": result}
+    except Exception as e:
+        return {"scenarios": [], "error": "Internal error"}
+
+
+@_if_app("post", "/api/versus/start")
+def start_versus(req: VersusStartRequest):
+    try:
+        from handlers.versus import VERSUS_SCENARIOS
+
+        state = get_state()
+
+        if req.scenario not in VERSUS_SCENARIOS:
+            raise HTTPException(status_code=400, detail="Unknown scenario")
+
+        state.versus_active = True
+        state.versus_scenario = req.scenario
+        state.versus_attempts = 0
+        state.versus_history = []
+
+        scenario = VERSUS_SCENARIOS[req.scenario]
+        return {
+            "status": "ok",
+            "scenario": req.scenario,
+            "name": scenario["name"],
+            "initial_message": scenario["initial_message"],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("post", "/api/versus/move")
+def versus_move(req: VersusMoveRequest):
+    try:
+        from config import LazyLoader
+        from handlers.versus import get_versus_system_prompt, increment_versus_attempts
+
+        state = get_state()
+
+        if not getattr(state, "versus_active", False):
+            raise HTTPException(status_code=400, detail="No active versus game")
+
+        system_prompt = get_versus_system_prompt()
+        if not system_prompt:
+            raise HTTPException(status_code=500, detail="Invalid scenario")
+
+        history = getattr(state, "versus_history", [])
+        messages = [{"role": "system", "content": prompt_context.build()}]
+        for msg in history[-10:]:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+        messages.append({"role": "user", "content": req.message})
+
+        llm = LazyLoader.get_llm()
+        if llm is None:
+            raise HTTPException(status_code=500, detail="LLM not available")
+
+        response = llm.invoke(messages)
+        response_text = (
+            response.content if hasattr(response, "content") else str(response)
+        )
+
+        history.append({"role": "user", "content": req.message})
+        history.append({"role": "assistant", "content": response_text})
+        state.versus_history = history
+
+        increment_versus_attempts()
+
+        return {
+            "response": response_text,
+            "attempts": getattr(state, "versus_attempts", 0),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("get", "/api/versus/status")
+def versus_status():
+    try:
+        state = get_state()
+        return {
+            "active": getattr(state, "versus_active", False),
+            "scenario": getattr(state, "versus_scenario", None),
+            "attempts": getattr(state, "versus_attempts", 0),
+            "history_length": len(getattr(state, "versus_history", [])),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("post", "/api/versus/stop")
+def stop_versus():
+    try:
+        state = get_state()
+        state.versus_active = False
+        state.versus_scenario = None
+        state.versus_attempts = 0
+        state.versus_history = []
+        return {"status": "ok", "message": "Versus game ended"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("post", "/api/scan")
+def scan_code(payload: dict):
+    try:
+        from handlers.code_review_v2 import (
+            LANGUAGE_EXTENSIONS,
+            _count_owasp,
+            _count_severities,
+            calculate_ci_exit_code,
+            generate_sarif,
+            scan_file_secrets,
+        )
+
+        code = payload.get("code", "")
+        language = payload.get("language", "python")
+        options = payload.get("options", {})
+        use_semgrep = options.get("use_semgrep", True)
+        ci_mode = options.get("ci_mode", False)
+        sarif_output = options.get("sarif_output", False)
+
+        if not code:
+            raise HTTPException(status_code=400, detail="code is required")
+
+        import tempfile
+
+        ext = next((k for k, v in LANGUAGE_EXTENSIONS.items() if v == language), ".py")
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=ext, delete=False, encoding="utf-8"
+        ) as f:
+            f.write(code)
+            temp_path = f.name
+
+        try:
+            findings = []
+            findings.extend(scan_file_secrets(temp_path))
+
+            if use_semgrep:
+                from handlers.code_review_v2 import run_semgrep
+
+                findings.extend(run_semgrep(temp_path))
+
+            if language == "python":
+                from handlers.code_review_v2 import run_bandit
+
+                findings.extend(run_bandit(temp_path))
+
+            results = {
+                "language": language,
+                "findings": findings,
+                "severity_counts": _count_severities(findings),
+                "owasp_summary": _count_owasp(findings),
+            }
+
+            if sarif_output:
+                return {"status": "ok", "sarif": generate_sarif(results)}
+
+            if ci_mode:
+                exit_code = calculate_ci_exit_code(results, fail_on="high")
+                results["ci_pass"] = exit_code == 0
+
+            return {"status": "ok", "results": results}
+        finally:
+            import os
+
+            with contextlib.suppress(Exception):
+                os.unlink(temp_path)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("get", "/api/scan/rules")
+def get_scan_rules():
+    try:
+        import os
+        from handlers.code_review_v2 import OWASP_CATEGORIES, RULES_DIR
+
+        rules = []
+        if os.path.isdir(RULES_DIR):
+            for fname in os.listdir(RULES_DIR):
+                if fname.endswith(".yaml") and fname != "owasp-top10.yaml":
+                    rules.append(fname.replace(".yaml", ""))
+
+        return {
+            "rules": rules,
+            "owasp_categories": OWASP_CATEGORIES,
+            "rules_dir": RULES_DIR,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# --- Modes Endpoints ---
+MODES = {
+    "teacher": {
+        "name": "РЈС‡РёС‚РµР»СЊ",
+        "icon": "рџ‘ЁвЂЌрџЏ«",
+        "desc": "РћР±СЉСЏСЃРЅРµРЅРёСЏ, Р°РЅР°Р»РѕРіРёРё, Socratic РјРµС‚РѕРґ",
+    },
+    "expert": {"name": "Р­РєСЃРїРµСЂС‚", "icon": "рџ”§", "desc": "РљСЂР°С‚РєРёРµ С‚РµС…РЅРёС‡РµСЃРєРёРµ РѕС‚РІРµС‚С‹"},
+    "ctf": {"name": "CTF", "icon": "рџљ©", "desc": "Р¤Р»Р°РіРё, СЃРѕСЂРµРІРЅРѕРІР°РЅРёСЏ, СЂРёСЃРє-С‚СЂРµРєРёРЅРі"},
+    "review": {
+        "name": "Code Review",
+        "icon": "рџ”Ќ",
+        "desc": "РђРЅР°Р»РёР· РєРѕРґР° РЅР° СѓСЏР·РІРёРјРѕСЃС‚Рё",
+    },
+    "hybrid": {"name": "Hybrid", "icon": "рџЋ­", "desc": "РђРґР°РїС‚РёРІРЅС‹Р№ СЃС‚РёР»СЊ РѕР±СѓС‡РµРЅРёСЏ"},
+    "offline": {"name": "Offline", "icon": "рџ“ґ", "desc": "Р Р°Р±РѕС‚Р° Р±РµР· LLM"},
+}
+
+
+@_if_app("get", "/api/modes")
+def get_modes():
+    state = get_state()
+    current_mode = getattr(state, "current_mode", "teacher")
+    result = []
+    for mid, m in MODES.items():
+        result.append({**m, "id": mid, "active": mid == current_mode})
+    return {"modes": result, "current": current_mode}
+
+
+@_if_app("post", "/api/modes/set")
+def set_mode(mode_id: str):
+    if mode_id not in MODES:
+        raise HTTPException(status_code=400, detail=f"Unknown mode: {mode_id}")
+    state = get_state()
+    state.current_mode = mode_id
+    return {"status": "ok", "mode": mode_id, "name": MODES[mode_id]["name"]}
+
+
+# --- Profile Endpoints ---
+class ProfileUpdate(BaseModel):
+    name: str = ""
+    avatar: str = ""
+
+
+@_if_app("get", "/api/profile")
+def get_profile():
+    state = get_state()
+    return {
+        "name": getattr(state, "username", "РђРЅРѕРЅРёРј"),
+        "avatar": getattr(state, "avatar", ""),
+        "xp": getattr(state, "xp", 0),
+        "level": getattr(state, "level", 1),
+        "streak": getattr(state, "daily_streak", 0),
+        "reputation": getattr(state, "reputation", 0),
+        "points": getattr(state, "points", 0),
+        "flags_captured": getattr(state, "flags_captured", 0),
+        "quizzes_taken": len(getattr(state, "completed_quizzes", [])),
+        "labs_started": len(getattr(state, "running_labs", [])),
+    }
+
+
+@_if_app("post", "/api/profile/update")
+def update_profile(req: ProfileUpdate):
+    state = get_state()
+    if req.name:
+        state.username = req.name
+    if req.avatar:
+        state.avatar = req.avatar
+    return {"status": "ok"}
+
+
+@_if_app("get", "/api/behavior-profile")
+def get_behavior_profile():
+    state = get_state()
+    try:
+        from behavior_profile import get_profile_summary
+
+        return get_profile_summary(state)
+    except ImportError:
+        return {
+            "archetype": {"id": "engineer", "name": "РРЅР¶РµРЅРµСЂ"},
+            "traits": {},
+            "total_actions": 0,
+        }
+
+
+# --- Daily Challenge Endpoints ---
+DAILY_CHALLENGES = [
+    {
+        "id": 1,
+        "question": "РљР°РєРѕР№ РїРѕСЂС‚ РёСЃРїРѕР»СЊР·СѓРµС‚ SSH?",
+        "answer": "22",
+        "category": "networking",
+        "difficulty": "easy",
+    },
+    {
+        "id": 2,
+        "question": "Р§С‚Рѕ РѕР·РЅР°С‡Р°РµС‚ XSS?",
+        "answer": "Cross-Site Scripting",
+        "category": "web",
+        "difficulty": "easy",
+    },
+    {
+        "id": 3,
+        "question": "РљР°РєРѕР№ РїСЂРѕС‚РѕРєРѕР» РёСЃРїРѕР»СЊР·СѓРµС‚ РїРѕСЂС‚ 443?",
+        "answer": "HTTPS",
+        "category": "networking",
+        "difficulty": "easy",
+    },
+    {
+        "id": 4,
+        "question": "Р§С‚Рѕ С‚Р°РєРѕРµ SQL-РёРЅСЉРµРєС†РёСЏ?",
+        "answer": "Р’РЅРµРґСЂРµРЅРёРµ malicious SQL-РєРѕРґР°",
+        "category": "web",
+        "difficulty": "medium",
+    },
+    {
+        "id": 5,
+        "question": "РљР°РєРѕР№ РёРЅСЃС‚СЂСѓРјРµРЅС‚ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ СЃРєР°РЅРёСЂРѕРІР°РЅРёСЏ РїРѕСЂС‚РѕРІ?",
+        "answer": "Nmap",
+        "category": "tools",
+        "difficulty": "easy",
+    },
+    {
+        "id": 6,
+        "question": "Р§С‚Рѕ С‚Р°РєРѕРµ CSRF?",
+        "answer": "Cross-Site Request Forgery",
+        "category": "web",
+        "difficulty": "medium",
+    },
+    {
+        "id": 7,
+        "question": "РљР°РєРѕР№ С…РµС€-Р°Р»РіРѕСЂРёС‚Рј СЃС‡РёС‚Р°РµС‚СЃСЏ РЅРµР±РµР·РѕРїР°СЃРЅС‹Рј?",
+        "answer": "MD5",
+        "category": "crypto",
+        "difficulty": "medium",
+    },
+    {
+        "id": 8,
+        "question": "Р§С‚Рѕ С‚Р°РєРѕРµ zero-day?",
+        "answer": "РЈСЏР·РІРёРјРѕСЃС‚СЊ Р±РµР· РїР°С‚С‡Р°",
+        "category": "general",
+        "difficulty": "medium",
+    },
+    {
+        "id": 9,
+        "question": "РљР°РєРѕР№ РїРѕСЂС‚ РёСЃРїРѕР»СЊР·СѓРµС‚ DNS?",
+        "answer": "53",
+        "category": "networking",
+        "difficulty": "easy",
+    },
+    {
+        "id": 10,
+        "question": "Р§С‚Рѕ С‚Р°РєРѕРµ ransomware?",
+        "answer": "РЁРёС„СЂРѕРІР°Р»СЊС‰РёРє",
+        "category": "malware",
+        "difficulty": "easy",
+    },
+]
+
+
+@_if_app("get", "/api/daily")
+def get_daily_challenge():
+    from datetime import datetime
+
+    state = get_state()
+    today = datetime.now().strftime("%Y-%m-%d")
+    last_daily = getattr(state, "last_daily_date", "")
+
+    if last_daily != today:
+        idx = hash(today) % len(DAILY_CHALLENGES)
+        state.last_daily_date = today
+        state.last_daily_idx = idx
+
+    idx = getattr(state, "last_daily_idx", 0)
+    challenge = DAILY_CHALLENGES[idx % len(DAILY_CHALLENGES)]
+    completed = getattr(state, "daily_completed", False)
+
+    return {
+        **challenge,
+        "completed": completed,
+        "date": today,
+        "streak": getattr(state, "daily_streak", 0),
+    }
+
+
+@_if_app("post", "/api/daily/submit")
+def submit_daily_challenge(answer: str):
+    state = get_state()
+    idx = getattr(state, "last_daily_idx", 0)
+    challenge = DAILY_CHALLENGES[idx % len(DAILY_CHALLENGES)]
+
+    answer_val: str = str(challenge.get("answer", ""))
+    correct = answer.strip().lower() == answer_val.lower()
+
+    if correct and not getattr(state, "daily_completed", False):
+        state.daily_completed = True
+        state.daily_streak = getattr(state, "daily_streak", 0) + 1
+        state.xp = getattr(state, "xp", 0) + 50
+        state.points = getattr(state, "points", 0) + 50
+
+    return {
+        "correct": correct,
+        "answer": challenge["answer"],
+        "explanation": f"РџСЂР°РІРёР»СЊРЅС‹Р№ РѕС‚РІРµС‚: {challenge['answer']}",
+        "xp_earned": 50 if correct else 0,
+    }
+
+
+@_if_app("get", "/api/knowledge/status")
+def knowledge_status():
+    try:
+        from knowledge import get_knowledge_status
+
+        status = get_knowledge_status()
+        return {
+            "status": "ok",
+            **status,
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@_if_app("post", "/api/knowledge/reindex")
+def reindex_knowledge():
+    try:
+        from knowledge import load_knowledge_base, get_knowledge_status
+
+        vectordb = load_knowledge_base()
+        status = get_knowledge_status()
+        return {
+            "status": "ok",
+            "vectordb": vectordb is not None,
+            "files_on_disk": status.get("files_on_disk", 0),
+            "files_in_db": status.get("files_in_db", 0),
+            "total_chunks": status.get("total_chunks", 0),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@_if_app("get", "/api/learning/weak-topics")
+def get_learning_weak_topics():
+    try:
+        from services.learning_memory_service import get_learning_memory_service
+
+        return {"weak_topics": get_learning_memory_service().get_weak_topics(limit=20)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@_if_app("get", "/api/learning/similar-errors")
+def get_learning_similar_errors(query: str = ""):
+    try:
+        from services.learning_memory_service import get_learning_memory_service
+
+        q = query or ""
+        return {"errors": get_learning_memory_service().get_similar_events(q, top_k=5)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@_if_app("get", "/api/chat/history/search")
+def search_chat_history(q: str = "", limit: int = 20):
+    try:
+        from memory import search_chat_history as _search, init_db
+
+        conn = init_db()
+        try:
+            results = _search(conn, q, limit)
+        finally:
+            conn.close()
+        return {"results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    try:
+        from db import get_session, LearningEvent
+
+        db = get_session()
+        try:
+            rows = (
+                db.query(LearningEvent)
+                .order_by(LearningEvent.timestamp.desc())
+                .limit(limit)
+                .all()
+            )
+            return {
+                "events": [
+                    {
+                        "id": r.id,
+                        "timestamp": r.timestamp.isoformat(),
+                        "topic": r.topic,
+                        "event_type": r.event_type,
+                        "user_belief": r.user_belief,
+                        "correct_model": r.correct_model,
+                        "root_cause": r.root_cause,
+                        "resolution": r.resolution,
+                        "context_ref": r.context_ref,
+                    }
+                    for r in rows
+                ]
+            }
+        finally:
+            db.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Skills API ---
+@_if_app("get", "/api/skills")
+def get_skills():
+    state = get_state()
+    skills = getattr(state, "skills", {})
+    result = []
+    for sid, sdata in skills.items():
+        if isinstance(sdata, dict):
+            result.append(
+                {
+                    "id": sid,
+                    "name": sdata.get("name", sid),
+                    "xp": sdata.get("xp", 0),
+                    "level": sdata.get("level", 0),
+                }
+            )
+        else:
+            result.append({"id": sid, "xp": sdata, "level": 0})
+    return {"skills": result}
+
+
+# --- Shop API ---
+@_if_app("get", "/api/shop")
+def get_shop():
+    try:
+        import json, os as _os
+
+        shop_path = _os.path.join(_os.path.dirname(__file__), "data", "shop_items.json")
+        with open(shop_path, "r", encoding="utf-8") as f:
+            items = json.load(f)
+        items = items.get("items", items) if isinstance(items, dict) else items
+        state = get_state()
+        rep = getattr(state, "reputation", 0)
+        discount = (
+            0.1 if rep >= 100 else (0.15 if rep >= 200 else (0.25 if rep >= 500 else 0))
+        )
+        result = []
+        for item in items:
+            price = item.get("cost", item.get("price", 0))
+            discounted = int(price * (1 - discount))
+            result.append(
+                {
+                    **item,
+                    "price": discounted,
+                    "original_price": price if discount > 0 else None,
+                }
+            )
+        return {"items": result, "discount": int(discount * 100)}
+    except Exception as e:
+        return {"items": [], "error": f"Internal: {str(e)[:100]}"}
+
+
+@_if_app("post", "/api/shop/purchase")
+def purchase_item(item_id: str):
+    try:
+        import json, os as _os
+
+        shop_path = _os.path.join(_os.path.dirname(__file__), "data", "shop_items.json")
+        with open(shop_path, "r", encoding="utf-8") as f:
+            items = json.load(f)
+        items = items.get("items", items) if isinstance(items, dict) else items
+        item = next((i for i in items if i["id"] == item_id), None)
+        if not item:
+            raise HTTPException(status_code=404, detail="Item not found")
+        state = get_state()
+        points = getattr(state, "points", 0)
+        rep = getattr(state, "reputation", 0)
+        discount = (
+            0.1 if rep >= 100 else (0.15 if rep >= 200 else (0.25 if rep >= 500 else 0))
+        )
+        price = int(item.get("cost", item.get("price", 0)) * (1 - discount))
+        if points < price:
+            raise HTTPException(status_code=400, detail="Not enough points")
+        state.points = points - price
+        return {"status": "ok", "item": item_id, "price": price}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# --- Heatmap API ---
+@_if_app("get", "/api/heatmap")
+def get_heatmap():
+    state = get_state()
+    daily_counts = getattr(state, "daily_command_counts", {})
+    result = []
+    for date, counts in sorted(daily_counts.items())[-28:]:
+        total = sum(counts.values()) if isinstance(counts, dict) else counts
+        result.append({"date": date, "count": total})
+    return {"heatmap": result}
+
+
+# --- History API ---
+@_if_app("get", "/api/history")
+def get_history(limit: int = 50):
+    try:
+        from memory import get_chat_history, init_db
+
+        conn = init_db()
+        history = get_chat_history(conn, limit=limit)
+        return {"history": history}
+    except Exception as e:
+        return {"history": [], "error": "Internal error"}
+
+
+@_if_app("get", "/api/history/eras")
+def get_history_eras():
+    try:
+        from handlers.history import ERAS
+
+        state = get_state()
+        completed = getattr(state, "timeline_completed", [])
+        result = []
+        for era in ERAS:
+            result.append(
+                {
+                    "name": era["name"],
+                    "period": era["period"],
+                    "description": era["description"],
+                    "xp": era.get("xp", 20),
+                    "completed": era["name"] in completed,
+                    "events": era.get("events", []),
+                    "tools": ", ".join(era.get("tools", [])),
+                    "vulnerabilities": ", ".join(era.get("vulnerabilities", [])),
+                }
+            )
+        return {"eras": result}
+    except Exception as e:
+        return {"eras": [], "error": "Internal error"}
+
+
+@_if_app("post", "/api/history/study")
+def study_history_era(era: str):
+    try:
+        from handlers.history import ERAS
+
+        era_data = next((e for e in ERAS if e["name"] == era), None)
+        if not era_data:
+            raise HTTPException(status_code=404, detail="Era not found")
+        state = get_state()
+        completed = getattr(state, "timeline_completed", [])
+        if era not in completed:
+            completed.append(era)
+            state.timeline_completed = completed
+            xp = era_data.get("xp", 20)
+            state.xp = getattr(state, "xp", 0) + xp
+        return {
+            "status": "ok",
+            "era": era,
+            "events": era_data.get("events", []),
+            "tools": ", ".join(era_data.get("tools", [])),
+            "vulnerabilities": ", ".join(era_data.get("vulnerabilities", [])),
+            "xp_earned": era_data.get("xp", 20),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("get", "/api/history/progress")
+def get_history_progress():
+    state = get_state()
+    return {
+        "completed_eras": getattr(state, "timeline_completed", []),
+        "xp": getattr(state, "xp", 0),
+    }
+
+
+# --- Config API ---
+@_if_app("get", "/api/config")
+def get_config():
+    import config
+
+    state = get_state()
+    return {
+        "llm_provider": config.LLM_PROVIDER,
+        "model": config.get_model_name(),
+        "language": getattr(state, "language", "ru"),
+        "theme": getattr(state, "current_theme", "dark"),
+        "depth": getattr(state, "explanation_depth", "normal"),
+        "offline_mode": getattr(state, "offline_mode", False),
+        "feature_flags": getattr(state, "feature_flags", {}),
+    }
+
+
+# --- Writeups API ---
+@_if_app("get", "/api/writeups")
+def get_writeups():
+    import os
+
+    writeups = []
+    if os.path.exists("writeups"):
+        for f in os.listdir("writeups"):
+            if f.endswith(".md"):
+                writeups.append(
+                    {
+                        "name": f.replace(".md", ""),
+                        "date": os.path.getmtime(os.path.join("writeups", f)),
+                    }
+                )
+    return {"writeups": sorted(writeups, key=lambda x: x["date"], reverse=True)}
+
+
+@_if_app("get", "/api/writeups/{name}")
+def get_writeup_content(name: str):
+    import os
+
+    safe_name = os.path.basename(name).replace("..", "")
+    filepath = os.path.join("writeups", safe_name)
+    if not filepath.endswith(".md"):
+        filepath += ".md"
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Writeup not found")
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+    return {"name": safe_name, "content": content}
+
+
+# --- Settings / Config API ---
+@_if_app("post", "/api/provider/set")
+def set_provider(provider: str = ""):
+    """Switch the active LLM provider."""
+    if not provider:
+        raise HTTPException(status_code=400, detail="provider required")
+    import config as _cfg
+
+    valid = _cfg.FALLBACK_ORDER + ["mock", "lmstudio"]
+    if provider not in valid:
+        raise HTTPException(
+            status_code=400, detail=f"Unknown provider. Valid: {', '.join(valid)}"
+        )
+    _cfg.LLM_PROVIDER = provider
+    _cfg.LazyLoader.invalidate()
+    return {"status": "ok", "provider": provider}
+
+
+@_if_app("post", "/api/provider/key")
+def set_provider_key(provider: str = "", key: str = ""):
+    """Set API key for a cloud provider."""
+    import os
+
+    key_map = {
+        "openrouter": "OPENROUTER_API_KEY",
+        "groq": "GROQ_API_KEY",
+        "huggingface": "HUGGINGFACE_API_KEY",
+    }
+    env_var = key_map.get(provider)
+    if not env_var:
+        raise HTTPException(
+            status_code=400, detail=f"Provider {provider} does not use API keys"
+        )
+    if not key:
+        raise HTTPException(status_code=400, detail="key required")
+    os.environ[env_var] = key
+    import config as _cfg
+
+    setattr(_cfg, env_var, key)
+    _cfg.LazyLoader.invalidate()
+    return {"status": "ok", "provider": provider}
+
+
+# --- Provider info / LM Studio check ---
+@_if_app("get", "/api/providers")
+def list_providers():
+    import config as _cfg
+
+    available = _cfg.FALLBACK_ORDER + ["mock", "lmstudio"]
+    current = _cfg.LLM_PROVIDER
+    lmstudio_ok = False
+    try:
+        import urllib.request
+
+        req = urllib.request.Request("http://localhost:1234/v1/models", method="GET")
+        with urllib.request.urlopen(req, timeout=2) as r:
+            lmstudio_ok = r.status == 200
+    except (OSError, ValueError):
+        pass
+    providers = []
+    for p in available:
+        status = "active" if p == current else "available"
+        if p == "lmstudio":
+            status = "running" if lmstudio_ok else "not_found"
+        providers.append({"name": p, "status": status, "current": p == current})
+    return {"providers": providers, "current": current, "lmstudio_running": lmstudio_ok}
+
+
+@_if_app("get", "/api/provider/lmstudio/check")
+def check_lmstudio():
+    try:
+        import urllib.request
+
+        req = urllib.request.Request("http://localhost:1234/v1/models", method="GET")
+        with urllib.request.urlopen(req, timeout=2) as r:
+            if r.status != 200:
+                return {"running": False, "error": f"HTTP {r.status}"}
+            import json
+
+            data = json.loads(r.read().decode())
+            models = [m.get("id", "unknown") for m in data.get("data", [])]
+            return {"running": True, "models": models}
+    except Exception as e:
+        return {"running": False, "error": str(e)}
+
+
+@_if_app("post", "/api/provider/set_url")
+def set_provider_url(provider: str = "", url: str = ""):
+    import os
+
+    url_map = {
+        "ollama": "OLLAMA_BASE_URL",
+        "lmstudio": "LMSTUDIO_BASE_URL",
+        "openrouter": "OPENROUTER_BASE_URL",
+    }
+    env_var = url_map.get(provider)
+    if not env_var:
+        raise HTTPException(
+            status_code=400, detail=f"Provider {provider} does not support custom URL"
+        )
+    if not url:
+        raise HTTPException(status_code=400, detail="url required")
+    os.environ[env_var] = url
+    import config as _cfg
+
+    setattr(_cfg, env_var, url)
+    _cfg.LazyLoader.invalidate()
+    return {"status": "ok", "provider": provider, "url": url}
+
+
+@_if_app("post", "/api/features/toggle")
+def toggle_feature(feature: str = ""):
+    """Toggle a feature flag on/off."""
+    if not feature:
+        raise HTTPException(status_code=400, detail="feature required")
+    state = get_state()
+    flags = getattr(state, "feature_flags", {})
+    current = flags.get(feature, True)
+    flags[feature] = not current
+    state.feature_flags = flags
+    return {"status": "ok", "feature": feature, "enabled": not current}
+
+
+@_if_app("post", "/api/settings/lang")
+def set_language(lang: str = ""):
+    """Set interface language."""
+    if lang not in ("ru", "en"):
+        raise HTTPException(status_code=400, detail="Supported languages: ru, en")
+    state = get_state()
+    state.language = lang
+    return {"status": "ok", "language": lang}
+
+
+# --- Context Budget Endpoints ---
+@_if_app("get", "/api/context/budget")
+def get_context_budget() -> dict[str, Any]:
+    """Get context budget manager stats and configuration."""
+    if not BUDGET_AVAILABLE or api_budget_manager is None:
+        return {"available": False, "error": "ContextBudgetManager not available"}
+    return {"available": True, "stats": api_budget_manager.get_stats()}
+
+
+class BudgetConfigRequest(BaseModel):
+    max_tokens: int = 8000
+    system_prompt_tokens: int = 1500
+    rag_context_tokens: int = 2000
+    response_reserve: int = 1024
+
+
+@_if_app("post", "/api/context/budget")
+def set_context_budget(req: BudgetConfigRequest) -> dict[str, Any]:
+    """Configure context budget manager."""
+    if not BUDGET_AVAILABLE or api_budget_manager is None:
+        return {"available": False, "error": "ContextBudgetManager not available"}
+    api_budget_manager.max_tokens = req.max_tokens
+    api_budget_manager.system_prompt_tokens = req.system_prompt_tokens
+    api_budget_manager.rag_context_tokens = req.rag_context_tokens
+    api_budget_manager.response_reserve = req.response_reserve
+    return {"status": "ok", "config": api_budget_manager.get_stats()}
+
+
+@_if_app("get", "/api/context/history")
+def get_api_history(limit: int = 10) -> dict[str, Any]:
+    """Get recent chat history from DB."""
+    try:
+        from memory import get_chat_history, init_db
+
+        conn = init_db()
+        history = get_chat_history(conn, limit=min(limit, 100))
+
+        # Estimate budget usage
+        stats = {}
+        if BUDGET_AVAILABLE and api_budget_manager is not None:
+            trimmed, warn = api_budget_manager.prepare_context(
+                history, max_messages=limit, user_input=""
+            )
+            stats = {
+                "total_messages": len(history),
+                "trimmed_to": len(trimmed),
+                "warning": warn,
+            }
+
+        return {"history": history, "budget": stats}
+    except Exception as e:
+        return {"history": [], "budget": {}, "error": str(e)[:100]}
+
+
+# --- Story Mode Endpoints ---
+# --- Tracks Endpoints ---
+@_if_app("get", "/api/tracks")
+def get_tracks():
+    try:
+        import glob, os, yaml
+
+        tracks = []
+        for path in glob.glob("tracks/*.yaml"):
+            with open(path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            state = get_state()
+            track_progress = getattr(state, "track_progress", {})
+            track_id = data.get("id", os.path.basename(path).replace(".yaml", ""))
+            prog = track_progress.get(track_id, {})
+            if isinstance(prog, dict):
+                completed_topics = prog.get("completed_topics", [])
+                total = len(data.get("topics", []))
+                progress_pct = (
+                    round(len(completed_topics) / total * 100) if total > 0 else 0
+                )
+            elif isinstance(prog, (int, float)):
+                progress_pct = int(prog)
+            else:
+                progress_pct = 0
+
+            tracks.append(
+                {
+                    "id": track_id,
+                    "name": data.get("name", ""),
+                    "description": data.get("description", ""),
+                    "level": data.get("level", "beginner"),
+                    "estimated_hours": data.get("estimated_hours", 0),
+                    "topics_count": len(data.get("topics", [])),
+                    "topics": data.get("topics", []),
+                    "progress": progress_pct,
+                    "prerequisites": data.get("prerequisites", []),
+                }
+            )
+        return {"tracks": tracks}
+    except Exception as e:
+        return {"tracks": [], "error": "Internal error"}
+
+
+@_if_app("post", "/api/tracks/start")
+def start_track(track_id: str):
+    state = get_state()
+    state.current_track = track_id
+    return {"status": "ok", "track": track_id}
+
+
+@_if_app("post", "/api/tracks/progress")
+def update_track_progress(track_id: str, progress: int):
+    state = get_state()
+    track_progress = getattr(state, "track_progress", {})
+    track_progress[track_id] = progress
+    state.track_progress = track_progress
+    return {"status": "ok", "track": track_id, "progress": progress}
+
+
+# --- CTF Endpoints ---
+@_if_app("get", "/api/ctf/status")
+def get_ctf_status():
+    state = get_state()
+    return {
+        "flags_captured": getattr(state, "flags_captured", 0),
+        "risk_level": getattr(state, "risk_level", 0),
+        "ctf_active": getattr(state, "ctf_active", False),
+    }
+
+
+@_if_app("post", "/api/ctf/flag")
+def submit_flag(flag_value: str):
+    try:
+        from story_mode import STORY_EPISODES
+
+        state = get_state()
+        all_flags = [ep.get("flag", "") for ep in STORY_EPISODES if ep.get("flag")]
+        found = any(f.lower() == flag_value.strip().lower() for f in all_flags)
+
+        if found:
+            state.flags_captured = getattr(state, "flags_captured", 0) + 1
+            state.xp = getattr(state, "xp", 0) + 50
+            return {"correct": True, "xp_earned": 50, "message": "Р¤Р»Р°Рі РЅР°Р№РґРµРЅ! рџљ©"}
+        else:
+            return {"correct": False, "message": "РќРµРІРµСЂРЅС‹Р№ С„Р»Р°Рі"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("get", "/api/missions")
+def get_missions():
+    try:
+        from handlers.missions import _list_missions_api
+
+        return {"missions": _list_missions_api()}
+    except Exception as e:
+        return {"missions": [], "error": "Internal error"}
+
+
+@_if_app("post", "/api/missions/start")
+def start_mission(mission_id: str):
+    try:
+        from handlers.missions import _load_mission
+
+        mission_data = _load_mission(mission_id)
+        if mission_data is None:
+            raise HTTPException(status_code=404, detail="Mission not found")
+        state = get_state()
+        completed = set(getattr(state, "missions_completed", []))
+        prereqs = mission_data.get("prerequisites", [])
+        missing = [p for p in prereqs if p not in completed]
+        if missing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Requires missions: {', '.join(missing)}",
+            )
+        if mission_id in completed:
+            raise HTTPException(status_code=400, detail="Mission already completed")
+        state.current_mission = mission_id
+        return {"status": "ok", "mission": mission_data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@_if_app("post", "/api/missions/submit")
+def submit_mission_flag(mission_id: str, flag: str):
+    try:
+        from handlers.missions import _load_mission
+
+        mission_data = _load_mission(mission_id)
+        if mission_data is None:
+            raise HTTPException(status_code=404, detail="Mission not found")
+        state = get_state()
+        completed = getattr(state, "missions_completed", [])
+        if mission_id in completed:
+            return {"correct": False, "message": "Mission already completed"}
+        steps = mission_data.get("steps", [])
+        for step in steps:
+            expected = step.get("flag", "")
+            if expected and expected.lower() in flag.lower():
+                if mission_id not in completed:
+                    completed.append(mission_id)
+                    state.missions_completed = completed
+                    xp = mission_data.get("xp_reward", 0)
+                    state.xp = getattr(state, "xp", 0) + xp
+                return {
+                    "correct": True,
+                    "xp_earned": xp,
+                    "step": step.get("order", 1),
+                    "message": f"Step {step.get('order', 1)} completed!",
+                }
+        return {"correct": False, "message": "Invalid flag for this mission"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# --- OSINT / Threats Endpoints ---
+@_if_app("get", "/api/threats")
+def get_threats():
+    try:
+        import glob, json, os as _os
+
+        threats_dir = _os.path.join(_os.path.dirname(__file__), "threats")
+        result = []
+        for path in sorted(glob.glob(_os.path.join(threats_dir, "*.json"))):
+            with open(path, "r", encoding="utf-8") as f:
+                g = json.load(f)
+            result.append(
+                {
+                    "id": _os.path.splitext(_os.path.basename(path))[0],
+                    "name": g.get("name", ""),
+                    "country": g.get("country", ""),
+                    "targets": ", ".join(g.get("targets", [])),
+                    "description": g.get("description", ""),
+                    "aliases": g.get("aliases", []),
+                    "tactics": g.get("tactics", []),
+                    "tools": g.get("tools", []),
+                    "first_seen": g.get("first_seen", ""),
+                    "recent_activity": g.get("recent_activity", ""),
+                }
+            )
+        return {"threats": result}
+    except Exception as e:
+        return {"threats": [], "error": "Internal error"}
+
+
+@_if_app("get", "/api/cve/{cve_id}")
+def get_cve(cve_id: str):
+    try:
+        from handlers.cve import CVE_CACHE
+
+        cached = CVE_CACHE.get(cve_id.upper())
+        cve_data: dict[str, Any] | None = None
+        if cached:
+            cve_data = cached[1]
+        else:
+            from handlers.cve import _fetch_cve
+
+            cve_data = _fetch_cve(cve_id.upper())
+            if not cve_data:
+                raise HTTPException(status_code=404, detail="CVE not found")
+        return {"cve": cve_data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# --- External APIs: Shodan ---
+@_if_app("get", "/api/shodan")
+def shodan_search(query: str = ""):
+    from handlers.shodan_censys import _simulate_shodan_search
+
+    if not query:
+        return {"results": [], "error": "query required"}
+    results = _simulate_shodan_search(query)
+    return {"results": results, "total": len(results)}
+
+
+@_if_app("get", "/api/shodan/host")
+def shodan_host(ip: str = ""):
+    from handlers.shodan_censys import _simulate_shodan_host
+
+    if not ip:
+        raise HTTPException(status_code=400, detail="ip required")
+    data = _simulate_shodan_host(ip)
+    return {"host": data}
+
+
+# --- External APIs: Censys ---
+@_if_app("get", "/api/censys")
+def censys_search(query: str = ""):
+    from handlers.shodan_censys import _simulate_censys_search
+
+    if not query:
+        return {"results": [], "error": "query required"}
+    results = _simulate_censys_search(query)
+    return {"results": results, "total": len(results)}
+
+
+# --- External APIs: HackTheBox ---
+@_if_app("get", "/api/htb/machines")
+def htb_machines(machine_type: str = "all"):
+    try:
+        from handlers.htb import _fetch_htb_machines
+
+        machines = _fetch_htb_machines(machine_type)
+        return {"machines": machines[:50], "total": len(machines)}
+    except Exception as e:
+        return {"machines": [], "error": str(e)}
+
+
+@_if_app("get", "/api/htb/machine/{machine_id}")
+def htb_machine(machine_id: int):
+    try:
+        from handlers.htb import _fetch_htb_machine_detail
+
+        machine = _fetch_htb_machine_detail(machine_id)
+        if not machine:
+            raise HTTPException(status_code=404, detail="Machine not found")
+        return {"machine": machine}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@_if_app("get", "/api/htb/status")
+def htb_status():
+    try:
+        from handlers.htb import handle_htb_status
+
+        handle_htb_status("")
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+# --- External APIs: TryHackMe ---
+@_if_app("get", "/api/thm/rooms")
+def thm_rooms(room_type: str = "all"):
+    try:
+        from handlers.tryhackme import _thm_request
+
+        data = _thm_request("/v2/rooms")
+        rooms = data.get("data", []) if data else []
+        if room_type != "all":
+            rooms = [r for r in rooms if r.get("type", "").lower() == room_type.lower()]
+        return {"rooms": rooms[:50], "total": len(rooms)}
+    except Exception as e:
+        return {"rooms": [], "error": str(e)}
+
+
+@_if_app("get", "/api/thm/room/{room_id}")
+def thm_room(room_id: str):
+    try:
+        from handlers.tryhackme import _thm_request
+
+        data = _thm_request(f"/v2/rooms/{room_id}")
+        if not data or not data.get("success"):
+            raise HTTPException(status_code=404, detail="Room not found")
+        return {"room": data.get("data", {})}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@_if_app("get", "/api/thm/status")
+def thm_status():
+    try:
+        from handlers.tryhackme import _thm_request
+
+        data = _thm_request("/v2/user/info")
+        if not data or not data.get("success"):
+            return {"status": "error", "error": "Not authenticated"}
+        user = data.get("data", {})
+        profile = user.get("publicProfile", {})
+        return {
+            "username": user.get("username"),
+            "rank": profile.get("rank"),
+            "level": profile.get("level"),
+            "streak": profile.get("streak", 0),
+            "points": profile.get("points", 0),
+            "badges": len(profile.get("badges", [])),
+            "rooms_completed": profile.get("completedRooms", 0),
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@_if_app("get", "/api/news")
+def get_news():
+    try:
+        from news_fetcher import NewsFetcher
+
+        nf = NewsFetcher()
+        news = nf.get_formatted_news()
+        return {"news": news if isinstance(news, list) else []}
+    except ImportError:
+        return {"news": []}
+
+
+# --- Scanner Endpoints ---
+@_if_app("post", "/api/scanv2")
+def scan_code_simple(code: str, language: str = "python") -> dict[str, Any]:
+    try:
+        import tempfile
+        from handlers.code_review_v2 import (
+            LANGUAGE_EXTENSIONS,
+            _count_severities,
+            scan_file_secrets,
+        )
+
+        ext = next((k for k, v in LANGUAGE_EXTENSIONS.items() if v == language), ".py")
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=ext, delete=False, encoding="utf-8"
+        ) as f:
+            f.write(code)
+            temp_path = f.name
+
+        try:
+            findings = scan_file_secrets(temp_path)
+            return {
+                "findings": findings,
+                "severity_counts": _count_severities(findings),
+            }
+        finally:
+            import os
+
+            with contextlib.suppress(Exception):
+                os.unlink(temp_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# --- Malware Analysis Endpoints ---
+@_if_app("post", "/api/malware")
+def analyze_malware(file_hash: str = "", behavior: str = "") -> dict[str, Any]:
+    try:
+        from handlers.malware_analysis import MALWARE_FAMILIES
+
+        result: dict[str, Any] = {}
+        if file_hash:
+            if file_hash in MALWARE_FAMILIES:
+                result = {
+                    "hash": file_hash,
+                    "family": file_hash,
+                    "analysis": f"Known malware family: {file_hash}",
+                }
+            else:
+                result = {
+                    "hash": file_hash,
+                    "unknown": True,
+                    "analysis": "Sample not in database",
+                }
+        elif behavior:
+            result = {
+                "behavior": behavior,
+                "analysis": f"Behavioral analysis of: {behavior}",
+            }
+        else:
+            result = {"message": "Provide file_hash or behavior parameter"}
+        return {"analysis": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# --- SCORM Export Endpoints ---
+
+
+@_if_app("get", "/api/scorm/courses")
+def scorm_list_courses():
+    """List courses available for SCORM export."""
+    from scorm_export import list_exportable_courses
+
+    return {"courses": list_exportable_courses()}
+
+
+@_if_app("post", "/api/scorm/export")
+def scorm_export(course_id: str = "", token: str = ""):
+    """Export a course as SCORM 1.2 .zip package."""
+    if not course_id:
+        raise HTTPException(status_code=400, detail="course_id required")
+    import io
+    from scorm_export import export_scorm_package_bytes
+
+    try:
+        zip_bytes = export_scorm_package_bytes(course_id)
+        from fastapi.responses import StreamingResponse
+
+        return StreamingResponse(
+            io.BytesIO(zip_bytes),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="scorm_{course_id}.zip"'
+            },
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except (OSError, IOError):
+        raise HTTPException(status_code=500, detail="SCORM export failed")
+
+
+# --- Auth Endpoints ---
+
+LOGIN_RATE_LIMIT = int(os.getenv("AUTH_RATE_LIMIT", "10"))
+
+
+@_if_app("post", "/api/auth/register")
+def register(username: str = "", password: str = "", display_name: str = ""):
+    """Register a new user. Rate limited: 5 requests per minute."""
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="username and password required")
+    client_ip = "register"
+    if _rate_limiter.is_limited(client_ip, cost=1, capacity=5, refill_rate=5/60):
+        raise HTTPException(
+            status_code=429, detail="Too many requests. Try again later."
+        )
+    from auth import create_user
+
+    result = create_user(username, password, display_name)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@_if_app("post", "/api/auth/login")
+def login(username: str = "", password: str = ""):
+    """Login and get JWT token. Rate limited."""
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="username and password required")
+    client_ip = f"login:{username}"
+    if _rate_limiter.is_limited(client_ip, cost=1, capacity=LOGIN_RATE_LIMIT, refill_rate=LOGIN_RATE_LIMIT/60):
+        raise HTTPException(
+            status_code=429, detail="Too many login attempts. Try again later."
+        )
+    from auth import authenticate
+
+    result = authenticate(username, password)
+    if "error" in result:
+        raise HTTPException(status_code=401, detail=result["error"])
+    return result
+
+
+@_if_app("get", "/api/auth/verify")
+def verify_auth(token: str = ""):
+    """Verify JWT token and return user info."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    from auth import verify_token, get_user
+
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    user = get_user(payload["user_id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"valid": True, "user": user}
+
+
+@_if_app("get", "/api/users")
+def list_users(token: str = ""):
+    """List all users (admin only)."""
+    from auth import has_permission, list_users as _list_users
+
+    if not has_permission(token, "manage_users"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return {"users": _list_users()}
+
+
+@_if_app("post", "/api/users/role")
+def set_role(token: str = "", target_user: str = "", role: str = ""):
+    """Set user role (admin only)."""
+    from auth import has_permission, set_role as _set_role
+
+    if not has_permission(token, "manage_users"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    if not target_user or not role:
+        raise HTTPException(status_code=400, detail="target_user and role required")
+    from auth import list_users as _list_users
+
+    users = _list_users()
+    target = next((u for u in users if u["username"] == target_user), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    success = _set_role(target["user_id"], role)
+    if not success:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    return {"status": "ok", "user": target_user, "role": role}
+
+
+@_if_app("get", "/api/report")
+def export_report(token: str = ""):
+    """Generate and return HTML training report."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    from auth import verify_token
+
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    state = get_state()
+    from report_generator import generate_report_html
+    from fastapi.responses import HTMLResponse
+
+    html = generate_report_html(state)
+    return HTMLResponse(content=html)
+
+
+@_if_app("post", "/api/feedback")
+def submit_feedback(name: str = "", message: str = ""):
+    """Save user feedback to a JSON file."""
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required")
+    feedback_dir = os.path.join(os.path.dirname(__file__), "feedback")
+    os.makedirs(feedback_dir, exist_ok=True)
+    entry = {
+        "name": name or "Anonymous",
+        "message": message,
+        "timestamp": datetime.now().isoformat(),
+    }
+    path = os.path.join(feedback_dir, f"feedback_{int(time.time())}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(entry, f, ensure_ascii=False, indent=2)
+    return {
+        "status": "ok",
+        "detail": "\u0421\u043f\u0430\u0441\u0438\u0431\u043e! \u0412\u0430\u0448\u0430 \u043e\u0431\u0440\u0430\u0442\u043d\u0430\u044f \u0441\u0432\u044f\u0437\u044c \u043f\u0440\u0438\u043d\u044f\u0442\u0430.",
+    }
+
+
+# --- Course Management (teacher/admin) ---
+
+
+@_if_app("post", "/api/courses/create")
+def create_course(
+    token: str = "", name: str = "", description: str = "", difficulty: str = "beginner"
+):
+    """Create a new course (teacher/admin only)."""
+    from auth import has_permission
+
+    if not has_permission(token, "manage_courses"):
+        raise HTTPException(status_code=403, detail="Teacher access required")
+    if not name:
+        raise HTTPException(status_code=400, detail="Course name required")
+    from course_manager import create_course as _create_course
+    from auth import verify_token
+
+    payload = verify_token(token)
+    creator = payload.get("username", "teacher") if payload else "teacher"
+    result = _create_course(
+        name, description, difficulty=difficulty, created_by=creator
+    )
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@_if_app("post", "/api/courses/update")
+def update_course(
+    token: str = "", course_id: str = "", name: str = "", description: str = ""
+):
+    """Update a course (teacher/admin only)."""
+    from auth import has_permission
+
+    if not has_permission(token, "manage_courses"):
+        raise HTTPException(status_code=403, detail="Teacher access required")
+    if not course_id:
+        raise HTTPException(status_code=400, detail="course_id required")
+    from course_manager import update_course as _update_course
+
+    kwargs: dict = {}
+    if name:
+        kwargs["name"] = name
+    if description:
+        kwargs["description"] = description
+    result = _update_course(course_id, **kwargs)
+    if not result:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return result
+
+
+@_if_app("post", "/api/courses/delete")
+def delete_course(token: str = "", course_id: str = ""):
+    """Delete a course (admin only, non-default only)."""
+    from auth import has_permission
+
+    if not has_permission(token, "manage_courses"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    if not course_id:
+        raise HTTPException(status_code=400, detail="course_id required")
+    from course_manager import delete_course as _delete_course
+
+    if not _delete_course(course_id):
+        raise HTTPException(
+            status_code=400, detail="Cannot delete (not found or built-in)"
+        )
+    return {"status": "deleted", "course_id": course_id}
+
+
+@_if_app("post", "/api/courses/topic")
+def add_topic(token: str = "", course_id: str = "", topic: str = ""):
+    """Add a topic to a course (teacher/admin only)."""
+    from auth import has_permission
+
+    if not has_permission(token, "manage_courses"):
+        raise HTTPException(status_code=403, detail="Teacher access required")
+    from course_manager import add_topic as _add_topic
+
+    if not _add_topic(course_id, topic):
+        raise HTTPException(status_code=404, detail="Course not found")
+    return {"status": "ok", "course_id": course_id, "topic": topic}
+
+
+# --- GDPR Export/Import ---
+
+
+@_if_app("get", "/api/gdpr/export")
+def export_user_data(token: str = ""):
+    """Export all user data (GDPR compliance)."""
+    if not token:
+        raise HTTPException(status_code=400, detail="token required")
+    from auth import verify_token, get_user, list_users
+
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user_id = payload.get("user_id", "")
+    user = get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    state = get_state()
+    return {
+        "user": user,
+        "state": {
+            "xp": state.xp,
+            "level": state.level,
+            "points": state.points,
+            "reputation": state.reputation,
+            "quizzes_taken": state.quizzes_taken,
+            "labs_started": state.labs_started,
+            "skills": state.skills,
+            "weak_topics": state.weak_topics,
+            "earned_achievements": state.earned_achievements,
+            "course_progress": state.course_progress,
+        },
+        "exported_at": time.time(),
+        "version": "5.8",
+    }
+
+
+@_if_app("post", "/api/gdpr/import")
+def import_user_data(token: str = "", data: dict = {}):
+    """Import user data (admin only)."""
+    from auth import has_permission, verify_token
+
+    if not has_permission(token, "manage_users"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    if not data:
+        raise HTTPException(status_code=400, detail="data required")
+    user = data.get("user", {})
+    state_data = data.get("state", {})
+    if not user.get("user_id"):
+        raise HTTPException(status_code=400, detail="user.user_id required")
+
+    # Restore state fields
+    state = get_state()
+    for field in [
+        "xp",
+        "level",
+        "points",
+        "reputation",
+        "quizzes_taken",
+        "labs_started",
+        "skills",
+        "weak_topics",
+        "earned_achievements",
+        "course_progress",
+    ]:
+        if field in state_data:
+            setattr(state, field, state_data[field])
+
+    return {"status": "ok", "imported_fields": list(state_data.keys())}
+
+
+# --- Atmosphere & Personality Endpoints ---
+
+
+@_if_app("get", "/api/personality")
+def get_personality():
+    """РўРµРєСѓС‰РёРµ personality modifiers (sarcasm, patience, paranoia, etc.)."""
+    try:
+        from personality import get_personality_state
+
+        state = get_personality_state()
+        return {"modifiers": state.get_modifiers()}
+    except ImportError:
+        return {
+            "modifiers": {
+                "sarcasm": 0.2,
+                "patience": 0.5,
+                "paranoia": 0.0,
+                "enthusiasm": 0.3,
+                "formality": 0.0,
+            }
+        }
+
+
+@_if_app("get", "/api/context")
+def get_context():
+    """РўРµРєСѓС‰РёР№ РєРѕРЅС‚РµРєСЃС‚: РІСЂРµРјСЏ СЃСѓС‚РѕРє, РїР°С‚С‚РµСЂРЅ СЃРµСЃСЃРёРё."""
+    try:
+        from context_awareness import get_context_info
+
+        state = get_state()
+        return get_context_info(
+            session_start=state.metrics.get("start_time", 0),
+            messages_this_session=state.messages_sent,
+        )
+    except ImportError:
+        return {"time_of_day": "afternoon", "session_pattern": "normal"}
+
+
+@_if_app("get", "/api/world")
+def get_world():
+    """Persistent world state: incidents, factions, hidden knowledge."""
+    try:
+        from world_state import get_world_state
+
+        world = get_world_state()
+        return world.get_world_summary()
+    except ImportError:
+        return {
+            "active_incidents": 0,
+            "resolved_incidents": 0,
+            "discovered_factions": [],
+            "unlocked_knowledge": [],
+        }
+
+
+@_if_app("get", "/api/episodes")
+def get_episodes():
+    """Episode memory: important learning events."""
+    try:
+        from episode_memory import get_episode_memory
+
+        mem = get_episode_memory()
+        return {"episodes": mem.get_recent(20), "stats": mem.get_stats()}
+    except ImportError:
+        return {"episodes": [], "stats": {"total_episodes": 0, "by_category": {}}}
+
+
+@_if_app("get", "/api/cyberpsychosis")
+def get_cyberpsychosis():
+    """Cyberpsychosis status: stress, obsession, recklessness."""
+    try:
+        from cyberpsychosis import get_cyberpsychosis
+
+        cp = get_cyberpsychosis()
+        return {"level": cp.get_level(), "state": cp.get_state_dict()}
+    except ImportError:
+        return {
+            "level": "normal",
+            "state": {"stress": 0, "obsession": 0, "recklessness": 0},
+        }
+
+
+# --- Social Engineering API ---
+@_if_app("get", "/api/social/scenarios")
+def social_scenarios():
+    from handlers.social import SCENARIOS
+
+    return {
+        "scenarios": {
+            k: {"name": v["name"], "goal": v["goal"]} for k, v in SCENARIOS.items()
+        }
+    }
+
+
+# --- Phishing API ---
+@_if_app("get", "/api/phishing/templates")
+def phishing_templates():
+    from handlers.phishing import PHISHING_TEMPLATES
+
+    return {
+        "templates": {
+            k: {"name": v["name"], "scenario": v["scenario"], "elements": v["elements"]}
+            for k, v in PHISHING_TEMPLATES.items()
+        }
+    }
+
+
+@_if_app("post", "/api/phishing/generate")
+def phishing_generate(req: PhishingGenerateRequest):
+    from handlers.phishing import PHISHING_TEMPLATES
+    import random
+    from config import LazyLoader
+
+    tt = req.template_type
+    if tt and tt not in PHISHING_TEMPLATES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown template. Available: {', '.join(PHISHING_TEMPLATES.keys())}",
+        )
+    if not tt:
+        tt = random.choice(list(PHISHING_TEMPLATES.keys()))
+
+    template = PHISHING_TEMPLATES[tt]
+    llm = LazyLoader.get_llm()
+    if llm is None:
+        raise HTTPException(status_code=503, detail="LLM not available")
+
+    prompt = f"""РўС‹ вЂ” СЌРєСЃРїРµСЂС‚ РїРѕ СЃРѕС†РёР°Р»СЊРЅРѕР№ РёРЅР¶РµРЅРµСЂРёРё (РІ РѕР±СЂР°Р·РѕРІР°С‚РµР»СЊРЅС‹С… С†РµР»СЏС…).
+РЎРѕР·РґР°Р№ РїСЂРёРјРµСЂ С„РёС€РёРЅРіРѕРІРѕРіРѕ РїРёСЃСЊРјР° РґР»СЏ РѕР±СѓС‡РµРЅРёСЏ РєРёР±РµСЂР±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё.
+
+РўРёРї: {template["name"]}
+РЎС†РµРЅР°СЂРёР№: {template["scenario"]}
+РљР»СЋС‡РµРІС‹Рµ СЌР»РµРјРµРЅС‚С‹: {", ".join(template["elements"])}
+
+РЎРѕР·РґР°Р№:
+1. Subject (С‚РµРјР° РїРёСЃСЊРјР°)
+2. Sender (РѕС‚РїСЂР°РІРёС‚РµР»СЊ)
+3. Body (С‚РµР»Рѕ РїРёСЃСЊРјР°)
+4. РћР±СЉСЏСЃРЅРё, РєР°РєРёРµ С‚РµС…РЅРёРєРё СЃРѕС†РёР°Р»СЊРЅРѕР№ РёРЅР¶РµРЅРµСЂРёРё РёСЃРїРѕР»СЊР·РѕРІР°РЅС‹
+5. РџРѕРєР°Р¶Рё, РєР°Рє СЂР°СЃРїРѕР·РЅР°С‚СЊ СЌС‚РѕС‚ С„РёС€РёРЅРі
+
+Р’РђР–РќРћ: Р­С‚Рѕ РѕР±СЂР°Р·РѕРІР°С‚РµР»СЊРЅС‹Р№ РїСЂРёРјРµСЂ. РќРµ РёСЃРїРѕР»СЊР·СѓР№ СЂРµР°Р»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ РєРѕРјРїР°РЅРёР№."""
+
+    response = llm.invoke(prompt)
+    content = response.content if hasattr(response, "content") else str(response)
+
+    ctx = get_context()
+    state = ctx.state
+    state.phishing_generated = getattr(state, "phishing_generated", 0) + 1
+
+    return {
+        "content": content,
+        "template": tt,
+        "template_name": template["name"],
+    }
+
+
+# --- Sandbox API ---
+@_if_app("post", "/api/sandbox/run")
+def sandbox_run(req: SandboxRunRequest):
+    from handlers.sandbox import run_code_in_sandbox
+
+    result = run_code_in_sandbox(req.code, req.language, req.timeout)
+    return result
+
+
+# --- Network / Docker Status API ---
+@_if_app("get", "/api/network/status")
+def network_status():
+    try:
+        from practice import DOCKER_LABS
+        from handlers.network import get_container_status
+
+        labs = {}
+        running = 0
+        for key, lab in DOCKER_LABS.items():
+            container_name = f"{key}-web"
+            status = get_container_status(container_name)
+            is_running = status.get("running", False)
+            if is_running:
+                running += 1
+            labs[key] = {
+                "name": lab.get("name", key),
+                "ports": lab.get("ports", []),
+                "running": is_running,
+            }
+        return {"labs": labs, "running": running, "total": len(DOCKER_LABS)}
+    except Exception as e:
+        return {"labs": {}, "running": 0, "total": 0, "error": str(e)}
+
+
+# --- Risk API ---
+@_if_app("get", "/api/noise")
+def get_noise():
+    try:
+        from handlers.noise import get_noise_level
+
+        info = get_noise_level()
+        return {
+            "level": info.get("level", 0),
+            "status": info.get("status", ""),
+            "stealth": info.get("stealth", False),
+        }
+    except Exception as e:
+        return {"level": 0, "status": "error", "stealth": False, "error": str(e)}
+
+
+@_if_app("get", "/api/trace")
+def get_trace():
+    try:
+        from handlers.trace import get_trace_status
+
+        info = get_trace_status()
+        return {
+            "active": info.get("active", False),
+            "expired": info.get("expired", False),
+            "remaining_seconds": info.get("remaining_seconds", 0),
+            "target": info.get("target", ""),
+        }
+    except Exception as e:
+        return {"active": False, "expired": False, "remaining_seconds": 0, "target": "", "error": str(e)}
+
+
+@_if_app("get", "/api/debts")
+def get_debts():
+    try:
+        from handlers.debt import get_debts
+
+        info = get_debts()
+        return {
+            "total": info.get("total", 0),
+            "debts": info.get("debts", []),
+        }
+    except Exception as e:
+        return {"total": 0, "debts": [], "error": str(e)}
+
+
+@_if_app("post", "/api/stealth/toggle")
+def toggle_stealth():
+    try:
+        from handlers.noise import toggle_stealth
+
+        result = toggle_stealth()
+        return {
+            "active": result.get("active", False),
+            "message": result.get("message", ""),
+        }
+    except Exception as e:
+        return {"active": False, "message": str(e)}
+
+
+# --- Target Machine API ---
+@_if_app("get", "/api/targets")
+def list_targets():
+    try:
+        targets = [
+            {
+                "id": "asus",
+                "name": "ASUS 1001PX",
+                "ip": "192.168.1.100",
+                "role": "fixed_target",
+                "status": "unknown",
+                "services": ["ssh", "ftp", "telnet", "samba"],
+            },
+            {
+                "id": "redmi",
+                "name": "Redmi 9A",
+                "ip": "192.168.1.101",
+                "role": "portable_target",
+                "status": "unknown",
+                "services": ["ssh"],
+            },
+        ]
+        return {"targets": targets}
+    except Exception as e:
+        return {"targets": [], "error": str(e)}
+
+
+@_if_app("get", "/api/targets/{target_id}/status")
+def get_target_status(target_id: str = "asus"):
+    try:
+        target_id = target_id.lower()
+        if target_id == "asus":
+            return {
+                "id": "asus",
+                "name": "ASUS 1001PX",
+                "ip": "192.168.1.100",
+                "reachable": False,
+                "status": "not_configured",
+                "services": [
+                    {"name": "ssh", "port": 22, "status": "unknown"},
+                    {"name": "ftp", "port": 21, "status": "unknown"},
+                    {"name": "telnet", "port": 23, "status": "unknown"},
+                    {"name": "samba", "port": 445, "status": "unknown"},
+                ],
+            }
+        elif target_id == "redmi":
+            return {
+                "id": "redmi",
+                "name": "Redmi 9A",
+                "ip": "192.168.1.101",
+                "reachable": False,
+                "status": "not_configured",
+                "services": [
+                    {"name": "ssh", "port": 22, "status": "unknown"},
+                ],
+            }
+        else:
+            return {"id": target_id, "status": "unknown_target"}
+    except Exception as e:
+        return {"id": target_id, "status": "error", "error": str(e)}
+
+
+# --- Mood API ---
+@_if_app("get", "/api/mood")
+def get_mood():
+    from handlers.mood import MOODS
+    from di import get_context
+
+    state = get_context().state
+    current = getattr(state, "mood", "normal")
+    return {"moods": MOODS, "current": current}
+
+
+@_if_app("post", "/api/mood/set")
+def set_mood(mood: str = "normal"):
+    from handlers.mood import MOODS
+
+    if mood not in MOODS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown mood. Available: {', '.join(MOODS.keys())}",
+        )
+    from di import get_context
+
+    state = get_context().state
+    state.mood = mood
+    return {"mood": mood, "name": MOODS[mood]["name"]}
+
+
+# --- Emotions API ---
+@_if_app("get", "/api/emotions")
+def get_emotions():
+    from handlers.emotions import EMOTION_STATES, get_emotion_status
+
+    return {"states": EMOTION_STATES, "current": get_emotion_status()}
+
+
+# --- Summary API ---
+@_if_app("post", "/api/summary")
+def get_summary(topic: str = ""):
+    from config import LazyLoader
+    from knowledge import get_current_vectordb, get_relevant_docs
+
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic required")
+    vectordb = get_current_vectordb()
+    if not vectordb:
+        raise HTTPException(status_code=503, detail="Knowledge base not available")
+    docs = get_relevant_docs(vectordb, topic, top_k=5)
+    context = (
+        "\n\n".join(
+            [
+                f"РСЃС‚РѕС‡РЅРёРє {i + 1}:\n{doc.page_content[:2000]}"
+                for i, doc in enumerate(docs[:5])
+            ]
+        )
+        if docs
+        else "No context available."
+    )
+    llm = LazyLoader.get_llm()
+    if llm is None:
+        raise HTTPException(status_code=503, detail="LLM not available")
+    prompt = f"""РўС‹ вЂ” СЌРєСЃРїРµСЂС‚ РїРѕ РєРёР±РµСЂР±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё. РЎРѕР·РґР°Р№ СЃС‚СЂСѓРєС‚СѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ РєРѕРЅСЃРїРµРєС‚ РІ Markdown РїРѕ С‚РµРјРµ: "{topic}".
+
+РљРѕРЅС‚РµРєСЃС‚ РёР· СѓС‡РµР±РЅС‹С… РјР°С‚РµСЂРёР°Р»РѕРІ:
+
+{context}
+
+РљРѕРЅСЃРїРµРєС‚ РґРѕР»Р¶РµРЅ РІРєР»СЋС‡Р°С‚СЊ:
+1. РћРїСЂРµРґРµР»РµРЅРёРµ вЂ” РєСЂР°С‚РєРѕ С‡С‚Рѕ СЌС‚Рѕ С‚Р°РєРѕРµ
+2. РљР»СЋС‡РµРІС‹Рµ РєРѕРЅС†РµРїС†РёРё вЂ” РѕСЃРЅРѕРІРЅС‹Рµ РёРґРµРё, РјРµС…Р°РЅРёР·РјС‹
+3. РџСЂРёРјРµСЂС‹ вЂ” СЂРµР°Р»СЊРЅС‹Рµ РёР»Рё РіРёРїРѕС‚РµС‚РёС‡РµСЃРєРёРµ РїСЂРёРјРµСЂС‹
+4. РўРµС…РЅРёРєРё/РРЅСЃС‚СЂСѓРјРµРЅС‚С‹ вЂ” РµСЃР»Рё РїСЂРёРјРµРЅРёРјРѕ
+5. РЎСЃС‹Р»РєРё РЅР° РёСЃС‚РѕС‡РЅРёРєРё вЂ” СѓРєР°Р¶Рё, РєР°РєРёРµ РёСЃС‚РѕС‡РЅРёРєРё РёСЃРїРѕР»СЊР·РѕРІР°Р»РёСЃСЊ (РёР· РєРѕРЅС‚РµРєСЃС‚Р°)
+
+Р¤РѕСЂРјР°С‚: Markdown СЃ Р·Р°РіРѕР»РѕРІРєР°РјРё, СЃРїРёСЃРєР°РјРё, РєРѕРґ-Р±Р»РѕРєР°РјРё РіРґРµ СѓРјРµСЃС‚РЅРѕ.
+РќРµ РґРѕР±Р°РІР»СЏР№ РІРІРµРґРµРЅРёРµ РёР»Рё Р·Р°РєР»СЋС‡РµРЅРёРµ вЂ” СЃСЂР°Р·Сѓ РїСЂРёСЃС‚СѓРїР°Р№ Рє РґРµР»Сѓ."""
+    response = llm.invoke(prompt)
+    content = response.content if hasattr(response, "content") else str(response)
+    return {"topic": topic, "content": content}
+
+
+# --- Docker Gen API ---
+DOCKER_IMAGES = [
+    {
+        "id": "dvwa",
+        "name": "DVWA",
+        "desc": "Damn Vulnerable Web Application",
+        "ports": ["80:80"],
+    },
+    {
+        "id": "metasploitable",
+        "name": "Metasploitable",
+        "desc": "Vulnerable Linux VM",
+        "ports": [],
+    },
+    {"id": "vulnhub", "name": "VulnHub", "desc": "CTF-style challenges", "ports": []},
+    {
+        "id": "juice-shop",
+        "name": "Juice Shop",
+        "desc": "OWASP Juice Shop",
+        "ports": ["3000:3000"],
+    },
+    {
+        "id": "wordpress",
+        "name": "WordPress",
+        "desc": "Vulnerable WordPress",
+        "ports": ["8080:80"],
+    },
+]
+
+
+@_if_app("get", "/api/dockergen/images")
+def dockergen_images():
+    return {"images": DOCKER_IMAGES}
+
+
+@_if_app("post", "/api/dockergen/generate")
+def dockergen_generate(req: DockerGenRequest):
+    import yaml
+    from handlers.docker_gen import LAB_IMAGES
+
+    services = {}
+    for lab_name in req.labs:
+        lab = LAB_IMAGES.get(lab_name)
+        if not lab:
+            continue
+        service = {
+            "image": lab["image"],
+            "container_name": f"ct_{lab_name}",
+            "restart": "unless-stopped",
+            "networks": ["ct_lab_net"],
+        }
+        ports = lab.get("ports")
+        if ports:
+            service["ports"] = [f"{host}:{cont}" for host, cont in ports.items()]
+        services[lab_name] = service
+    if not services:
+        raise HTTPException(status_code=400, detail="No valid labs selected")
+    compose = {
+        "version": "3.8",
+        "services": services,
+        "networks": {"ct_lab_net": {"driver": "bridge"}},
+    }
+    yaml_str = yaml.dump(compose, default_flow_style=False, allow_unicode=True)
+    return {"compose": yaml_str, "services": len(services)}
+
+
+# --- Equipment API ---
+@_if_app("get", "/api/equipment")
+def get_equipment():
+    from tools_ram import TOOL_RAM_COSTS, MAX_RAM
+    from di import get_context
+
+    state = get_context().state
+    selected = set(getattr(state, "selected_tools", []))
+    tools = []
+    for tool, cost in sorted(TOOL_RAM_COSTS.items()):
+        tools.append({"name": tool, "cost": cost, "selected": tool in selected})
+    used = sum(TOOL_RAM_COSTS.get(t, 0) for t in selected)
+    return {"tools": tools, "used_ram": used, "max_ram": MAX_RAM}
+
+
+@_if_app("post", "/api/equipment/toggle")
+def toggle_equipment(tool: str = ""):
+    from tools_ram import TOOL_RAM_COSTS, MAX_RAM
+    from di import get_context
+
+    if not tool or tool not in TOOL_RAM_COSTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown tool. Available: {', '.join(sorted(TOOL_RAM_COSTS.keys()))}",
+        )
+    ctx = get_context()
+    state = ctx.state
+    selected = set(getattr(state, "selected_tools", []))
+    if tool in selected:
+        state.selected_tools.remove(tool)
+        result = False
+    else:
+        new_total = (
+            sum(TOOL_RAM_COSTS.get(t, 0) for t in selected) + TOOL_RAM_COSTS[tool]
+        )
+        if new_total > MAX_RAM:
+            raise HTTPException(status_code=400, detail="Not enough RAM")
+        state.selected_tools.append(tool)
+        result = True
+    ctx.save_state()
+    return {"tool": tool, "selected": result}
+
+
+# --- Timeloop API ---
+@_if_app("get", "/api/timeloop")
+def get_timeloop():
+    from handlers.timeloop import STORY_NODES
+    from di import get_context
+
+    state = get_context().state
+    current = getattr(state, "timeloop_node", "start")
+    history = getattr(state, "timeloop_history", [])
+    return {
+        "current_node": current,
+        "node_data": STORY_NODES.get(current, {}),
+        "history": history,
+        "started": bool(getattr(state, "timeloop_started", False)),
+    }
+
+
+@_if_app("post", "/api/timeloop/start")
+def start_timeloop():
+    from di import get_context
+
+    state = get_context().state
+    state.timeloop_node = "start"
+    state.timeloop_started = True
+    state.timeloop_history = []
+    return {"status": "ok", "node": "start"}
+
+
+@_if_app("post", "/api/timeloop/choice")
+def timeloop_choice(choice: str = ""):
+    from handlers.timeloop import STORY_NODES
+    from di import get_context
+
+    if not choice:
+        raise HTTPException(status_code=400, detail="choice required")
+    ctx = get_context()
+    state = ctx.state
+    current = getattr(state, "timeloop_node", "start")
+    node = STORY_NODES.get(current)
+    if not node or choice not in node.get("choices", {}):
+        raise HTTPException(status_code=400, detail="Invalid choice")
+    next_node = node["choices"][choice]["next"]
+    history = getattr(state, "timeloop_history", [])
+    history.append(
+        {"from": current, "choice": choice, "label": node["choices"][choice]["text"]}
+    )
+    state.timeloop_node = next_node
+    state.timeloop_history = history
+    ctx.save_state()
+    return {
+        "status": "ok",
+        "node": next_node,
+        "node_data": STORY_NODES.get(next_node, {}),
+        "history": history,
+    }
+
+
+# --- Sync API ---
+@_if_app("get", "/api/sync/id")
+def get_sync_id():
+    from handlers.sync import _generate_user_id
+
+    return {"sync_id": _generate_user_id()}
+
+
+@_if_app("get", "/api/sync/export")
+def export_sync(filepath: str = ""):
+    from handlers.sync import _export_progress
+
+    success = _export_progress(filepath if filepath else None)
+    if not success:
+        raise HTTPException(status_code=500, detail="Export failed")
+    return {"status": "ok", "filepath": filepath or "auto"}
+
+
+# --- Exploit Trainer API ---
+@_if_app("get", "/api/exploit/challenges")
+def exploit_challenges():
+    from handlers.exploit_trainer import EXPLOIT_CHALLENGES
+
+    challenges = []
+    for cid, c in EXPLOIT_CHALLENGES.items():
+        challenges.append(
+            {
+                "id": cid,
+                "name": c.get("title", cid),
+                "difficulty": c.get("difficulty", "medium"),
+                "category": c.get("category", ""),
+                "description": c.get("description", "")[:200],
+            }
+        )
+    return {"challenges": challenges}
+
+
+# --- Analytics API ---
+@_if_app("get", "/api/analytics")
+def get_analytics():
+    from handlers.analytics import _compute_learning_metrics
+    from di import get_context
+
+    state = get_context().state
+    metrics = _compute_learning_metrics(state)
+    return {"metrics": metrics}
+
+
+# --- Mermaid Diagram API ---
+@_if_app("get", "/api/mermaid/generate")
+def mermaid_generate(topic: str = ""):
+    from config import LazyLoader
+
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic required")
+    llm = LazyLoader.get_llm()
+    if llm is None:
+        raise HTTPException(status_code=503, detail="LLM not available")
+    prompt = f"""Create a Mermaid diagram for cybersecurity topic: {topic}
+Rules:
+1. Use only valid Mermaid syntax
+2. Type: flowchart, graph, sequence, or mindmap
+3. Start with type declaration (e.g. flowchart TD)
+4. Return ONLY Mermaid code, no explanations"""
+    response = llm.invoke(prompt)
+    content = response.content if hasattr(response, "content") else str(response)
+    return {"topic": topic, "diagram": content}
+
+
+# --- Bug Bounty API ---
+BOUNTY_SCENARIOS = [
+    {
+        "id": "xss_discovery",
+        "name": "XSS Vulnerability",
+        "difficulty": "easy",
+        "reward": 500,
+    },
+    {
+        "id": "sqli_extraction",
+        "name": "SQL Injection Data Extraction",
+        "difficulty": "medium",
+        "reward": 1500,
+    },
+    {
+        "id": "idor_escalation",
+        "name": "IDOR Privilege Escalation",
+        "difficulty": "medium",
+        "reward": 2000,
+    },
+    {
+        "id": "ssrf_internal",
+        "name": "SSRF to Internal Network",
+        "difficulty": "hard",
+        "reward": 5000,
+    },
+    {
+        "id": "rce_chain",
+        "name": "RCE via Deserialization",
+        "difficulty": "hard",
+        "reward": 10000,
+    },
+]
+
+
+@_if_app("get", "/api/bounty/scenarios")
+def bounty_scenarios():
+    return {"scenarios": BOUNTY_SCENARIOS}
+
+
+# --- Media API ---
+MEDIA_RESOURCES = [
+    {
+        "id": "intro_network",
+        "title": "Network Security Intro",
+        "type": "video",
+        "duration": "15:30",
+    },
+    {
+        "id": "web_attacks",
+        "title": "Web Attack Vectors",
+        "type": "video",
+        "duration": "22:00",
+    },
+    {"id": "crypto_basics", "title": "Cryptography Basics", "type": "pdf", "pages": 45},
+    {
+        "id": "malware_101",
+        "title": "Malware Analysis 101",
+        "type": "video",
+        "duration": "30:00",
+    },
+    {"id": "osint_tools", "title": "OSINT Tools Guide", "type": "pdf", "pages": 30},
+    {
+        "id": "forensics_cheatsheet",
+        "title": "Forensics Cheatsheet",
+        "type": "pdf",
+        "pages": 12,
+    },
+]
+
+
+@_if_app("get", "/api/media")
+def get_media():
+    return {"resources": MEDIA_RESOURCES}
+
+
+# --- Walkthroughs / Exploit Search API ---
+@_if_app("get", "/api/walkthroughs")
+def get_walkthroughs():
+    import os, glob as _glob
+
+    wts = []
+    for path in _glob.glob("writeups/*.md"):
+        name = os.path.splitext(os.path.basename(path))[0]
+        wts.append({"name": name, "path": path, "date": os.path.getmtime(path)})
+    return {"walkthroughs": sorted(wts, key=lambda x: x["date"], reverse=True)}
+
+
+# --- WebSocket Auth Helper ---
+
+
+def _ws_verify_token(websocket: Any) -> Optional[Dict[str, Any]]:
+    """Extract and verify JWT from WebSocket query params. Returns payload or None."""
+    token = websocket.query_params.get("token", "")
+    if not token:
+        return None
+    from auth import verify_token
+
+    return verify_token(token)
+
+
+def _generate_connection_id(websocket: Any, conn_type: str) -> str:
+    """Generate a unique connection ID."""
+    import uuid
+    client = websocket.client
+    client_info = f"{client.host}:{client.port}" if client else "unknown"
+    return f"{conn_type}-{client_info}-{uuid.uuid4().hex[:8]}"
+
+
+# --- WebSocket Connection Manager (OPT-02) ---
+class WebSocketManager:
+    """Manages WebSocket connections with pooling, batching, and health checks."""
+
+    def __init__(self, batch_interval_ms: int = 50, ping_interval_s: int = 30):
+        self._connections: Dict[str, Any] = {}  # connection_id -> websocket
+        self._connection_info: Dict[str, Dict] = {}  # connection_id -> {type, user_id, connected_at, last_ping}
+        self._message_queues: Dict[str, List[Dict]] = {}  # connection_id -> [messages]
+        self._batch_interval_ms = batch_interval_ms
+        self._ping_interval_s = ping_interval_s
+        self._batching_tasks: Dict[str, asyncio.Task] = {}
+        self._ping_tasks: Dict[str, asyncio.Task] = {}
+        self._lock = asyncio.Lock()
+
+    async def connect(self, websocket: Any, connection_id: str, conn_type: str, user_id: Optional[str] = None) -> None:
+        """Register a new WebSocket connection."""
+        async with self._lock:
+            self._connections[connection_id] = websocket
+            self._connection_info[connection_id] = {
+                "type": conn_type,
+                "user_id": user_id,
+                "connected_at": time.time(),
+                "last_ping": time.time(),
+            }
+            self._message_queues[connection_id] = []
+
+            # Start batching task for this connection
+            task = asyncio.create_task(self._batch_sender(connection_id))
+            self._batching_tasks[connection_id] = task
+
+            # Start ping task for this connection
+            ping_task = asyncio.create_task(self._ping_sender(connection_id))
+            self._ping_tasks[connection_id] = ping_task
+
+    async def disconnect(self, connection_id: str) -> None:
+        """Remove a WebSocket connection."""
+        async with self._lock:
+            if connection_id in self._connections:
+                del self._connections[connection_id]
+            if connection_id in self._connection_info:
+                del self._connection_info[connection_id]
+            if connection_id in self._message_queues:
+                # Flush remaining messages before disconnect
+                await self._flush_queue(connection_id)
+                del self._message_queues[connection_id]
+            if connection_id in self._batching_tasks:
+                self._batching_tasks[connection_id].cancel()
+                del self._batching_tasks[connection_id]
+            if connection_id in self._ping_tasks:
+                self._ping_tasks[connection_id].cancel()
+                del self._ping_tasks[connection_id]
+
+    async def send_message(self, connection_id: str, message: Dict) -> bool:
+        """Queue a message for batched delivery."""
+        async with self._lock:
+            if connection_id not in self._message_queues:
+                return False
+            self._message_queues[connection_id].append(message)
+            return True
+
+    async def broadcast(self, conn_type: str, message: Dict, user_id: Optional[str] = None) -> int:
+        """Broadcast message to all connections of a type (optionally filtered by user_id)."""
+        async with self._lock:
+            sent = 0
+            for conn_id, info in self._connection_info.items():
+                if info["type"] == conn_type and (user_id is None or info.get("user_id") == user_id):
+                    if conn_id in self._message_queues:
+                        self._message_queues[conn_id].append(message)
+                        sent += 1
+            return sent
+
+    async def _flush_queue(self, connection_id: str) -> None:
+        """Flush all queued messages for a connection."""
+        if connection_id not in self._message_queues:
+            return
+        websocket = self._connections.get(connection_id)
+        if not websocket:
+            return
+        queue = self._message_queues[connection_id]
+        for msg in queue:
+            try:
+                await websocket.send_json(msg)
+            except Exception:
+                pass
+        queue.clear()
+
+    async def _batch_sender(self, connection_id: str) -> None:
+        """Background task to batch and send messages every batch_interval_ms."""
+        try:
+            while True:
+                await asyncio.sleep(self._batch_interval_ms / 1000.0)
+                async with self._lock:
+                    if connection_id not in self._message_queues:
+                        break
+                    await self._flush_queue(connection_id)
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            pass
+
+    async def _ping_sender(self, connection_id: str) -> None:
+        """Background task to send periodic pings for keepalive."""
+        try:
+            while True:
+                await asyncio.sleep(self._ping_interval_s)
+                async with self._lock:
+                    if connection_id not in self._connections:
+                        break
+                    websocket = self._connections[connection_id]
+                    info = self._connection_info[connection_id]
+                    try:
+                        await websocket.send_json({"type": "ping", "t": time.time()})
+                        info["last_ping"] = time.time()
+                    except Exception:
+                        # Connection likely dead
+                        break
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            pass
+
+    def get_stats(self) -> Dict:
+        """Get connection statistics."""
+        return {
+            "total_connections": len(self._connections),
+            "by_type": self._count_by_type(),
+            "queued_messages": sum(len(q) for q in self._message_queues.values()),
+        }
+
+    def _count_by_type(self) -> Dict[str, int]:
+        counts = {}
+        for info in self._connection_info.values():
+            counts[info["type"]] = counts.get(info["type"], 0) + 1
+        return counts
+
+
+# Global WebSocket manager instance
+_ws_manager: Optional[WebSocketManager] = None
+
+
+def get_ws_manager() -> WebSocketManager:
+    global _ws_manager
+    if _ws_manager is None:
+        _ws_manager = WebSocketManager()
+    return _ws_manager
+
+
+# --- WebSocket Streaming ---
+
+if FASTAPI_AVAILABLE and app is not None:
+
+    @app.websocket("/chat_stream")
+    async def websocket_chat_stream(websocket: Any) -> None:
+        from starlette.websockets import WebSocketDisconnect
+
+        await websocket.accept()
+        conn_id = _generate_connection_id(websocket, "chat")
+        ws_manager = get_ws_manager()
+        await ws_manager.connect(websocket, conn_id, "chat", None)
+
+        try:
+            payload = _ws_verify_token(websocket)
+            user_context = ""
+            if payload:
+                from auth import get_user
+
+                user = get_user(payload.get("user_id", ""))
+                if user:
+                    user_context = f"\n[User: {user.get('display_name', user['username'])}, Role: {user.get('role', 'student')}]"
+
+            params = websocket.query_params
+            message = params.get("message", "")
+            mode = params.get("mode", "teacher")
+            if not message:
+                await websocket.send_json({"error": "No message provided"})
+                await websocket.close()
+                return
+
+            state = get_state()
+            state.set_persona(mode)
+
+            # Secret phrase detection
+            try:
+                from secret_language import detect_secret_phrase
+
+                secret = detect_secret_phrase(message)
+                if secret:
+                    # Apply effect
+                    if secret["effect"] == "hint":
+                        state.hint_credits = min(10, state.hint_credits + 1)
+                    elif secret["effect"] == "mood_serious":
+                        state.current_mood = "serious"
+                    elif secret["effect"] == "unlock_ghost_log":
+                        pass
+
+                    await websocket.send_json(
+                        {
+                            "secret_phrase": secret,
+                            "response": f"рџ”ђ **РЎРµРєСЂРµС‚РЅР°СЏ С„СЂР°Р·Р°:** {secret['phrase']}\n\n{secret['response']}",
+                        }
+                    )
+                    await websocket.send_json(
+                        {"done": True, "full_response": secret["response"]}
+                    )
+                    return
+            except ImportError:
+                pass
+
+            from config import LazyLoader as _LazyLoader
+
+            llm = _LazyLoader.get_llm()
+            if llm is None:
+                await websocket.send_json(
+                    {"chunk": "[MockLLM] РР-РїСЂРѕРІР°Р№РґРµСЂ РЅРµРґРѕСЃС‚СѓРїРµРЅ. РќР°СЃС‚СЂРѕР№С‚Рµ /doctor."}
+                )
+                await websocket.send_json(
+                    {
+                        "done": True,
+                        "full_response": "[MockLLM] РР-РїСЂРѕРІР°Р№РґРµСЂ РЅРµРґРѕСЃС‚СѓРїРµРЅ.",
+                    }
+                )
+                await websocket.close()
+                return
+
+            # Build system prompt using PromptBuilder
+            from src.prompt_engine.builder import PromptContext
+
+            prompt_context = PromptContext(mode)
+            if user_context:
+                prompt_context.add_modifier(user_context)
+
+            try:
+                from src.personas.context_awareness import get_context_info, get_atmosphere_hint
+                from src.personas.personality import apply_personality_drift
+
+                ctx_info = get_context_info(
+                    session_start=state.metrics.get("start_time", 0),
+                    messages_this_session=state.messages_sent,
+                )
+                atm = get_atmosphere_hint(ctx_info)
+                pmod = apply_personality_drift(ctx_info)
+                if atm:
+                    prompt_context.with_atmosphere(atm)
+                if pmod:
+                    prompt_context.with_personality_drift(pmod)
+            except ImportError:
+                pass
+
+            # Persona Router (dynamic)
+            try:
+                from src.personas.persona_router import (
+                    select_persona,
+                    get_persona_prompt,
+                    get_persona_info,
+                )
+
+                persona_id = select_persona(state, message)
+                persona_mod = get_persona_prompt(persona_id)
+                if persona_mod:
+                    prompt_context.with_persona(persona_mod)
+                # Send persona info at start
+                persona_info = get_persona_info(persona_id)
+                await websocket.send_json({"persona": persona_info})
+            except ImportError:
+                pass
+
+            from memory import get_chat_history, init_db
+
+            conn = init_db()
+            raw_history = get_chat_history(conn, limit=100)
+
+            # Inject summary if available
+            if BUDGET_AVAILABLE and api_budget_manager is not None:
+                summary_text = api_budget_manager.extract_summary(raw_history)
+                if summary_text:
+                    prompt_context.add_modifier(f"[Context summary: {summary_text}]")
+
+                trimmed_hist, _ = api_budget_manager.prepare_context(
+                    raw_history, max_messages=30, user_input=message
+                )
+                history = trimmed_hist
+            else:
+                history = raw_history[-10:]
+            context_str = "\n".join([f"{m['role']}: {m['content']}" for m in history])
+
+            full_prompt = (
+                f"{prompt_context.build()}\n\n---\n{context_str}\n\nРЈС‡РµРЅРёРє: {message}\nРЈС‡РёС‚РµР»СЊ:"
+            )
+
+            full_response = ""
+            try:
+                for chunk in llm.stream(full_prompt):
+                    text = chunk.content if hasattr(chunk, "content") else str(chunk)
+                    full_response += text
+                    await websocket.send_json({"chunk": text})
+            except (ValueError, RuntimeError) as e:
+                if not full_response:
+                    await websocket.send_json({"chunk": f"[РћС€РёР±РєР°: {e}]"})
+                    full_response = f"[РћС€РёР±РєР°: {e}]"
+
+            # Narrative events
+            try:
+                from handlers.event_engine import check_events
+
+                fired = check_events()
+                if fired:
+                    event_block = []
+                    for evt in fired:
+                        msg = f"\n\nвљЎ {evt['title']}: {evt['message']}"
+                        if evt["effects"]:
+                            msg += f" ({', '.join(evt['effects'])})"
+                        event_block.append(msg)
+                    full_response += "".join(event_block)
+                    await websocket.send_json({"events": fired})
+            except ImportError:
+                pass
+
+            await websocket.send_json({"done": True, "full_response": full_response})
+
+            # Save to DB
+            from memory import save_message, update_stats
+
+            save_message(conn, "user", message, mode)
+            save_message(conn, "assistant", full_response, mode)
+            update_stats(conn, 1)
+            state.messages_sent += 1
+
+        except WebSocketDisconnect:
+            pass
+        except (ValueError, RuntimeError, ConnectionError) as e:
+            try:
+                await websocket.send_json({"error": "Internal error"})
+                await websocket.close()
+            except (ConnectionError, RuntimeError):
+                pass
+        finally:
+            await get_ws_manager().disconnect(conn_id)
+
+    @app.websocket("/notifications")
+    async def websocket_notifications(websocket: Any) -> None:
+        """WebSocket endpoint for real-time notifications. Public (no auth required)."""
+        from starlette.websockets import WebSocketDisconnect
+
+        await websocket.accept()
+        try:
+            last_check: float = 0.0
+            while True:
+                # Wait for messages or timeout
+                try:
+                    data = await asyncio.wait_for(
+                        websocket.receive_json(), timeout=30.0
+                    )
+                    if data.get("type") == "ping":
+                        await websocket.send_json({"type": "pong"})
+                        continue
+                except asyncio.TimeoutError:
+                    pass
+
+                # Push world state updates
+                now = time.time()
+                if now - last_check > 30:
+                    last_check = now
+                    try:
+                        from world_state import get_world_state
+                        from cyberpsychosis import get_cyberpsychosis
+
+                        world = get_world_state()
+                        if world.incidents:
+                            for inc in world.incidents:
+                                await websocket.send_json(
+                                    {
+                                        "type": "incident",
+                                        "data": {
+                                            "title": inc.get("title", ""),
+                                            "severity": inc.get("severity", "low"),
+                                        },
+                                    }
+                                )
+
+                        cp = get_cyberpsychosis()
+                        if cp.get_level() in ("critical", "dangerous"):
+                            await websocket.send_json(
+                                {
+                                    "type": "cyberpsychosis",
+                                    "data": {"level": cp.get_level()},
+                                }
+                            )
+                    except ImportError:
+                        pass
+
+        except WebSocketDisconnect:
+            pass
+        except (ConnectionError, RuntimeError):
+            try:
+                await websocket.send_json({"error": "Closed"})
+                await websocket.close()
+            except (ConnectionError, RuntimeError):
+                pass
+        except (ConnectionError, RuntimeError, asyncio.TimeoutError, OSError):
+            try:
+                await websocket.close()
+            except (ConnectionError, RuntimeError):
+                pass
+
+    @app.websocket("/quiz_multiplayer")
+    async def websocket_quiz_multiplayer(websocket: Any) -> None:
+        """WebSocket for multiplayer quizzes. Optional auth."""
+        from starlette.websockets import WebSocketDisconnect
+
+        await websocket.accept()
+        try:
+            payload = _ws_verify_token(websocket)
+            player_name = "Player"
+            if payload:
+                from auth import get_user
+
+                user = get_user(payload.get("user_id", ""))
+                if user:
+                    player_name = user.get("display_name", user["username"])
+            room = None
+
+            while True:
+                try:
+                    data = await asyncio.wait_for(
+                        websocket.receive_json(), timeout=60.0
+                    )
+                except asyncio.TimeoutError:
+                    continue
+
+                action = data.get("action", "")
+
+                if action == "create":
+                    from quiz_multiplayer import create_room
+
+                    room_id = data.get("room", str(int(time.time())))
+                    player_name = data.get("name", "Host")
+                    room = create_room(room_id, player_name)
+                    room.add_player(player_name, websocket)
+                    await websocket.send_json(
+                        {"type": "room_created", "room_id": room_id}
+                    )
+                    await websocket.send_json(
+                        {"type": "state", "data": room.get_state()}
+                    )
+
+                elif action == "join":
+                    from quiz_multiplayer import get_room
+
+                    room_id = data.get("room", "")
+                    player_name = data.get("name", "Player")
+                    room = get_room(room_id)
+                    if not room:
+                        await websocket.send_json(
+                            {"type": "error", "message": "Room not found"}
+                        )
+                        continue
+                    room.add_player(player_name, websocket)
+                    await websocket.send_json({"type": "joined", "room_id": room_id})
+                    state = room.get_state()
+                    await websocket.send_json({"type": "state", "data": state})
+                    # Notify others
+                    for pname, pdata in room.players.items():
+                        if pname != player_name and pdata.get("ws"):
+                            try:
+                                await pdata["ws"].send_json(
+                                    {
+                                        "type": "player_joined",
+                                        "name": player_name,
+                                        "players": len(room.players),
+                                    }
+                                )
+                            except (ConnectionError, RuntimeError):
+                                pass
+
+                elif action == "answer" and room:
+                    answer_idx = data.get("answer", 0)
+                    result = room.submit_answer(player_name, answer_idx)
+                    await websocket.send_json({"type": "answer_result", "data": result})
+                    # Send updated leaderboard to all
+                    for pname, pdata in room.players.items():
+                        try:
+                            await pdata["ws"].send_json(
+                                {
+                                    "type": "leaderboard",
+                                    "data": room.get_leaderboard(),
+                                }
+                            )
+                        except (ConnectionError, RuntimeError):
+                            pass
+
+                elif action == "start" and room:
+                    # Generate quiz questions
+                    try:
+                        from quiz_generator import generate_quiz_question
+
+                        topic = data.get("topic", "general")
+                        count = min(data.get("count", 5), 10)
+                        questions = []
+                        for _ in range(count):
+                            q = await asyncio.get_event_loop().run_in_executor(
+                                None, generate_quiz_question, topic
+                            )
+                            if q:
+                                questions.append(q)
+                        if questions:
+                            room.set_questions(questions)
+                            room.started = True
+                            room.current_question = 0
+                    except (ImportError, ValueError, RuntimeError):
+                        # Fallback: use predefined questions
+                        room.set_questions(
+                            [
+                                {
+                                    "question": "What port does HTTPS use?",
+                                    "options": ["80", "443", "8080"],
+                                    "correct": 1,
+                                },
+                                {
+                                    "question": "What is XSS?",
+                                    "options": [
+                                        "Cross-Site Scripting",
+                                        "Extra Secure System",
+                                        "XML Style Sheet",
+                                    ],
+                                    "correct": 0,
+                                },
+                                {
+                                    "question": "What does a firewall do?",
+                                    "options": [
+                                        "Encrypts data",
+                                        "Filters traffic",
+                                        "Deletes viruses",
+                                    ],
+                                    "correct": 1,
+                                },
+                            ]
+                        )
+                        room.started = True
+                        room.current_question = 0
+
+                    # Send first question to all
+                    state = room.get_state()
+                    for pname, pdata in room.players.items():
+                        try:
+                            await pdata["ws"].send_json(
+                                {"type": "question", "data": state["question"]}
+                            )
+                            await pdata["ws"].send_json(
+                                {"type": "state", "data": state}
+                            )
+                        except (ConnectionError, RuntimeError):
+                            pass
+
+                elif action == "next" and room:
+                    room.current_question += 1
+                    room.answers = {}
+                    if room.current_question >= len(room.questions):
+                        room.finished = True
+                    state = room.get_state()
+                    for pname, pdata in room.players.items():
+                        try:
+                            if room.finished:
+                                await pdata["ws"].send_json(
+                                    {
+                                        "type": "finished",
+                                        "leaderboard": room.get_leaderboard(),
+                                    }
+                                )
+                            else:
+                                await pdata["ws"].send_json(
+                                    {"type": "question", "data": state["question"]}
+                                )
+                            await pdata["ws"].send_json(
+                                {"type": "state", "data": state}
+                            )
+                        except (ConnectionError, RuntimeError):
+                            pass
+
+                elif action == "state" and room:
+                    await websocket.send_json(
+                        {"type": "state", "data": room.get_state()}
+                    )
+
+        except WebSocketDisconnect:
+            pass
+        except (ConnectionError, RuntimeError, asyncio.TimeoutError):
+            pass
+        finally:
+            if room and player_name:
+                room.remove_player(player_name)
+                if not room.players:
+                    from quiz_multiplayer import delete_room
+
+                    delete_room(room.room_id)
+
+
+# ----------------------------------------------------------------------
+# PWA state save endpoint
+# ----------------------------------------------------------------------
+@_if_app("post", "/api/save")
+def pwa_save_state():
+    """Save state on-demand (called by PWA beforeunload / periodic timer)."""
+    from state import get_state
+    from settings import get_settings
+
+    try:
+        state = get_state()
+        state.save_to_file(str(get_settings().state_file))
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
+# ----------------------------------------------------------------------
+# WebSocket stats endpoint (OPT-02)
+# ----------------------------------------------------------------------
+@_if_app("get", "/api/ws/stats")
+def get_ws_stats():
+    """Get WebSocket connection statistics."""
+    ws_manager = get_ws_manager()
+    return ws_manager.get_stats()
+
+
+# ----------------------------------------------------------------------
+# РЈРїСЂР°РІР»РµРЅРёРµ СЃРµСЂРІРµСЂРѕРј
+# ----------------------------------------------------------------------
+def start_api_server(host: str = "0.0.0.0", port: int = 8000) -> bool:
+    global _server_process
+    if not FASTAPI_AVAILABLE:
+        print("[API] FastAPI РЅРµ СѓСЃС‚Р°РЅРѕРІР»РµРЅ. РЈСЃС‚Р°РЅРѕРІРёС‚Рµ: pip install fastapi uvicorn")
+        return False
+
+    cmd = [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "api_server:app",
+        "--host",
+        host,
+        "--port",
+        str(port),
+        "--log-level",
+        "info",
+    ]
+
+    print(f"[API] Р—Р°РїСѓСЃРє СЃРµСЂРІРµСЂР° РЅР° {host}:{port}")
+    print(f"[API] Р”РѕРєСѓРјРµРЅС‚Р°С†РёСЏ: http://{host}:{port}/docs")
+
+    try:
+        _server_process = subprocess.Popen(cmd)
+        return True
+    except Exception as e:
+        print(f"[API] РћС€РёР±РєР° Р·Р°РїСѓСЃРєР°: {e}")
+        return False
+
+
+def stop_api_server() -> bool:
+    global _server_process
+    if _server_process is None:
+        print("[API] РЎРµСЂРІРµСЂ РЅРµ Р·Р°РїСѓС‰РµРЅ.")
+        return False
+
+    try:
+        if sys.platform == "win32":
+            _server_process.terminate()
+        else:
+            _server_process.send_signal(signal.SIGTERM)
+
+        _server_process.wait(timeout=5)
+        print("[API] РЎРµСЂРІРµСЂ РѕСЃС‚Р°РЅРѕРІР»РµРЅ.")
+        _server_process = None
+        return True
+    except subprocess.TimeoutExpired:
+        if _server_process is not None:
+            _server_process.kill()
+        _server_process = None
+        print("[API] РЎРµСЂРІРµСЂ РїСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РѕСЃС‚Р°РЅРѕРІР»РµРЅ.")
+        return True
+    except Exception as e:
+        print(f"[API] РћС€РёР±РєР° РѕСЃС‚Р°РЅРѕРІРєРё: {e}")
+        return False
+
+
+def is_server_running() -> bool:
+    global _server_process
+    if _server_process is None:
+        return False
+    return _server_process.poll() is None

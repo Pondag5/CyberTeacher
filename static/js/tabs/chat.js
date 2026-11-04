@@ -2,18 +2,20 @@
 window.Tab_chat = {
     render(el) {
         el.innerHTML = `
-            <h2>\uD83D\uDCAC \u0427\u0430\u0442 \u0441 CyberTeacher</h2>
+            <h2>💬 Чат с CyberTeacher</h2>
             <div class="chat-messages" id="chatMessages"></div>
+            <div id="chat-kb-sources" style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:6px;display:none;"></div>
             <div style="display:flex; gap:12px; align-items:center;">
                 <div id="personaIndicator" style="display:none; font-size:0.85rem; padding:4px 10px; background:var(--bg-card); border-radius:12px; border:1px solid var(--accent); color:var(--accent);"></div>
-                <textarea id="chatInput" rows="2" style="flex:1;" placeholder="\u0417\u0430\u0434\u0430\u0439\u0442\u0435 \u0432\u043E\u043F\u0440\u043E\u0441 \u043F\u043E \u043A\u0438\u0431\u0435\u0440\u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438..."></textarea>
-                <button id="sendChatBtn">\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C</button>
+                <textarea id="chatInput" rows="2" style="flex:1;" placeholder="Задайте вопрос по кибербезопасности..."></textarea>
+                <button id="sendChatBtn">Отправить</button>
             </div>
         `;
         const messagesDiv = document.getElementById('chatMessages');
         const input = document.getElementById('chatInput');
         const sendBtn = document.getElementById('sendChatBtn');
         const personaIndicator = document.getElementById('personaIndicator');
+        const kbSourcesDiv = document.getElementById('chat-kb-sources');
 
         function showPersona(persona) {
             if (!persona) return;
@@ -96,8 +98,16 @@ window.Tab_chat = {
                     method: 'POST'
                 });
                 if (res.persona) showPersona(res.persona);
+                if (kbSourcesDiv) {
+                    if (res.kb_sources && res.kb_sources.length) {
+                        kbSourcesDiv.style.display = 'block';
+                        kbSourcesDiv.innerHTML = '📚 Из БЗ: ' + res.kb_sources.map(s => '<span style="color:var(--accent);">' + s + '</span>').join(', ');
+                    } else {
+                        kbSourcesDiv.style.display = 'none';
+                    }
+                }
                 if (res.response) addMessage('assistant', res.response, false);
-                else addMessage('assistant', '\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u0432\u044F\u0437\u0438 \u0441 \u0418\u0418.', false);
+                else addMessage('assistant', 'Ошибка связи с ИИ.', false);
             }
         };
 

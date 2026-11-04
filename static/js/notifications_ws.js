@@ -58,18 +58,28 @@ window.NotificationsWS = {
             return;
         }
 
+        // Risk/state updates
+        if (data.type === 'risk_update' || data.type === 'state_update') {
+            if (typeof updateRiskIndicators === 'function') {
+                updateRiskIndicators();
+            }
+            if (typeof loadInitialData === 'function') {
+                try { loadInitialData(); } catch(e) {}
+            }
+        }
+
         // Browser notification
         if (window.Notifications && Notifications._permission === 'granted') {
             if (data.type === 'incident') {
                 Notifications.send(
-                    `\u26A0\uFE0F ${data.data?.title || 'Incident'}`,
+                    '\u26a0\ufe0f ' + (data.data?.title || 'Incident'),
                     data.data?.severity || 'New incident in the world'
                 );
             }
             if (data.type === 'cyberpsychosis') {
                 Notifications.send(
-                    '\uD83D\uDEA8 Cyberpsychosis Alert',
-                    `Level: ${data.data?.level || 'unknown'}`
+                    '\ud83d\udea8 Cyberpsychosis Alert',
+                    'Level: ' + (data.data?.level || 'unknown')
                 );
             }
         }

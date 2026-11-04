@@ -1,0 +1,102 @@
+# handlers/flags.py
+import json
+import os
+import re
+from typing import Any, Optional, Tuple
+
+from src.cli.ui import console
+from src.core.di import get_context
+from .types import HandlerResult
+
+
+def handle_flag_check(
+    flag: Optional[str] = None,
+) -> HandlerResult:
+    """Проверка флага"""
+    if not flag:
+        console.print("[cyan]Использование: /flag <FLAG{...}>[/cyan]")
+        return True, None, None, True
+    pattern = r"FLAG\{[^}]+\}"
+    if not re.fullmatch(pattern, flag.strip()):
+        console.print(f"[bold red][ERROR] Флаг '{flag}' неверного формата.[/bold red]")
+        return True, None, None, True
+    try:
+        ctx = get_context()
+        state = ctx.state
+        if state.active_assignment:
+            success, points = state.collect_flag(flag)
+            if success:
+                console.print(
+                    f"[bold green][OK] Флаг найден в активном задании! +{points} очков[/bold green]"
+                )
+                from memory import init_db, update_stats
+
+                conn2 = init_db()
+                update_stats(conn2, points)
+                state.increment_flag()
+                try:
+                    from src.personas.cyberpsychosis import get_cyberpsychosis
+
+                    get_cyberpsychosis().on_risky_action(10)
+                except (ImportError, RuntimeError):
+                    pass
+                newly_earned = state.check_achievements()
+                if newly_earned:
+                    for ach in newly_earned:
+                        console.print(
+                            f"[bold magenta]🏆 Достижение: {ach} [/bold magenta]"
+                        )
+                if state.is_assignment_complete():
+                    console.print(
+                        "[bold cyan][PARTY] Задание завершено! Все флаги собраны.[/bold cyan]"
+                    )
+                    state.complete_assignment()
+                newly_earned = state.check_achievements()
+                if newly_earned:
+                    for ach in newly_earned:
+                        console.print(
+                            f"[bold magenta][TROPHY] Достижение: {ach} [/bold magenta]"
+                        )
+                return True, None, None, True
+
+        flags_file = "data/flags.json"
+        if not os.path.exists(flags_file):
+            console.print(
+                "[yellow]База флагов не найдена. Создайте data/flags.json[/yellow]"
+            )
+            return True, None, None, True
+
+        with open(flags_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if not isinstance(data, dict):
+            console.print("[red]Неверный формат flags.json[/red]")
+            return True, None, None, True
+
+        for fdata in data.get("flags", []):
+            if fdata["flag"] == flag:
+                pts = fdata.get("points", 10)
+                console.print(
+                    f"[bold green][OK] Флаг верный! +{pts} очков[/bold green]"
+                )
+                from memory import init_db, update_stats
+
+                conn2 = init_db()
+                update_stats(conn2, pts)
+                state = ctx.state
+                state.increment_flag()
+                newly_earned = state.check_achievements()
+                if newly_earned:
+                    for ach in newly_earned:
+                        console.print(
+                            f"[bold magenta]🏆 Достижение: {ach} [/bold magenta]"
+                        )
+                data["flags"] = [f for f in data["flags"] if f["flag"] != flag]
+                with open(flags_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                return True, None, None, True
+
+        console.print(f"[bold red][ERROR] Флаг '{flag}' неверный.[/bold red]")
+    except Exception as e:
+        console.print(f"[red]Ошибка: {e}[/red]")
+    return True, None, None, True

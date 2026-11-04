@@ -30,11 +30,16 @@ SOURCES = [
 def _get_parser():
     """Выбрать лучший доступный парсер (M-27)."""
     try:
-        import lxml
+        import lxml  # noqa: F401
 
-        return "lxml-xml"
+        return "xml"
     except ImportError:
-        return "xml"  # Use built-in XML parser instead of html.parser
+        try:
+            import xml.etree.ElementTree  # noqa: F401
+
+            return "html.parser"
+        except ImportError:
+            return "html.parser"
 
 
 def fetch_news(force=False):

@@ -1,18 +1,18 @@
-"""Pydantic state models для CyberTeacher."""
+"""Pydantic state models для CyberTeacher (root shim)."""
 
-from models.achievements_state import AchievementsState
-from models.explanation_state import ExplanationState
-from models.hints_state import HintsState
-from models.learning_state import LearningState
-from models.metrics_state import MetricsState
-from models.persona_state import PersonaState
-from models.progress_state import ProgressState
-from models.risk_state import RiskState
-from models.settings_state import SettingsState
-from models.shop_state import ShopState
-from models.state_models import AppStateModel
-from models.user_profile_state import UserProfileState
-from models.user_state import UserState
+from .achievements_state import AchievementsState
+from .explanation_state import ExplanationState
+from .hints_state import HintsState
+from .learning_state import LearningState
+from .metrics_state import MetricsState
+from .persona_state import PersonaState
+from .progress_state import ProgressState
+from .risk_state import RiskState
+from .settings_state import SettingsState
+from .shop_state import ShopState
+from .state_models import AppStateModel
+from .user_profile_state import UserProfileState
+from .user_state import UserState
 
 __all__ = [
     "AchievementsState",

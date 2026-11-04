@@ -1,35 +1,35 @@
 {
   "news": [
     {
-      "title": "TigerByte Cyber Emerges From Stealth With $3 Million in Funding",
-      "link": "https://www.securityweek.com/tigerbyte-cyber-emerges-from-stealth-with-3-million-in-funding/",
-      "desc": "<p>The company has secured over $7 million in contracts with US government agencies, including the US Space Force, the US Navy, and DARPA.</p>\n<p>The post <a href=\"https://www.securityweek.com/tigerby",
+      "title": "Sysdig Adds Runtime Security and Governance for AI Agents",
+      "link": "https://www.securityweek.com/sysdig-adds-runtime-security-and-governance-for-ai-agents/",
+      "desc": "<p>Sysdig’s platform uses runtime visibility to track AI agent actions and block risky behavior before it reaches production systems.</p>\n<p>The post <a href=\"https://www.securityweek.com/sysdig-adds-",
       "source": "SecurityWeek"
     },
     {
-      "title": "In Other News: Ransomware Developer Sentenced, Plugin4Shell AI Attack, Critical SAP Flaw",
-      "link": "https://www.securityweek.com/in-other-news-ransomware-developer-sentenced-plugin4shell-ai-attack-critical-sap-flaw/",
-      "desc": "<p>Noteworthy stories that might have slipped under the radar: Mandiant's 2026 AI risk report, PhantomRaven malware used by bug bounty hunter, WordPress plugin bug exploited.</p>\n<p>The post <a href=\"",
+      "title": "Barracuda ESG Authentication Bypass Flaw Opens Path to Root",
+      "link": "https://www.securityweek.com/barracuda-email-security-gateway-authentication-bypass-opens-path-to-root/",
+      "desc": "<p>An authentication bypass and a command injection flaw can be chained for root access on Barracuda’s Email Security Gateway appliances.</p>\n<p>The post <a href=\"https://www.securityweek.com/barracud",
       "source": "SecurityWeek"
     },
     {
-      "title": "AI-Built Exploit and Sign-In Flaw Opened Path to Internal OpenAI Code",
-      "link": "https://www.securityweek.com/ai-built-exploit-and-sign-in-flaw-opened-path-to-internal-openai-code/",
-      "desc": "<p>Hacktron researchers earned a bug bounty after demonstrating access to OpenAI employee accounts. </p>\n<p>The post <a href=\"https://www.securityweek.com/ai-built-exploit-and-sign-in-flaw-opened-path",
+      "title": "Agentic Data Security Firm Sentra Raises $150 Million",
+      "link": "https://www.securityweek.com/agentic-data-security-firm-sentra-raises-150-million/",
+      "desc": "<p>The company will invest in agentic data security capabilities and expand its go-to-market organization.</p>\n<p>The post <a href=\"https://www.securityweek.com/agentic-data-security-firm-sentra-raise",
       "source": "SecurityWeek"
     },
     {
-      "title": "23 Million User Records Compromised in Gyazo Data Breach ",
-      "link": "https://www.securityweek.com/23-million-user-records-compromised-in-gyazo-data-breach/",
-      "desc": "<p>Gyazo maker Helpfeel said the attacker exploited a vulnerability in its image upload server to gain unauthorized access.</p>\n<p>The post <a href=\"https://www.securityweek.com/23-million-user-record",
+      "title": "AI-Linked Breaches Mount as WorkOS, Northflank, Trigger.dev Disclose Hacks",
+      "link": "https://www.securityweek.com/ai-linked-breaches-mount-as-workos-northflank-trigger-dev-disclose-hacks/",
+      "desc": "<p>Hackers have been harvesting AI access tokens and have been using AI-assisted offensive tools to automate attacks.</p>\n<p>The post <a href=\"https://www.securityweek.com/ai-linked-breaches-mount-as-",
       "source": "SecurityWeek"
     },
     {
-      "title": "Microsoft Patches 18 Vulnerabilities in AI, Cloud Products",
-      "link": "https://www.securityweek.com/microsoft-patches-18-vulnerabilities-in-ai-cloud-products/",
-      "desc": "<p>Microsoft fixed vulnerabilities across Azure and AI-branded products, with privilege escalation flaws accounting for the majority.</p>\n<p>The post <a href=\"https://www.securityweek.com/microsoft-pa",
+      "title": "Canadian Extradited to US Over Cryptomining Hacks on University Supercomputers",
+      "link": "https://www.securityweek.com/canadian-extradited-to-us-over-cryptomining-hacks-on-university-supercomputers/",
+      "desc": "<p>A federal grand jury indicted two Canadian men for hijacking university supercomputers to secretly mine Electroneum cryptocurrency.</p>\n<p>The post <a href=\"https://www.securityweek.com/canadian-ex",
       "source": "SecurityWeek"
     }
   ],
-  "last": "2026-09-20T10:39:12.903218+00:00"
+  "last": "2026-11-04T18:25:26.216126+00:00"
 }
